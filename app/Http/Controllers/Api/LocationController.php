@@ -141,6 +141,30 @@ class LocationController extends Controller
         }
     }
 
+    public function getLocationInstantCarts( Request $request, $location_id)
+    {
+        $limit = $request->input('limit');
+
+        //  Get the location
+        $location = \App\Location::where('id', $location_id)->first() ?? null;
+
+        //  Get the location instant carts
+        $instant_carts = $location->instantCarts()->paginate($limit) ?? null;
+
+        //  Check if the location instant carts exist
+        if ($instant_carts) {
+
+            //  Return an API Readable Format of the Instant Cart Instance
+            return ( new \App\InstantCart() )->convertToApiFormat($instant_carts);
+            
+        } else {
+
+            //  Not Found
+            return help_resource_not_fonud();
+
+        }
+    }
+
     public function getLocationPaymentMethods( Request $request, $location_id)
     {
         $limit = $request->input('limit');

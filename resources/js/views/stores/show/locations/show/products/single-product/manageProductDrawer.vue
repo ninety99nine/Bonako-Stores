@@ -11,15 +11,18 @@
         -->
         <Drawer
             width="650"
+            :mask="mask"
             :okText="okText" 
             cancelText="Cancel"
             :title="drawerTitle"
+            :maskClosable="false"
             @on-ok="saveProduct()"
             v-model="drawerVisible"
             @on-visible-change="detectClose">
                
             <productManager :store="store" :location="location" :product="product"
-                            @createdProduct="handleCreatedProduct($event)">
+                            @createdProduct="handleCreatedProduct($event)"
+                            @savedProduct="handleSavedProduct($event)">
             </productManager>
 
         </Drawer>
@@ -46,7 +49,11 @@
             product: {
                 type: Object,
                 default: null
-            }
+            },
+            mask: {
+                type: Boolean,
+                default: true
+            },
         },
         data(){
             return{
@@ -59,8 +66,16 @@
                 return this.product ? 'Save Product' : 'Create Product';
             },
             drawerTitle(){
-                //  If we have a product then use "Edit Product" otherwise "Create Product" as the title
-                return this.product ? 'Edit Product' : 'Create Product';
+
+                if( this.product ){
+                    if( this.product['parent_product_id'] == null ){
+                        return 'Edit Product';
+                    }else{
+                        return 'Edit Product Variation';
+                    }
+                }else{
+                    return 'Create Product';
+                }
             }
         },
         methods: {
@@ -73,8 +88,6 @@
                 this.closeModal();
             },
             handleCreatedProduct(product){
-                console.log('handleCreatedProduct 1');
-                console.log(product);
 
                 //  Notify parent of the product created
                 this.$emit('createdProduct', product);
@@ -82,7 +95,16 @@
                 //  Close the drawer
                 this.closeDrawer();
 
-            }
+            },
+            handleSavedProduct(product){
+
+                //  Notify parent of the product saved
+                this.$emit('savedProduct', product);
+                            
+                //  Close the drawer
+                this.closeDrawer();
+
+            },
         }
     }
 </script>

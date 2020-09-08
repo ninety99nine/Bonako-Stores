@@ -11,6 +11,13 @@
                 
                 <div class="clearfix mb-2">
 
+                    <!-- Save Changes Button -->
+                    <basicButton v-if="products.length && productsHaveChanged" type="success" size="default"
+                                class="float-right ml-2" :ripple="productsHaveChanged"
+                                @click.native="updateProductArrangement()">
+                        <span>Save Changes</span>
+                    </basicButton>
+
                     <!-- Add Product Button -->
                     <basicButton :type="addButtonType" size="default" icon="ios-add" :showIcon="true"
                                 class="float-right" :ripple="!productsExist"
@@ -33,6 +40,7 @@
 
                     <!-- Single Product  -->
                     <single-product v-for="(product, index) in products" :key="index" name="single-product"
+                        @savedProduct="handleSavedProduct"
                         :location="location"
                         :products="products"
                         :product="product"
@@ -95,6 +103,7 @@
         data(){
             return {
                 isOpenManageProductModal: false,
+                productsBeforeChanges: null,
                 isLoading: false,
                 location: null,
                 products: []
@@ -112,15 +121,48 @@
             },
             locationUrl(){
                 return decodeURIComponent(this.$route.params.location_url);
-            }
+            },
+            productsHaveChanged(){
+
+                //  Check if the product has been modified
+                var status = !_.isEqual(this.products, this.productsBeforeChanges);
+                
+                return status;
+
+            },
+            productArrangementUrl(){
+                return this.location['_links']['bos:product-arrangement'].href;
+            }            
         },
         methods: {
+            handleSavedProduct(product, index){
+
+                //  Check if the state of the products has already been changed
+                var hasAlreadyChanged = this.productsHaveChanged;
+
+                //  Update the product
+                this.$set(this.products, index, product);
+
+                //  If the state of the products has not already been changed
+                if( hasAlreadyChanged == false ){
+
+                    //  Turn off any changes detected
+                    this.copyProductsBeforeUpdate();
+
+                }
+
+            },
             handleAddProduct(){
                 this.isOpenManageProductModal = true;
             },
+            copyProductsBeforeUpdate(){
+                
+                //  Copy products before changes
+                this.productsBeforeChanges = _.cloneDeep( this.products );
+
+            },
             handleCreatedProduct(product){
-                console.log('handleCreatedProduct 2');
-                console.log(product);
+
                 //  Add the new created product to the top of the list
                 this.products.unshift(product);
 
@@ -194,6 +236,8 @@
 
                         //  Get the products
                         self.products = data['_embedded']['products'] || [];
+        
+                        self.copyProductsBeforeUpdate();
 
                         //  Stop loader
                         self.isLoading = false;
@@ -209,6 +253,53 @@
 
                     });
                 
+            },
+            updateProductArrangement() {
+                
+                //  If we have the product arrangement url
+                if( this.productArrangementUrl ){
+
+                    //  Hold constant reference to the current Vue instance
+                    const self = this;
+
+                    //  Start loader
+                    self.isLoading = true;
+
+                    //  Store data
+                    let arrangementData = {
+                        location_id: this.location.id,
+                        product_arrangement: self.products.map((product, index) => {
+                            return {
+                                "id": product.id, 
+                                "arrangement": (index + 1)
+                            }; 
+                        })
+                    }
+
+                    //  Use the api call() function, refer to api.js
+                    return api.call('post', this.productArrangementUrl, arrangementData)
+                        .then(({data}) => {
+                            
+                            //  Console log the data returned
+                            console.log(data);
+        
+                            self.copyProductsBeforeUpdate();
+
+                            //  Stop loader
+                            self.isLoading = false;
+
+                        })         
+                        .catch(response => { 
+
+                            //  Log the responce
+                            console.error(response);
+
+                            //  Stop loader
+                            self.isLoading = false;
+
+                        });
+                }
+
             }
         },
         created(){

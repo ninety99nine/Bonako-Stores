@@ -70,6 +70,14 @@ class Store extends Model
         return $this->hasMany('App\Coupon', 'store_id');
     }
 
+    /*
+     *  Returns the instant carts that have been assigned to this store
+     */
+    public function instantCarts()
+    {
+        return $this->hasMany('App\InstantCart')->with(['products', 'coupons']);
+    }
+
     /** ATTRIBUTES
      * 
      *  Note that the "resource_type" is defined within CommonTraits

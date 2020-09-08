@@ -52,19 +52,27 @@ class Location extends Model
     }
 
     /*
-     *  Returns the users that have been assigned to this store
+     *  Returns the users that have been assigned to this location
      */
     public function users()
     {
         return $this->belongsToMany('App\User')->withPivot('type');
     }
 
-    /*
-     *  Returns the list of products that belongs to this location
+    /**
+     *  Returns the the products assigned to this location
      */
     public function products()
     {
-        return $this->belongsToMany('App\Product');
+        return $this->morphToMany('App\Product', 'owner', 'product_allocations')->withTimestamps()->orderBy('product_allocations.arrangement');
+    }
+
+    /*
+     *  Returns the instant carts that have been assigned to this location
+     */
+    public function instantCarts()
+    {
+        return $this->hasMany('App\InstantCart')->with(['products', 'coupons']);
     }
 
     /*

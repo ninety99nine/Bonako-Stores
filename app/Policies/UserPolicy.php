@@ -28,7 +28,6 @@ class UserPolicy
      * Determine whether the user can view all users.
      *
      * @param  \App\User  $user
-     * @param  \App\User  $model
      * @return mixed
      */
     public function viewAll(User $user)
@@ -56,7 +55,8 @@ class UserPolicy
      */
     public function create(User $user)
     {
-        return true;
+        //  Any Authenticated user can create a instant carts
+        return auth('api')->user() ? true : false;
     }
 
     /**

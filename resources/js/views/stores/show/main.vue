@@ -218,7 +218,12 @@
                     },
                     {
                         name: 'products',
-                        linkName: 'show-location-products',
+                        linkName: '',
+                        icon: 'ios-basket-outline'
+                    },
+                    {
+                        name: 'Instant Carts',
+                        linkName: 'show-store-instant-carts',
                         icon: 'ios-basket-outline'
                     },
                     {

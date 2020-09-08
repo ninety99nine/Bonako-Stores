@@ -29,10 +29,9 @@ class LocationPolicy
      * Determine whether the user can view all locations.
      *
      * @param  \App\User $user
-     * @param  \App\Location $model
      * @return mixed
      */
-    public function viewAll(User $location)
+    public function viewAll(User $user)
     {
         //  Only the Super Admin can view all locations
         return $user->isSuperAdmin();
@@ -60,8 +59,8 @@ class LocationPolicy
      */
     public function create(User $user)
     {
-        //  Any Authenticated user can create a locations
-        return true;
+        //  Any Authenticated user can create a instant carts
+        return auth('api')->user() ? true : false;
     }
 
     /**

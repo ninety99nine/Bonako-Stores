@@ -71,7 +71,21 @@ class Location extends JsonResource
                 'bos:product-create' => [
                     'href' => route('product-create'),
                     'title' => 'The POST route to create a new product'
-                ]
+                ],
+
+                //  Link to the isntant carts
+                'bos:instant_carts' => [
+                    'href' => route('location-instant-carts', ['location_id' => $this->id]),
+                    'title' => 'The location instant carts',
+                    'total' => $this->instantCarts()->count()
+                ],
+
+                //  Link to the products
+                'bos:products' => [
+                    'href' => route('location-products', ['location_id' => $this->id]),
+                    'title' => 'The location products',
+                    'total' => $this->products()->count()
+                ],
                                 
             ]
 

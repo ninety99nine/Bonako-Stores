@@ -14,12 +14,14 @@ class CartController extends Controller
     {
         $products = $request->input('products') ?? [];
         $store_id = $request->input('store_id') ?? null;
+        $coupon_ids = $request->input('coupon_ids') ?? [];
         $coupon_codes = $request->input('coupon_codes') ?? [];
         $delivery_fee = $request->input('delivery_fee') ?? null;
 
         $info = [
             'items' => $products,
             'store_id' => $store_id,
+            'coupon_ids' => $coupon_ids,
             'coupon_codes' => $coupon_codes,
             'delivery_fee' => $delivery_fee
         ];

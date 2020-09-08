@@ -29,10 +29,9 @@ class ProductPolicy
      * Determine whether the user can view all products.
      *
      * @param  \App\User $user
-     * @param  \App\Product $model
      * @return mixed
      */
-    public function viewAll(User $product)
+    public function viewAll(User $user)
     {
         //  Only the Super Admin can view all products
         return $user->isSuperAdmin();
@@ -60,8 +59,8 @@ class ProductPolicy
      */
     public function create(User $user)
     {
-        //  Any Authenticated user can create a products
-        return true;
+        //  Any Authenticated user can create a instant carts
+        return auth('api')->user() ? true : false;
     }
 
     /**

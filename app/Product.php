@@ -2,14 +2,15 @@
 
 namespace App;
 
-use DB;
 use App\Traits\CommonTraits;
 use App\Traits\ProductTraits;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    use ProductTraits, CommonTraits;
+    use ProductTraits;
+    use CommonTraits;
 
     /**
      * The table associated with the model.
@@ -17,8 +18,7 @@ class Product extends Model
      * @var string
      */
     protected $casts = [
-        
-        'online' => 'boolean',
+        'active' => 'boolean',
         'is_new' => 'boolean',
         'is_featured' => 'boolean',
         'show_on_store' => 'boolean',
@@ -26,8 +26,7 @@ class Product extends Model
         'allow_downloads' => 'boolean',
         'variant_attributes' => 'array',
         'auto_manage_stock' => 'boolean',
-        'allow_stock_management' => 'boolean'
-
+        'allow_stock_management' => 'boolean',
     ];
 
     /**
@@ -36,45 +35,43 @@ class Product extends Model
      * @var array
      */
     protected $fillable = [
-
         //  Product Details
-        'name', 'description', 'online', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price',
+        'name', 'description', 'active', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price',
         'sku', 'barcode', 'stock_quantity', 'allow_stock_management', 'auto_manage_stock',
         'variant_attributes', 'allow_variants', 'allow_downloads', 'show_on_store',
-        'is_new', 'is_featured', 'parent_product_id', 'user_id', 'store_id'
-
+        'is_new', 'is_featured', 'parent_product_id', 'user_id', 'store_id',
     ];
 
-    /**
-     *  Returns the list of locations that this product belongs to
+    /*
+     *  Scope:
+     *  Returns products that are not variables of another product
      */
-    public function locations()
+    public function scopeIsNotVariation($query)
     {
-        return $this->belongsToMany('App\Location');
+        return $query->whereNull('parent_product_id');
     }
 
     /**
-     *  Returns the list of discounts for this product
-     *  
-     *  public function discounts()
-     *  {
-     *     return $this->belongsToMany('App\Discount');
-     *  }
-    */
-    
-    /**
-     *  Returns the list of coupons for this product
-     *  
-     *  public function coupons()
-     *  {
-     *     return $this->belongsToMany('App\Coupon');
-     *  }
-    */
+     *  Returns the list of locations that this product belongs to.
+     * 
+     *   public function locations()
+     *   {
+     *       return $this->belongsToMany('App\Location');
+     *   }
+     */
 
     /**
-     *  Returns the product variations. Variations are different versions 
-     *  of this product such as when this product is available in 
-     *  different sizes, colors or materials, then it will have 
+     *  Returns the locations that this product is assigned to
+     */
+    public function locations()
+    {
+        return $this->morphedByMany('App\Location', 'owner');
+    }
+
+    /**
+     *  Returns the product variations. Variations are different versions
+     *  of this product such as when this product is available in
+     *  different sizes, colors or materials, then it will have
      *  variations with different variables.
      */
     public function variations()
@@ -94,41 +91,34 @@ class Product extends Model
     }
 
     /** ATTRIBUTES
-     * 
-     *  Note that the "resource_type" is defined within CommonTraits
-     * 
+     *
+     *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'unit_price', 'discount', 'on_sale'
+        'resource_type', 'unit_price', 'discount', 'on_sale',
     ];
 
     /**
-     *  Returns the product price for one unit
+     *  Returns the product price for one unit.
      *
      *  This is the total price of the product based on the regular
      *  price and the sale price.
      */
     public function getUnitPriceAttribute()
     {
-        //  If the product is on sale, use the sale price otherwise the regular price
-        return $this->unit_sale_price ?? $this->unit_regular_price;
-    }
-
-    /**
-     *  Returns the product discount for one unit
-     *
-     *  This is the difference in the regular price and sale price.
-     */
-    public function getDiscountAttribute()
-    {
-        if( !is_null($this->unit_regular_price) && !is_null($this->unit_sale_price) ){
-
-            //  Calculate the discount or amount saved
-            return $this->unit_regular_price - $this->unit_sale_price;
-
+        //  If we have a regular price, then we can either return the regular price or sale price
+        if (!is_null($this->unit_regular_price)) {
+            //  If we have a sale price that is less than the regular price
+            if (!is_null($this->unit_sale_price) && $this->unit_sale_price < $this->unit_regular_price) {
+                //  Return the sale price
+                return $this->unit_sale_price;
+            } else {
+                //  Return the regular price
+                return $this->unit_regular_price;
+            }
         }
 
-        return 0;
+        return null;
     }
 
     /*
@@ -136,12 +126,32 @@ class Product extends Model
      */
     public function getOnSaleAttribute()
     {
-        return isset($this->unit_sale_price) ? true : false;
+        //  If we have a regular price and the sale price and if the sale price is less than the regular price
+        if (!is_null($this->unit_regular_price) && !is_null($this->unit_sale_price) && ($this->unit_sale_price < $this->unit_regular_price)) {
+            return true;
+        }
+
+        return false;
     }
 
-    public function setOnlineAttribute($value)
+    /**
+     *  Returns the product discount for one unit.
+     *
+     *  This is the difference in the regular price and sale price.
+     */
+    public function getDiscountAttribute()
     {
-        $this->attributes['online'] = ( ($value == 'true' || $value === '1') ? 1 : 0);
+        if ($this->on_sale) {
+            //  Calculate the discount or amount saved
+            return $this->unit_regular_price - $this->unit_sale_price;
+        }
+
+        return 0;
+    }
+
+    public function setActiveAttribute($value)
+    {
+        $this->attributes['active'] = (($value == 'true' || $value === '1') ? 1 : 0);
     }
 
     public function setAllowStockManagementAttribute($value)
@@ -186,7 +196,6 @@ class Product extends Model
 
         // before delete() method call this
         static::deleting(function ($product) {
-
             //  Delete all variations
             foreach ($product->variations as $variation) {
                 $variation->delete();
@@ -207,5 +216,4 @@ class Product extends Model
             // do the rest of the cleanup...
         });
     }
-
 }

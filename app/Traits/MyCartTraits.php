@@ -27,6 +27,7 @@ trait MyCartTraits
             $info = array_merge([
                 'items' => [], 
                 'store_id' => null, 
+                'coupon_ids' => [],
                 'coupon_codes' => [],
                 'delivery_fee' => null
 
@@ -38,6 +39,9 @@ trait MyCartTraits
 
             //  Get the store id
             $store_id = $info['store_id'];
+
+            //  Get the coupon ids
+            $coupon_ids = $info['coupon_ids'];
 
             //  Get the coupon codes
             $coupon_codes = $info['coupon_codes'];
@@ -94,7 +98,7 @@ trait MyCartTraits
             }
 
             /*  Calculate the total amount discounted because of coupons  */  
-            $coupon_total = $this->calcultateCoupons($grand_total, $coupons, $coupon_codes); 
+            $coupon_total = $this->calcultateCoupons($grand_total, $coupons, $coupon_ids, $coupon_codes); 
             
             //  If we don't have a delivery fee
             if( $delivery_fee == null ){
@@ -141,7 +145,7 @@ trait MyCartTraits
         }
     }
 
-    public function calcultateCoupons($sub_total = 0 , $coupons = [], $coupon_codes = []){
+    public function calcultateCoupons($sub_total = 0 , $coupons = [], $coupon_ids = [], $coupon_codes = []){
 
         $total = 0;
 
@@ -156,35 +160,81 @@ trait MyCartTraits
         //  Foreach cart coupon, calculate the total cart coupon
         foreach ($coupons as $key => $coupon) {
 
-            $isValid = true;
+            //  If this coupon is active
+            if( $coupon['active'] ){
 
-            //  If the coupon uses a code
-            if( $coupon['uses_code'] == true ){
-
-                //	Check if we have a matching coupon code provided
-                $isValid = collect($coupon_codes)->contains(function ($coupon_code, $key) use ($coupon) {
-                    //	Check if we have matching codes
-                    return ($coupon_code == $coupon['code']);
+                $isValid = true;
+    
+                //	Check if we have a matching coupon id provided
+                $isValid = collect($coupon_ids)->contains(function ($coupon_id, $key) use ($coupon) {
+    
+                    //	Check if we have matching id
+                    return ($coupon_id == $coupon['id']);
+    
                 });
-
-            }
-
-            //  If we can continue
-            if( $isValid ){
-
-                array_push( $this->coupons, collect($coupon)->except(['store_id', 'created_at', 'updated_at']));
+    
+                //  If the coupon did not match any given coupon id
+                if( !$isValid ){
+    
+                    //  If the coupon uses a specific code
+                    if( $coupon['uses_code'] == true ){
+        
+                        //	Check if we have a matching coupon code provided
+                        $isValid = collect($coupon_codes)->contains(function ($coupon_code, $key) use ($coupon) {
+        
+                            //	Check if we have matching codes
+                            return ($coupon_code == $coupon['code']);
+                            
+                        });
+        
+                    }
+    
+                }
+    
+                //  If the coupon did not match any given coupon id or coupon code
+                if( !$isValid ){
+    
+                    //  If the coupon must always be applied regardless
+                    if( $coupon['always_apply'] == true ){
+                        
+                        $isValid = true;
+        
+                    }
+                    
+                }
+    
+                //  If we can continue
+                if( $isValid ){
+        
+                    //	Check if we have already applied this coupon
+                    $alreadyApplied = collect($this->coupons)->contains(function ($applied_coupon, $key) use ($coupon) {
+    
+                        //	Check if we have matching ids
+                        return ($applied_coupon['id'] == $coupon['id']);
+                        
+                    });
+    
+                    //  If we haven't yet applied this coupon
+                    if( !$alreadyApplied ){
+                
+                        //  If its a percentage rate based coupon
+                        if ($coupon['is_percentage_rate']) {
             
-                //  If its a percentage rate based coupon
-                if ($coupon['is_percentage_rate']) {
+                            //  Calculate the percentage coupon amount and add to the total coupon
+                            $total += $coupon['percentage_rate']/100 * $sub_total;
+            
+                        //  If its a flat rate based coupon
+                        } elseif ($coupon['is_fixed_rate']) {
+            
+                            //  Add the fixed coupon to the total coupon
+                            $total += $coupon['fixed_rate'];
+            
+                        }
     
-                    //  Calculate the percentage coupon amount and add to the total coupon
-                    $total += $coupon['percentage_rate']/100 * $sub_total;
+                        //  Add this coupon as an applied coupon
+                        array_push( $this->coupons, collect($coupon)->except(['store_id', 'created_at', 'updated_at']));
     
-                //  If its a flat rate based coupon
-                } elseif ($coupon['is_fixed_rate']) {
-    
-                    //  Add the fixed coupon to the total coupon
-                    $total += $coupon['fixed_rate'];
+                    }
     
                 }
 

@@ -3,17 +3,18 @@
     <div>
 
         <!-- Server Error Message Alert -->
+        <Alert v-if="serverGeneralError  && !isSavingChanges" type="warning">{{ serverGeneralError }}</Alert>
         <Alert v-if="serverErrorMessage && !isSavingChanges" type="warning">{{ serverErrorMessage }}</Alert>
 
         <Form ref="productForm" class="product-form" :model="productForm" :rules="productFormRules">
                         
-            <!-- Set Online Status -->
-            <FormItem prop="online" :error="serverOnlineError" class="clearfix mb-0">
+            <!-- Set Active Status -->
+            <FormItem prop="active" class="clearfix mb-0">
                 <div class="d-flex float-right">
                     <span class="d-block font-weight-bold mr-2">{{ statusText }}: </span>
                     <Poptip trigger="hover" title="Turn On/Off" placement="bottom-end" word-wrap width="300" 
                             content="Turn on to allow subscribers to access this product">
-                        <i-Switch v-model="productForm.online" />
+                        <i-Switch v-model="productForm.active" :disabled="isCreating || isSavingChanges"/>
                     </Poptip>
                 </div>
             </FormItem>
@@ -23,7 +24,7 @@
                 <Poptip trigger="focus" placement="top" word-wrap 
                         content="Give your product/service a name e.g Microwave">
                     <Input type="text" v-model="productForm.name" placeholder="Enter product name" 
-                            :disabled="isSavingChanges" maxlength="50" show-word-limit class="w-100">
+                            :disabled="isCreating || isSavingChanges" maxlength="50" show-word-limit class="w-100">
                     </Input>
                 </Poptip>
             </FormItem>
@@ -49,8 +50,8 @@
                             true-color="#13ce66" 
                             false-color="#ff4949" 
                             class="ml-1" size="large"
-                            :disabled="!isEditting || isLoading"
                             :value="productForm.allow_variants" 
+                            :disabled="!isEditting || isSavingChanges"
                             @on-change="productForm.allow_variants = $event"
                             :before-change="handleAllowVariantsBeforeChange">
                             <span slot="open">Yes</span>
@@ -74,14 +75,14 @@
                         </Col>
 
                         <Row v-for="(attribute, index) in productForm.variant_attributes" :gutter="20" :key="index">
-                            
+
                             <Col :span="6">
 
                                 <!-- Attribute Name -->
                                 <FormItem prop="option_name" class="mb-2">
                                     <Poptip trigger="focus" placement="top" word-wrap 
                                             content="Provide an attribute name e.g Size or Material">
-                                        <Input v-model="attribute.name" type="text" placeholder="e.g Sizes" 
+                                        <Input v-model="productForm.variant_attributes[index].name" type="text" placeholder="e.g Sizes" 
                                             class="w-100" maxlength="50">
                                         </Input>
                                     </Poptip>
@@ -99,7 +100,7 @@
                                             v-model="variantAttributeValue[index]" :tags="variantAttributeTags(attribute.values)" class="w-100"
                                             @tags-changed="updateVariantAttributeOptions($event, index)" placeholder="Add variation options" 
                                             @adding-duplicate="handleAddingDuplicate($event)"
-                                            avoid-adding-duplicates/>
+                                            avoid-adding-duplicates />
                                     </Poptip>
                                 </FormItem>
 
@@ -121,8 +122,15 @@
                         </Row>
 
                         <Row :gutter="12">
+
+                            <Col v-if="!hasInvalidVariants" :span="24">
+
+                                <!-- Alert -->
+                                <Alert type="warning">Provide variation names and options</Alert>
+
+                            </Col>
                             
-                            <Col v-if="hasVariants" :span="8">
+                            <Col :span="8">
 
                                 <!-- Generate Variations Button  -->
                                 <Poptip confirm 
@@ -131,7 +139,7 @@
                                         @on-ok="generateVariations(index)">
 
                                     <basicButton 
-                                        :disabled="isCreatingVariations"
+                                        :disabled="!hasInvalidVariants || isCreatingVariations"
                                         type="success" size="small" 
                                         customClass="mt-3 mb-3"
                                         :ripple="false">
@@ -141,7 +149,7 @@
 
                             </Col>
                             
-                            <Col :span="hasVariants ? 16 : 24" class="clearfix">
+                            <Col :span="16" class="clearfix">
                                 <basicButton 
                                     customClass="mt-3 mb-3" :style="{ width: 'fit-content', position:'relative' }"
                                     @click.native="addVariantAttribute()"
@@ -173,7 +181,8 @@
                             :product="variation"
                             :location="location"
                             :store="store"
-                            :index="index">
+                            :index="index"
+                            :mask="false">
                         </single-product>
 
                     </div>
@@ -199,9 +208,9 @@
                 <!-- Enter Description -->
                 <FormItem label="Description" prop="description" :error="serverDescriptionError" class="mb-3">
                     <Poptip trigger="focus" placement="top" word-wrap 
-                            content="Give your product/service a name e.g Microwave">
+                            content="Describe your product">
                         <Input type="textarea" v-model="productForm.description" placeholder="Enter product description" 
-                                :disabled="isSavingChanges" maxlength="500" show-word-limit class="w-100">
+                                :disabled="isCreating || isSavingChanges" maxlength="500" show-word-limit class="w-100">
                         </Input>
                     </Poptip>
                 </FormItem>
@@ -256,7 +265,97 @@
 
                     </Col>
 
-                </Row>       
+                </Row>      
+
+                <!-- Heading -->
+                <Divider orientation="left" class="font-weight-bold mt-4">Inventory</Divider>
+
+                <!-- Stock Management -->
+                <Row :gutter="12">
+
+                    <Col :span="12">
+
+                        <!-- Allow Stock Management -->
+                        <FormItem label="Allow Stock Management" prop="allow_stock_management" class="mb-3">
+                            <Poptip trigger="hover" width="380" placement="top-start" word-wrap 
+                                    content="Does your product/service have stock or limited items?">
+                                <i-Switch
+                                    true-color="#13ce66" 
+                                    false-color="#ff4949" 
+                                    class="ml-1" size="large"
+                                    :disabled="isCreating || isSavingChanges"
+                                    :value="productForm.allow_stock_management" 
+                                    @on-change="productForm.allow_stock_management = $event">
+                                    <span slot="open">Yes</span>
+                                    <span slot="close">No</span>
+                                </i-Switch>
+                            </Poptip>
+                        </FormItem>
+
+                    </Col>
+
+                    <template v-if="productForm.allow_stock_management">
+                        
+                        <Col :span="12">
+
+                            <!-- Auto Manage Stock -->
+                            <FormItem label="Manage Stock Automatically" prop="auto_manage_stock" class="mb-3">
+                                <Poptip trigger="hover" width="350" placement="top-end" word-wrap 
+                                        content="Allow the system to automatically update the number of stock remaining each time customers order or purchase this product/service? - If this is turned off then you must manually update the product quantity yourself">
+                                    <i-Switch
+                                        true-color="#13ce66" 
+                                        false-color="#ff4949" 
+                                        class="ml-1" size="large"
+                                        :value="productForm.auto_manage_stock" 
+                                        :disabled="isCreating || isSavingChanges"
+                                        @on-change="productForm.auto_manage_stock = $event">
+                                        <span slot="open">Yes</span>
+                                        <span slot="close">No</span>
+                                    </i-Switch>
+                                </Poptip>
+                            </FormItem>
+
+                        </Col>
+
+                        <Col :span="8">
+
+                            <!-- Stock Quantity -->
+                            <FormItem label="Stock Quantity" prop="stock_quantity" class="mb-3">
+                                <Poptip trigger="focus" width="350" placement="top-start" word-wrap 
+                                        content="How much stock (Quantity) of this product/service do you have?">  
+                                    <InputNumber v-model="productForm.stock_quantity" class="w-100" placeholder="100"></InputNumber>
+                                </Poptip>
+                            </FormItem>
+
+                        </Col>
+
+                        <Col :span="8">
+
+                            <!-- SKU -->
+                            <FormItem label="SKU (Stock Keeping Unit)" prop="sku" class="mb-3">
+                                <Poptip trigger="focus" width="380" placement="top-start" word-wrap 
+                                        content="Assign a unique number to this product to identify it for inventory management">
+                                    <Input type="text" v-model="productForm.sku" placeholder="Enter unique code" class="w-100"></Input>
+                                </Poptip>
+                            </FormItem>
+
+                        </Col>
+                        
+                        <Col :span="8">
+
+                            <!-- Barcode -->
+                            <FormItem label="Barcode" prop="barcode" class="mb-3">
+                                <Poptip trigger="focus" width="380" placement="top-end" word-wrap 
+                                        content="Assign a unique barcode to this product to identify it for inventory management">
+                                    <Input type="text" v-model="productForm.barcode" placeholder="Enter unique barcode" class="w-100"></Input>
+                                </Poptip>
+                            </FormItem>
+
+                        </Col>
+
+                    </template>
+
+                </Row> 
 
             </template>
             
@@ -328,10 +427,8 @@
             return {
                 variations: [],
                 productForm: null,
-                isLoading: false,
                 isCreating: false,
                 isSavingChanges: false,
-                productHasChanged: false,
                 productBeforeChanges: null,
                 variantAttributeValue: [],
                 productFormRules: {
@@ -376,20 +473,7 @@
                 handler: function (val, oldVal) {
 
                     //  Reset everything
-                    this.setFormAndCaptureBeforeChanges();
-
-                },
-                deep: true
-
-            },
-            /** Keep track of changes on the product form
-             *  This includes changes as we edit the form details
-             */
-            productForm: {
-
-                handler: function (val, oldVal) {
-
-                    this.notifyUnsavedChangesStatus();
+                    this.setProductFormAndCaptureBeforeChanges();
 
                 },
                 deep: true
@@ -403,14 +487,14 @@
             }
         },
         computed: {
+            serverGeneralError(){
+                return (this.serverErrors || {}).general;
+            },
             serverNameError(){
                 return (this.serverErrors || {}).name;
             },
             serverDescriptionError(){
                 return (this.serverErrors || {}).description;
-            },
-            serverOnlineError(){
-                return (this.serverErrors || {}).online;
             },
             serverRegularPriceError(){
                 return (this.serverErrors || {}).unit_regular_price;
@@ -432,7 +516,6 @@
                 }
             },
             createProductUrl(){
-
                 if( this.location ){
 
                     return this.location['_links']['bos:product-create'].href;
@@ -446,9 +529,9 @@
             isEditting(){
                 return this.product ? true : false
             },
-            hasVariants(){
+            hasInvalidVariants(){
 
-                // Check if we have variant attributes
+                //  Check if we have variant attributes
                 if((this.productForm.variant_attributes || {}).length){
 
                     for(var x=0; x < (this.productForm.variant_attributes || {}).length; x++){
@@ -471,63 +554,68 @@
                 return true;
             },
             statusText(){
-                return this.productForm.online ? 'Online' : 'Offline';
+                return this.productForm.active ? 'Online' : 'Offline';
             },
             maximumSalePrice(){
                 var regular_price = this.productForm.unit_regular_price || 0;
                 var less_than_regular_price = regular_price - 1;
 
                 return (less_than_regular_price > 0) ? less_than_regular_price : 0;
-            }
+            },
+            productHasChanged(){
+
+                //  Check if the product has been modified
+                var status = !_.isEqual(this.productForm, this.productBeforeChanges);
+
+                //  Notify the parent component of the change status
+                this.$emit('unsavedChanges', status);
+                
+                return status;
+
+            },
         },
         methods: {
-            setFormAndCaptureBeforeChanges(){
+            setProductFormAndCaptureBeforeChanges(){
+
                 //  Set the form details
                 this.productForm = this.getProductForm();
 
                 //  Save the form before any changes
                 this.copyProductBeforeUpdate();
+
             },
             getProductForm(){
-
-                return Object.assign({},
+                
+                return _.cloneDeep(Object.assign({},
                     //  Set the default form details
                     {
                         name: '',
-                        online: true,
+                        active: true,
                         description: '',
                         type: 'physical',
                         allow_variants: false,
                         variant_attributes: null,
+
+                        //  Pricing
                         unit_regular_price: 0,
                         unit_sale_price : 0,
-                        cost_per_item: 0
+                        cost_per_item: 0,
+
+                        //  Inventory
+                        allow_stock_management: true,
+                        auto_manage_stock: true,
+                        stock_quantity: 0,
+                        barcode: 0,
+                        sku : 0,
 
                     //  Overide the default form details with the provided product details
-                    }, this.product);
+                    }, this.product));
 
             },
             copyProductBeforeUpdate(){
                 
                 //  Clone the product
                 this.productBeforeChanges = _.cloneDeep( this.productForm );
-
-            },
-            productHasBeenUpdated(){
-
-                //  Check if the product has been modified
-                return !_.isEqual(this.productForm, this.productBeforeChanges);
-
-            },
-            notifyUnsavedChangesStatus(){
-
-                var status = this.productHasBeenUpdated();
-
-                //  Notify the parent component of the change status
-                this.$emit('unsavedChanges', status);
-
-                //  Update the local state of the change status
-                this.productHasChanged = status;
 
             },
             handleSubmit(){
@@ -599,8 +687,6 @@
                         });
                             
                         self.copyProductBeforeUpdate();
-
-                        self.notifyUnsavedChangesStatus();
                         
                     }).catch((response) => {
                 
@@ -846,6 +932,13 @@
                 });
             },
             addVariantAttribute(){
+
+                if( this.productForm.variant_attributes == null ){
+
+                    this.productForm.variant_attributes = [];
+
+                }
+
                 this.productForm.variant_attributes.push({  name: 'Color', values: ['Blue', 'Red'] });
             },
             removeVariantAttribute(index) {
@@ -859,7 +952,7 @@
                     /** Update the product details. This is so that we can actually save the current
                      *  variant attributes of the product. 
                      */
-                    self.handleCreateOrUpdate();
+                    self.handleSubmit();
 
                     /** Re-fetch the product variations so that they can pick up the changes of the
                      *  parent variant attributes. 
@@ -887,10 +980,6 @@
 
                 if( (updateData || []).length ){
 
-                    //  Console log to acknowledge the start of api process
-                    console.log('Attempt to save product variations using the following...');  
-                    console.log(updateData);
-
                     //  Start loader
                     self.isCreatingVariations = true;
 
@@ -912,7 +1001,7 @@
                              *  the variations this will affect specific attributes on the product iteself. 
                              *  We therefore need a fresh version to pick up those changed attributes.
                              */
-                            self.handleCreateOrUpdate();
+                            self.handleSubmit();
 
                         })         
                         .catch(response => { 
@@ -929,10 +1018,10 @@
         },
         created(){
 
-            this.setFormAndCaptureBeforeChanges();
+            this.setProductFormAndCaptureBeforeChanges();
 
             //  If the product allows variations
-            if( (this.product || {}).allow_variants ){
+            if( (this.productForm || {}).allow_variants ){
                 
                 //  Get the product variations
                 this.fetchVariations();

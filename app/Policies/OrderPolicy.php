@@ -29,10 +29,9 @@ class OrderPolicy
      * Determine whether the user can view all orders.
      *
      * @param  \App\User $user
-     * @param  \App\Order $model
      * @return mixed
      */
-    public function viewAll(User $order)
+    public function viewAll(User $user)
     {
         //  Only the Super Admin can view all orders
         return $user->isSuperAdmin();
@@ -60,8 +59,8 @@ class OrderPolicy
      */
     public function create(User $user)
     {
-        //  Any Authenticated user can create a orders
-        return true;
+        //  Any Authenticated user can create a instant carts
+        return auth('api')->user() ? true : false;
     }
 
     /**

@@ -141,6 +141,30 @@ class StoreController extends Controller
         }
     }
 
+    public function getStoreInstantCarts( Request $request, $store_id)
+    {
+        $limit = $request->input('limit');
+
+        //  Get the store
+        $store = \App\Store::where('id', $store_id)->first() ?? null;
+
+        //  Get the store instant carts
+        $instant_carts = $store->instantCarts()->paginate($limit) ?? null;
+
+        //  Check if the store instant carts exist
+        if ($instant_carts) {
+
+            //  Return an API Readable Format of the Instant Cart Instance
+            return ( new \App\InstantCart() )->convertToApiFormat($instant_carts);
+            
+        } else {
+
+            //  Not Found
+            return help_resource_not_fonud();
+
+        }
+    }
+
     public function deleteStore( Request $request, $store_id )
     {
         //  Get the store

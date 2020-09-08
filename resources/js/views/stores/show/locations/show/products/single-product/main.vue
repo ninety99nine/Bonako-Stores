@@ -186,11 +186,12 @@
         </div>
 
         <!-- 
-            MODAL TO ADD / CLONE / EDIT STATIC OPTION
+            MODAL TO ADD / CLONE / EDIT PRODUCT
         -->
         <template v-if="isOpenManageProductDrawer">
 
             <manageProductDrawer
+                :mask="mask"
                 :index="index"
                 :store="store"
                 :product="product"
@@ -198,6 +199,7 @@
                 :products="products"
                 :isCloning="isCloning"
                 :isEditing="isEditing"
+                @savedProduct="handleSavedProduct($event)"
                 @visibility="isOpenManageProductDrawer = $event">
             </manageProductDrawer>
 
@@ -235,6 +237,10 @@
             products: {
                 type: Array,
                 default:() => []
+            },
+            mask: {
+                type: Boolean,
+                default: true
             }
         },
         data(){
@@ -304,6 +310,20 @@
                     //  Get the product variations
                     this.fetchProductVariations();
                 }
+            },
+            handleSavedProduct(product){
+
+                //  Notify parent of the product saved
+                this.$emit('savedProduct', product, this.index);
+
+                //  If the toggle is eexpanded and the product allows variants
+                if( this.isExpanded && this.product.allow_variants ){
+
+                    //  Get the product variations
+                    this.fetchProductVariations();
+
+                }
+
             },
             handleEditProduct(){
                 this.isCloning = false;
@@ -383,6 +403,7 @@
                 
             },
             handleOpenManageProductModal(){
+                this.isExpanded = false;
                 this.isOpenManageProductDrawer = true;
             }
         }

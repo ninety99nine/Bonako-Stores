@@ -16,10 +16,10 @@ class Product extends JsonResource
     public function toArray($request)
     {
         return [
-
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'active' => $this->active,
             'type' => $this->type,
             'cost_per_item' => $this->cost_per_item,
             'unit_regular_price' => $this->unit_regular_price,
@@ -37,7 +37,6 @@ class Product extends JsonResource
             'is_featured' => $this->is_featured,
             'parent_product_id' => $this->parent_product_id,
 
-            
             /*  Attributes  */
             'on_sale' => $this->on_sale,
             'unit_price' => $this->unit_price,
@@ -48,7 +47,6 @@ class Product extends JsonResource
 
             /*  Resource Links */
             '_links' => [
-
                 'curies' => [
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
@@ -56,22 +54,20 @@ class Product extends JsonResource
                 //  Link to current resource
                 'self' => [
                     'href' => route('product', ['product_id' => $this->id]),
-                    'title' => 'This product'
+                    'title' => 'This product',
                 ],
 
                 //  Link to the product variations
                 'bos:variations' => [
                     'href' => route('product-variations', ['product_id' => $this->id]),
                     'title' => 'The product variations',
-                    'total' => $this->variations()->count()
-                ]
-                
+                    'total' => $this->variations()->count(),
+                ],
             ],
 
             '_embedded' => [
                 'variables' => $this->whenLoaded('variables'),
-            ]
-
+            ],
         ];
     }
 

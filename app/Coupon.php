@@ -16,7 +16,9 @@ class Coupon extends Model
      */
     protected $casts = [
         
+        'active' => 'boolean',
         'uses_code' => 'boolean',
+        'always_apply' => 'boolean',
         'is_fixed_rate' => 'boolean',
         'is_percentage_rate' => 'boolean'
 
@@ -28,8 +30,8 @@ class Coupon extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'description', 'uses_code', 'code', 'is_fixed_rate', 'fixed_rate', 
-        'is_percentage_rate', 'percentage_rate', 'store_id'
+        'name', 'description', 'active', 'always_apply', 'uses_code', 'code', 'is_fixed_rate', 
+        'fixed_rate', 'is_percentage_rate', 'percentage_rate', 'store_id'
     ];
 
     /*
@@ -40,12 +42,12 @@ class Coupon extends Model
         return $this->belongsTo('App\Store', 'store_id');
     }
 
-    /*
-     *  Returns the list of products that this coupon has been assigned to
+    /**
+     *  Returns the instant carts that this coupon is assigned to
      */
-    public function products()
+    public function instantCarts()
     {
-        return $this->belongsToMany('App\Product');
+        return $this->morphedByMany('App\InstantCart', 'owner');
     }
 
     /** ATTRIBUTES
@@ -56,7 +58,16 @@ class Coupon extends Model
     protected $appends = [
         'resource_type',
     ];
-
+    
+    public function setActiveAttribute($value)
+    {
+        $this->attributes['active'] = (($value == 'true' || $value == '1') ? 1 : 0);
+    }
+    
+    public function setAlwaysApplyAttribute($value)
+    {
+        $this->attributes['always_apply'] = (($value == 'true' || $value == '1') ? 1 : 0);
+    }
     
     public function setUsesCodeAttribute($value)
     {

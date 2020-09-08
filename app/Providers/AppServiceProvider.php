@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\ServiceProvider;
 
@@ -24,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        Relation::morphMap([
+            'location' => 'App\Location',
+            'instant_cart' => 'App\InstantCart',
+        ]);
+
         /*
             To Help With Our HATEOAS (HAL) API - I include the following as suggested by Laravel
             ------------------------------------------------------------------------------------

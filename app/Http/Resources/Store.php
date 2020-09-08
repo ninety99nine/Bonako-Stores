@@ -54,7 +54,14 @@ class Store extends JsonResource
                 'bos:product-create' => [
                     'href' => route('product-create'),
                     'title' => 'The POST route to create a new product'
-                ]
+                ],
+
+                //  Link to the isntant carts
+                'bos:instant_carts' => [
+                    'href' => route('store-instant-carts', ['store_id' => $this->id]),
+                    'title' => 'The store instant carts',
+                    'total' => $this->instantCarts()->count()
+                ],
 
             ],
 

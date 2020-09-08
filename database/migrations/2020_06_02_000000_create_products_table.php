@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class CreateProductsTable extends Migration
 {
@@ -12,13 +12,12 @@ class CreateProductsTable extends Migration
     public function up()
     {
         Schema::create('products', function (Blueprint $table) {
-
             $table->increments('id');
 
             /*  Product Details  */
             $table->string('name')->nullable();
             $table->string('description', 500)->nullable();
-            $table->boolean('online')->nullable()->default(false);
+            $table->boolean('active')->nullable()->default(false);
             $table->string('type')->nullable();
             $table->float('cost_per_item')->nullable();
             $table->float('unit_regular_price')->nullable();
@@ -38,12 +37,10 @@ class CreateProductsTable extends Migration
             $table->unsignedInteger('store_id')->nullable();
             $table->unsignedInteger('user_id')->nullable();
 
-            
             $table->longText('description')->nullable()->default('text');
 
             /*  Timestamps  */
             $table->timestamps();
-            
         });
     }
 

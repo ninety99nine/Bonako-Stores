@@ -521,9 +521,6 @@
                             cost: null
                         };
 
-                        console.log('this.deliveryDestinations before push');
-                        console.log(this.deliveryDestinations);
-
                         //  Update the delivery destination with this new destination
                         this.deliveryDestinations.push(newDestination);
 

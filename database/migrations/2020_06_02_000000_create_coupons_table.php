@@ -18,6 +18,8 @@ class CreateCouponsTable extends Migration
             /*  Coupon Details  */    
             $table->string('name')->nullable();
             $table->string('description')->nullable();
+            $table->boolean('active')->nullable()->default(false);
+            $table->boolean('always_apply')->nullable()->default(false);
             $table->boolean('uses_code')->nullable()->default(false);
             $table->string('code');
             $table->boolean('is_fixed_rate')->nullable()->default(false);

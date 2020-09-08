@@ -50,7 +50,7 @@ let routes = [
 
     //  Single Store Overview
     {
-        path: '/stores/:store_url/overview',
+        path: '/stores/:store_url',
         meta: { layout: 'Dashboard', middlewareAuth: true },
         component: require('./views/stores/show/main.vue').default,
         children: [
@@ -58,6 +58,11 @@ let routes = [
                 path: '/', name: 'show-store-overview',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
                 component: require('./views/stores/show/overview/main.vue').default
+            },
+            {
+                path: 'instant-carts', name: 'show-store-instant-carts',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/instant-carts/main.vue').default
             }
         ]
     },

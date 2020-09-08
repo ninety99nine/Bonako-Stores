@@ -29,10 +29,9 @@ class StorePolicy
      * Determine whether the user can view all stores.
      *
      * @param  \App\User $user
-     * @param  \App\Store $model
      * @return mixed
      */
-    public function viewAll(User $store)
+    public function viewAll(User $user)
     {
         //  Only the Super Admin can view all stores
         return $user->isSuperAdmin();
@@ -59,8 +58,8 @@ class StorePolicy
      */
     public function create(User $user)
     {
-        //  Any Authenticated user can create a store
-        return true;
+        //  Any Authenticated user can create a instant carts
+        return auth('api')->user() ? true : false;
     }
 
     /**
