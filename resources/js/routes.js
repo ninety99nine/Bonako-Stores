@@ -92,6 +92,11 @@ let routes = [
                 path: ':location_url/products', name: 'show-location-products',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
                 component: require('./views/stores/show/locations/show/products/main.vue').default
+            },
+            {
+                path: ':location_url/instant-carts', name: 'show-location-instant-carts',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/instant-carts/main.vue').default
             }
         ]
     }

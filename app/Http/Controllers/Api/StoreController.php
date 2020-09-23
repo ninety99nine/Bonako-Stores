@@ -141,6 +141,54 @@ class StoreController extends Controller
         }
     }
 
+    public function getStoreProducts( Request $request, $store_id)
+    {
+        $limit = $request->input('limit');
+
+        //  Get the store
+        $store = \App\Store::where('id', $store_id)->first() ?? null;
+
+        //  Get the store products
+        $products = $store->products()->paginate($limit) ?? null;
+
+        //  Check if the store products exist
+        if ($products) {
+
+            //  Return an API Readable Format of the Product Instance
+            return ( new \App\Product() )->convertToApiFormat($products);
+            
+        } else {
+
+            //  Not Found
+            return help_resource_not_fonud();
+
+        }
+    }
+
+    public function getStoreCoupons( Request $request, $store_id)
+    {
+        $limit = $request->input('limit');
+
+        //  Get the store
+        $store = \App\Store::where('id', $store_id)->first() ?? null;
+
+        //  Get the store coupons
+        $coupons = $store->coupons()->paginate($limit) ?? null;
+
+        //  Check if the store coupons exist
+        if ($coupons) {
+
+            //  Return an API Readable Format of the Coupon Instance
+            return ( new \App\Coupon() )->convertToApiFormat($coupons);
+            
+        } else {
+
+            //  Not Found
+            return help_resource_not_fonud();
+
+        }
+    }
+
     public function getStoreInstantCarts( Request $request, $store_id)
     {
         $limit = $request->input('limit');

@@ -40,6 +40,7 @@ class Product extends JsonResource
             /*  Attributes  */
             'on_sale' => $this->on_sale,
             'unit_price' => $this->unit_price,
+            'sale_discount' => $this->sale_discount,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,

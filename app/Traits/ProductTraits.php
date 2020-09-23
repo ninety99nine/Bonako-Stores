@@ -86,15 +86,16 @@ trait ProductTraits
             $location = \App\Location::where('id', $this->request->input('location_id'))->first();
 
             //  Get all the current product allocations by order of arrangement
-            $product_allocations = DB::table('location_product')->where('location_id', $location->id)->orderBy('arrangement')->get();
+            $product_allocations = DB::table('product_allocations')->where('owner_id', $location->id)->where('owner_type', 'location')->orderBy('arrangement')->get();
 
             //  Create a new product allocation and add the product we just created as the first on the list
             $new_product_allocations[] = [
                 'arrangement' => 1,
+                'owner_type' => 'location',
+                'owner_id' => $location->id,
                 'created_at' => DB::raw('now()'),
                 'updated_at' => DB::raw('now()'),
                 'product_id' => $this->product->id,
-                'location_id' => $location->id,
             ];
 
             /** Get all the current product allocations and add them in their original
@@ -104,19 +105,20 @@ trait ProductTraits
              */
             foreach ($product_allocations as $key => $product_allocation) {
                 $new_product_allocations[] = [
+                    'owner_type' => 'location',
+                    'owner_id' => $location->id,
                     'arrangement' => ($key + 2),
                     'created_at' => DB::raw('now()'),
                     'updated_at' => DB::raw('now()'),
-                    'location_id' => $location->id,
                     'product_id' => $product_allocation->product_id,
                 ];
             }
 
             //  Delete all the current product allocations
-            DB::table('location_product')->where('location_id', $location->id)->delete();
+            DB::table('product_allocations')->where('owner_id', $location->id)->where('owner_type', 'location')->delete();
 
             //  Insert all the product allocations in their updated order of arrangement
-            DB::table('location_product')->insert($new_product_allocations);
+            DB::table('product_allocations')->insert($new_product_allocations);
         }
     }
 
@@ -131,7 +133,6 @@ trait ProductTraits
     {
         try {
             if ($variantAttributeInfo) {
-
                 /*
                  *  Set the allow variants to true and update the product variant attributes
                  */
@@ -139,7 +140,7 @@ trait ProductTraits
                     'variant_attributes' => $variantAttributeInfo,
                     'allow_variants' => true,
                 ]);
-                
+
                 /** Structure Of Variables
                  *
                  ***  $variantAttributeInfo:.
@@ -263,7 +264,6 @@ trait ProductTraits
                                 *  and we should not create a new variation
                                 */
                             if ($diff->count() == 0) {
-                                
                                 //  Do not delete the existing variation
                                 array_push($excluded_variation_ids, $existing_variation['id']);
 
@@ -296,7 +296,6 @@ trait ProductTraits
 
                     //  Foearch product variation
                     foreach ($created_variations as $x => $created_variation) {
-
                         //  Get the product variation id
                         $product_id = $created_variation['id'];
 

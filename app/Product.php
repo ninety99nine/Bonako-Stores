@@ -51,9 +51,18 @@ class Product extends Model
         return $query->whereNull('parent_product_id');
     }
 
+    /*
+     *  Scope:
+     *  Returns products that are being searched
+     */
+    public function scopeSearch($query, $searchTerm)
+    {
+        return $query->where('name', 'like', '%'.$searchTerm.'%')->orWhere('description', 'like', '%'.$searchTerm.'%');
+    }
+
     /**
      *  Returns the list of locations that this product belongs to.
-     * 
+     *
      *   public function locations()
      *   {
      *       return $this->belongsToMany('App\Location');
@@ -61,7 +70,7 @@ class Product extends Model
      */
 
     /**
-     *  Returns the locations that this product is assigned to
+     *  Returns the locations that this product is assigned to.
      */
     public function locations()
     {
@@ -95,7 +104,7 @@ class Product extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'unit_price', 'discount', 'on_sale',
+        'resource_type', 'unit_price', 'sale_discount', 'on_sale',
     ];
 
     /**
@@ -135,14 +144,14 @@ class Product extends Model
     }
 
     /**
-     *  Returns the product discount for one unit.
+     *  Returns the product sale discount for one unit.
      *
      *  This is the difference in the regular price and sale price.
      */
-    public function getDiscountAttribute()
+    public function getSaleDiscountAttribute()
     {
         if ($this->on_sale) {
-            //  Calculate the discount or amount saved
+            //  Calculate the sale discount or amount saved
             return $this->unit_regular_price - $this->unit_sale_price;
         }
 

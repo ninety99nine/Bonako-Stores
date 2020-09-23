@@ -27,6 +27,7 @@ class InstantCart extends JsonResource
 
             //  Attributes
             'short_code' => $this->short_code,
+            'cart' => $this->cart,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,

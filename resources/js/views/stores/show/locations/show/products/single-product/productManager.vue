@@ -40,7 +40,7 @@
                         <template slot="content">
                             <span class="d-block">Add variables if this product/service comes in multiple versions e.g) different sizes, materials or colors. You can change the price and information for each variable</span>
                         
-                            <span v-if="!isEditting"
+                            <span v-if="!isEditing"
                                     style="margin-top: -15px;"
                                     class="border-top d-block pt-2">
                                 <span class="font-weight-bold text-primary">Note: Only available when editing this product after you create it</span>
@@ -51,7 +51,7 @@
                             false-color="#ff4949" 
                             class="ml-1" size="large"
                             :value="productForm.allow_variants" 
-                            :disabled="!isEditting || isSavingChanges"
+                            :disabled="!isEditing || isSavingChanges"
                             @on-change="productForm.allow_variants = $event"
                             :before-change="handleAllowVariantsBeforeChange">
                             <span slot="open">Yes</span>
@@ -359,7 +359,7 @@
 
             </template>
             
-            <template v-if="isEditting">
+            <template v-if="isEditing">
 
                 <!-- Save Changes Button -->
                 <FormItem v-if="!isSavingChanges">
@@ -526,7 +526,7 @@
 
                 }
             },
-            isEditting(){
+            isEditing(){
                 return this.product ? true : false
             },
             hasInvalidVariants(){
@@ -630,7 +630,7 @@
                     if (valid) {
                         
                         //  If we are editing
-                        if( this.isEditting ){
+                        if( this.isEditing ){
 
                             //  Attempt to save product
                             this.saveProduct();

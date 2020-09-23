@@ -5,12 +5,13 @@
         <Col :span="20" :offset="2">
 
             <h1 class="border-bottom-dashed pb-3 mb-3">Instant Carts</h1>
-
+            
+            <!-- We can only add an instant cart if we have a location selected -->
             <div class="clearfix">
 
                 <!-- Add Instant Cart Button -->
                 <basicButton :type="addButtonType" size="default" icon="ios-add" :showIcon="true" iconDirection="left"
-                            class="float-right mb-2" :ripple="!instantCartsExist" :disabled="isLoading"
+                            class="float-right mb-2" :ripple="!instantCartsExist && !isLoading" :disabled="isLoading"
                             @click.native="handleCreateInstantCart()">
                     <span>Add Instant Cart</span>
                 </basicButton>
@@ -43,11 +44,14 @@
         <template v-if="isOpenManageInstantCartDrawer">
 
             <manageInstantCartDrawer
+                :index="index"
                 :store="store"
-                :isCloning="false"
-                :isEditing="false"
                 :location="location"
+                :instantCart="instantCart"
                 :instantCarts="instantCarts"
+                @isSaving="isLoading = $event"
+                @isCreating="isLoading = $event"
+                @savedInstantCart="handleSavedInstantCart"
                 @createdInstantCart="handleCreatedInstantCart($event)"
                 @visibility="isOpenManageInstantCartDrawer = $event">
             </manageInstantCartDrawer>
@@ -61,10 +65,12 @@
 <script>
 
     import manageInstantCartDrawer from './manageInstantCartDrawer.vue';
+    import miscMixin from './../../../../components/_mixins/misc/main.vue';
     import Loader from './../../../../components/_common/loaders/default.vue';
     import basicButton from './../../../../components/_common/buttons/basicButton.vue';
 
     export default {
+        mixins: [miscMixin],
         components: { 
             manageInstantCartDrawer, Loader, basicButton 
         },
@@ -82,28 +88,59 @@
             return {
                 instantCarts: [],
                 isLoading: false,
+                instantCart: null,
                 columns: [
                     {
                         title: 'Name',
-                        key: 'name'
+                        key: 'name',
+                        width: 200
                     },
                     {
-                        title: 'Prodcuts',
-                        key: 'products',
+                        title: 'Location',
+                        render: (h, params) => {
+                            return h('div', this.renderLocationTag(h, params))
+                        }
+                    },
+                    {
+                        title: 'Products',
                         render: (h, params) => {
                             return h('div', this.renderProductTags(h, params))
                         }
                     },
                     {
                         title: 'Coupons',
-                        key: 'coupons',
                         render: (h, params) => {
                             return h('div', this.renderCouponTags(h, params))
                         }
                     },
                     {
+                        title: 'Total',
+                        render: (h, params) => {
+                            return h('div', this.renderTotal(h, params))
+                        }
+                    },
+                    {
                         title: 'Code',
                         key: 'short_code'
+                    },
+                    {
+                        title: '',
+                        render: (h, params) => {
+                            return h('Button', {
+                                props: {
+                                    type: 'primary',
+                                    size: 'small'
+                                },
+                                style: {
+                                    
+                                },
+                                on: {
+                                    click: () => {
+                                        this.handleEditInstantCart(params.row, params.index)
+                                    }
+                                }
+                            }, 'Edit')
+                        }
                     }
                 ],
                 isOpenManageInstantCartDrawer: false,
@@ -118,9 +155,30 @@
             },
             addButtonType(){
                 return this.instantCartsExist ? 'default' : 'success';
-            }          
+            },
+            storeUrl(){
+                return this.store['_links']['self'].href;
+            },
+            encodedStoreUrl(){
+                return encodeURIComponent(this.storeUrl);
+            },
         },
         methods: {
+            renderLocationTag(h, params){
+
+                //  Get the product
+                var location = params.row['_embedded'].location;
+
+                return [
+                    h('Tag', {
+                        props: {
+                            type: 'border',
+                            color: 'blue'
+                        }
+                    }, location.name)
+                ];
+
+            },
             renderProductTags(h, params){
 
                 //  Get the products
@@ -160,23 +218,35 @@
 
                     var productList = products.map((product) => {
 
+                        var unit_regular_price = product.unit_regular_price;
+                        var sale_discount = product.sale_discount;
                         var quantity = product.pivot.quantity;
+                        var on_sale = product.on_sale;
                         var name = product.name;
 
-                        return h('ListItem', {
-                            class: ['font-weight-bold']
-                        },  quantity+'x('+name+')');
+                        var product_details = quantity+'x('+name+')';
+                        var product_pricing = this.formatPrice((unit_regular_price * quantity), 'P');
+                        var sale_discount = (sale_discount ? ' - '+this.formatPrice((sale_discount * quantity), 'P') : '');
+                        var on_sale = (on_sale ? ' (sale)' : '');
+
+                        return h('tr', [
+                            h('td', [ h('span', product_details) ]),
+                            h('td', [ 
+                                h('span', product_pricing),
+                                h('small', { class: ['text-danger'] }, sale_discount),
+                                h('span', on_sale)
+                            ])
+                        ]);
+
                     });
                     
                     content.push(
-
-                        h('List', {
+                        h('table', {
                             slot: 'content',
-                            props: {
-                                slot: 'content',
-                                size: 'small'
-                            }
-                        }, productList)
+                            class: ['table']
+                        }, [
+                            h('tbody', productList)
+                        ])
                     );
 
                 }
@@ -189,6 +259,7 @@
                             title: 'Cart Products',
                             content: poptipContent,
                             trigger: 'hover',
+                            width: 500
                         }
                     }, content)
 
@@ -254,14 +325,73 @@
 
                 }
             },
+            renderTotal(h, params){
+
+                //  Return the total
+                return [
+                    h('div', {
+                            class: ['d-flex']
+                        },
+                        [
+                            h('div', { class: ['mr-1'] },  this.formatPrice(params.row.cart.grand_total, 'P')),
+                            h('Poptip', {
+                                props: {
+                                    title: 'Cart Pricing',
+                                    trigger: 'hover',
+                                    width: 300
+                                }
+                            }, [
+                                h('table', {
+                                    slot: 'content',
+                                    class: ['table']
+                                }, [
+                                    h('tbody', [
+                                        h('tr', [
+                                            h('td', [ h('span', 'Sub Total') ]),
+                                            h('td', [ h('span', this.formatPrice(params.row.cart.sub_total, 'P')) ])
+                                        ]),
+                                        h('tr', [
+                                            h('td', [ h('span', 'Sale Discount') ]),
+                                            h('td', [ h('span', this.formatPrice(params.row.cart.sale_discount_total, 'P')) ])
+                                        ]),
+                                        h('tr', [
+                                            h('td', [ h('span', 'Coupon Discount') ]),
+                                            h('td', [ h('span', this.formatPrice(params.row.cart.coupon_total, 'P')) ])
+                                        ]),
+                                        h('tr', [
+                                            h('td', [ h('span', 'Grand Total') ]),
+                                            h('td', [ h('span', { 
+                                                class: ['font-weight-bold', 'border-bottom-dashed', 'border-dark'] 
+                                            }, this.formatPrice(params.row.cart.grand_total, 'P')) ])
+                                        ])
+                                    ])
+                                ]),
+                                h('Icon', {
+                                    props: {
+                                        size: 16,
+                                        type: 'ios-information-circle-outline'
+                                    }
+                                })
+
+                            ])
+                        ]),
+                ];
+                
+            },
             handleCreateInstantCart(){
+                this.index = null;
+                this.instantCart = null;
                 this.isOpenManageInstantCartDrawer = true;
             },
             handleCreatedInstantCart(instantCart){
-
-                //  Add the new created instantCart to the top of the list
+                //  Add the new created instant cart to the top of the list
                 this.instantCarts.unshift(instantCart);
 
+            },
+            handleEditInstantCart(instantCart, index){
+                this.index = index;
+                this.instantCart = instantCart;
+                this.isOpenManageInstantCartDrawer = true;
             },
             handleSavedInstantCart(instantCart, index){
 

@@ -56,12 +56,28 @@ class Store extends JsonResource
                     'title' => 'The POST route to create a new product'
                 ],
 
-                //  Link to the isntant carts
+                //  Link to the instant carts
+                'bos:coupons' => [
+                    'href' => route('store-coupons', ['store_id' => $this->id]),
+                    'title' => 'The store coupons',
+                    'total' => $this->coupons()->count()
+                ],
+
+                //  Link to the instant carts
+                'bos:products' => [
+                    'href' => route('store-products', ['store_id' => $this->id]),
+                    'title' => 'The store products',
+                    'total' => $this->products()->count()
+                ],
+
+                //  Link to the instant carts
                 'bos:instant_carts' => [
                     'href' => route('store-instant-carts', ['store_id' => $this->id]),
                     'title' => 'The store instant carts',
                     'total' => $this->instantCarts()->count()
                 ],
+
+                
 
             ],
 

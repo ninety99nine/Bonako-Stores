@@ -2,14 +2,15 @@
 
 namespace App;
 
-use DB;
 use App\Traits\CommonTraits;
 use App\Traits\LocationTraits;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 
 class Location extends Model
 {
-    use LocationTraits, CommonTraits;
+    use LocationTraits;
+    use CommonTraits;
 
     /**
      * The table associated with the model.
@@ -38,9 +39,9 @@ class Location extends Model
      */
     protected $fillable = [
         'name', 'abbreviation', 'about_us', 'contact_us', 'call_to_action', 'allow_delivery', 'allow_pickups',
-        'delivery_note', 'delivery_flat_fee', 'allow_payments', 'online_payment_methods', 'offline_payment_methods', 'delivery_destinations', 
-        'pickup_destinations', 'delivery_days', 'pickup_note', 'pickup_days', 'delivery_times', 'pickup_times', 'online', 
-        'offline_message', 'user_id', 'store_id'
+        'delivery_note', 'delivery_flat_fee', 'allow_payments', 'online_payment_methods', 'offline_payment_methods', 
+        'delivery_destinations', 'pickup_destinations', 'delivery_days', 'pickup_note', 'pickup_days', 'delivery_times', 
+        'pickup_times', 'online', 'offline_message', 'user_id', 'store_id',
     ];
 
     /*
@@ -60,11 +61,19 @@ class Location extends Model
     }
 
     /**
-     *  Returns the the products assigned to this location
+     *  Returns the the products assigned to this location.
      */
     public function products()
     {
         return $this->morphToMany('App\Product', 'owner', 'product_allocations')->withTimestamps()->orderBy('product_allocations.arrangement');
+    }
+
+    /**
+     *  Returns the the orders assigned to this location.
+     */
+    public function orders()
+    {
+        return $this->hasMany('App\Order')->latest();
     }
 
     /*
@@ -72,7 +81,7 @@ class Location extends Model
      */
     public function instantCarts()
     {
-        return $this->hasMany('App\InstantCart')->with(['products', 'coupons']);
+        return $this->hasMany('App\InstantCart')->with(['products', 'coupons'])->latest();
     }
 
     /*
@@ -84,32 +93,79 @@ class Location extends Model
     }
 
     /** ATTRIBUTES
-     * 
-     *  Note that the "resource_type" is defined within CommonTraits
-     * 
+     *
+     *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type',
+        'resource_type'
     ];
+
+    public function getOnlinePaymentMethodsAttribute($value)
+    {
+        //  If null, convert to array
+        return (is_null($value) ? [] : $value);
+    }
+
+    public function getOfflinePaymentMethodsAttribute($value)
+    {
+        //  If null, convert to array
+        return (is_null($value) ? [] : $value);
+    }
+
+    public function getDeliveryDestinationsAttribute($value)
+    {
+        //  If null, convert to array
+        return (is_null($value) ? [] : $value);
+    }
+
+    public function getDeliveryDaysAttribute($value)
+    {
+        //  If null, convert to array
+        return (is_null($value) ? [] : $value);
+    }
+
+    public function getDeliveryTimesAttribute($value)
+    {
+        //  If null, convert to array
+        return (is_null($value) ? [] : $value);
+    }
+
+    public function getPickupDestinationsAttribute($value)
+    {
+        //  If null, convert to array
+        return (is_null($value) ? [] : $value);
+    }
+
+    public function getPickupDaysAttribute($value)
+    {
+        //  If null, convert to array
+        return (is_null($value) ? [] : $value);
+    }
+
+    public function getPickupTimesAttribute($value)
+    {
+        //  If null, convert to array
+        return (is_null($value) ? [] : $value);
+    }
 
     public function setOnlineAttribute($value)
     {
-        $this->attributes['online'] = ( ($value == 'true' || $value === '1') ? 1 : 0);
+        $this->attributes['online'] = (($value == 'true' || $value === '1') ? 1 : 0);
     }
 
     public function setAllowDeliveryAttribute($value)
     {
-        $this->attributes['allow_delivery'] = ( ($value == 'true' || $value === '1') ? 1 : 0);
+        $this->attributes['allow_delivery'] = (($value == 'true' || $value === '1') ? 1 : 0);
     }
 
     public function setAllowCustomerPickupsAttribute($value)
     {
-        $this->attributes['allow_pickups'] = ( ($value == 'true' || $value === '1') ? 1 : 0);
-    }    
+        $this->attributes['allow_pickups'] = (($value == 'true' || $value === '1') ? 1 : 0);
+    }
 
     public function setAllowPaymentsAttribute($value)
     {
-        $this->attributes['allow_payments'] = ( ($value == 'true' || $value === '1') ? 1 : 0);
+        $this->attributes['allow_payments'] = (($value == 'true' || $value === '1') ? 1 : 0);
     }
 
     //  ON DELETE EVENT
@@ -119,7 +175,6 @@ class Location extends Model
 
         // before delete() method call this
         static::deleting(function ($location) {
-
             //  Delete all products
             foreach ($location->products as $product) {
                 $product->delete();
@@ -129,10 +184,9 @@ class Location extends Model
             DB::table('location_user')->where(['location_id' => $location->id])->delete();
 
             //  Delete all records of products being assigned to this location
-            DB::table('location_product')->where(['location_id' => $location->id])->delete();
+            DB::table('product_allocations')->where(['owner_id' => $location->id, 'owner_type' => 'location'])->delete();
 
             // do the rest of the cleanup...
         });
     }
-
 }

@@ -3,11 +3,12 @@
 namespace App;
 
 use App\Traits\CommonTraits;
+use App\Traits\CouponTraits;
 use Illuminate\Database\Eloquent\Model;
 
 class Coupon extends Model
 {
-    use CommonTraits;
+    use CouponTraits, CommonTraits;
 
     /**
      * The table associated with the model.

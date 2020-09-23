@@ -341,6 +341,10 @@
                 type: Object,
                 default: null
             },
+            location: {
+                type: Object,
+                default: null
+            },
             requestToSaveChanges: {
                 type: Number,
                 default: 0
@@ -350,7 +354,6 @@
         data () {
 
             return {
-                location: null,
                 locationForm: null,
                 paymentMethods: [],
                 isSavingChanges: false,
@@ -765,64 +768,6 @@
                     });
                 
             },
-            fetchLocation() {
-
-                //  If we have the location url
-                if( this.locationUrl ){
-
-                    //  Hold constant reference to the current Vue instance
-                    const self = this;
-
-                    //  Start loader
-                    self.isLoadingLocation = true;
-
-                    //  Use the api call() function, refer to api.js
-                    api.call('get', this.locationUrl)
-                        .then(({data}) => {
-                            
-                            //  Console log the data returned
-                            console.log(data);
-
-                            //  Get the location
-                            self.location = data || null;
-
-                            self.setFormAndCaptureBeforeChanges();
-
-                            //  Capture the delivery destinations
-                            ((self.location || {}).delivery_destinations || []).map((destination, index) => {
-                                self.addDeliveryDestination(destination.name, destination.cost, self.deliveryDestinations);
-                            });
-
-                            //  Capture the delivery times
-                            ((self.location || {}).delivery_times || []).map((time, index) => {
-                                self.addDeliveryTime(time, self.deliveryTimes);
-                            });
-
-                            //  Capture the pickup destinations
-                            ((self.location || {}).pickup_destinations || []).map((destination, index) => {
-                                self.addPickupDestination(destination, self.pickupDestinations);
-                            });
-
-                            //  Capture the pickup times
-                            ((self.location || {}).pickup_times || []).map((time, index) => {
-                                self.addPickupTime(time, self.pickupTimes);
-                            });
-
-                            //  Stop loader
-                            self.isLoadingLocation = false;
-
-                        })         
-                        .catch(response => { 
-
-                            //  Log the responce
-                            console.error(response);
-
-                            //  Stop loader
-                            self.isLoadingLocation = false;
-
-                        });
-                }
-            },
             saveLocation() {
 
                 //  Hold constant reference to the current Vue instance
@@ -915,8 +860,30 @@
             }
         },
         created(){
-            this.fetchLocation();
+
             this.fetchPaymentMethods();
+
+            this.setFormAndCaptureBeforeChanges();
+
+            //  Capture the location delivery destinations
+            ((this.location || {}).delivery_destinations || []).map((destination, index) => {
+                this.addDeliveryDestination(destination.name, destination.cost, this.deliveryDestinations);
+            });
+
+            //  Capture the location delivery times
+            ((this.location || {}).delivery_times || []).map((time, index) => {
+                this.addDeliveryTime(time, this.deliveryTimes);
+            });
+
+            //  Capture the location pickup destinations
+            ((this.location || {}).pickup_destinations || []).map((destination, index) => {
+                this.addPickupDestination(destination, this.pickupDestinations);
+            });
+
+            //  Capture the location pickup times
+            ((this.location || {}).pickup_times || []).map((time, index) => {
+                this.addPickupTime(time, this.pickupTimes);
+            });
         }
     }
 </script>

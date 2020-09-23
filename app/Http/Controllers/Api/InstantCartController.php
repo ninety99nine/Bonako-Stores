@@ -23,7 +23,7 @@ class InstantCartController extends Controller
         //  Check if the user is authourized to create instant_carts
         if ($this->user && $this->user->can('create', InstantCart::class)) {
 
-            //  Create the instant_cart
+            //  Create the instant cart
             $instant_cart = (new InstantCart())->initiateCreate($request);
 
             //  If the created successfully
@@ -59,7 +59,7 @@ class InstantCartController extends Controller
 
         }
 
-        //  Check if the instant_cart exists
+        //  Check if the instant cart exists
         if ($instant_cart) {
 
             //  Return an API Readable Format of the InstantCart Instance
@@ -85,14 +85,14 @@ class InstantCartController extends Controller
             if ($this->user && $this->user->can('update', $instant_cart)) {
 
                 //  Update the instant cart
-                $updated = $instant_cart->update($request->all());
+                $instant_cart = $instant_cart->initiateUpdate($request);
 
-                //  If the update was successful
-                if ($updated) {
-                    
+                //  If the updated successfully
+                if ($instant_cart) {
+    
                     //  Return an API Readable Format of the InstantCart Instance
-                    return $instant_cart->fresh()->convertToApiFormat();
-
+                    return $instant_cart->convertToApiFormat();
+    
                 }
 
             } else {

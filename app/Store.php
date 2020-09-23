@@ -75,7 +75,7 @@ class Store extends Model
      */
     public function instantCarts()
     {
-        return $this->hasMany('App\InstantCart')->with(['products', 'coupons']);
+        return $this->hasMany('App\InstantCart')->with(['products', 'coupons'])->latest();
     }
 
     /** ATTRIBUTES

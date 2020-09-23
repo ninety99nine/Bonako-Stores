@@ -41,8 +41,6 @@ class Location extends JsonResource
             'offline_payment_methods' => $this->offline_payment_methods,
             'offline_message' => $this->offline_message,
 
-            
-
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
@@ -80,11 +78,24 @@ class Location extends JsonResource
                     'total' => $this->instantCarts()->count()
                 ],
 
+                //  Link to the create instant cart
+                'bos:instant-cart-create' => [
+                    'href' => route('instant-cart-create'),
+                    'title' => 'The POST route to create a new instant cart'
+                ],
+
                 //  Link to the products
                 'bos:products' => [
                     'href' => route('location-products', ['location_id' => $this->id]),
                     'title' => 'The location products',
                     'total' => $this->products()->count()
+                ],
+
+                //  Link to the orders
+                'bos:orders' => [
+                    'href' => route('location-orders', ['location_id' => $this->id]),
+                    'title' => 'The location orders',
+                    'total' => $this->orders()->count()
                 ],
                                 
             ]

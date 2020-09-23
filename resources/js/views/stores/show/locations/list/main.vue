@@ -13,11 +13,10 @@
             </div>
           </Card>
 
-            <singleLocationCard 
-                v-for="(location, index) in firstColumnLocations"
-                :key="index" :index="index" :store="store" :location="location"
-                @selected="manageSelection($event)">
-            </singleLocationCard>
+          <singleLocationCard 
+              v-for="(location, index) in firstColumnLocations"
+              :key="index" :index="index" :store="store" :location="location">
+          </singleLocationCard>
 
         </Col>
 
@@ -27,9 +26,8 @@
             :key="index"
             :index="index"
             :store="store"
-            :location="location"
-            @selected="manageSelection($event)"
-          ></singleLocationCard>
+            :location="location">
+          </singleLocationCard>
         </Col>
 
         <Col :span="8">
@@ -38,9 +36,8 @@
             :key="index"
             :index="index"
             :store="store"
-            :location="location"
-            @selected="manageSelection($event)"
-          ></singleLocationCard>
+            :location="location">
+          </singleLocationCard>
         </Col>
       </Row>
     </Col>
@@ -96,9 +93,6 @@ export default {
     }
   },
   methods: {
-    manageSelection(location) {
-      this.$emit("selectedLocation", location);
-    },
     navigateToCreateLocation() {
       //  Navigate to create new location
       this.$router.push({

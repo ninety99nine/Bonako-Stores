@@ -19,6 +19,7 @@ class user extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'mobile_number' => $this->mobile_number,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
@@ -26,7 +27,6 @@ class user extends JsonResource
 
             /*  Resource Links */
             '_links' => [
-
                 'curies' => [
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
@@ -41,9 +41,8 @@ class user extends JsonResource
                 'bos:stores' => [
                     'href' => route('my-stores'),
                     'title' => 'The stores that are created or shared with this user',
-                    'total' => $this->stores()->count()
-                ]
-
+                    'total' => $this->stores()->count(),
+                ],
             ],
 
             /*  Embedded Resources */

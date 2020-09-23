@@ -8,7 +8,7 @@
                 <Col :span="12" :offset="2">
 
                     <!-- If we are loading, Show Loader -->
-                    <Loader v-if="isLoading" :divStyles="{ textAlign: 'center' }"></Loader>
+                    <Loader v-if="isLoadingStore" :divStyles="{ textAlign: 'center' }"></Loader>
 
                     <!-- If we are not loading, Show the store breadcrumb -->
                     <Breadcrumb v-else>
@@ -29,7 +29,7 @@
                         </template>
 
                         <!-- Link to current location -->
-                        <template v-if="isViewingSpecificLocation && location">
+                        <template v-if="location">
                             <BreadcrumbItem>{{ location.name }}</BreadcrumbItem>
                         </template>
 
@@ -81,7 +81,7 @@
         </Header>
 
         <!-- If we are loading -->
-        <template v-if="isLoading">
+        <template v-if="isLoadingStore">
 
             <!-- Show Loader -->
             <Loader class="mt-5"></Loader>
@@ -94,46 +94,50 @@
             <!-- Side Menu -->
             <Sider hide-trigger>
 
-                <!-- If we are viewing a specific location -->
-                <template v-if="isViewingSpecificLocation && location">
+                <template v-if="!isLoadingStore && !isLoadingLocation">
 
-                    <div class="w-100 bg-primary text-white bg-success font-weight-bold mt-3 mb-3 p-2">
-                        <Icon type="ios-pin" class="mr-1" :size="20" />
-                        <span>{{ location.name }}</span>
-                    </div>
+                    <!-- If we are viewing a specific location -->
+                    <template v-if="location">
 
-                    <!-- Show Location Menu Links -->
-                    <Menu :active-name="activeLink" theme="light" width="auto" key="location-menu">
-                        <MenuItem v-for="(menuLink, index) in locationMenuLinks" :key="index"
-                            :name="menuLink.name" class="" @click.native="navigateToLocationLink(menuLink.linkName)">
-                            <!-- Menu Icon -->
-                            <Icon :type="menuLink.icon" :size="20" />
-                            <!-- Menu Name -->
-                            <span class="text-capitalize">{{ menuLink.name }}</span>
-                        </MenuItem>
-                    </Menu>
-                    
-                </template>
+                        <div class="w-100 bg-primary text-white bg-success font-weight-bold mt-3 mb-3 p-2">
+                            <Icon type="ios-pin" class="mr-1" :size="20" />
+                            <span>{{ location.name }}</span>
+                        </div>
 
-                <!-- If we are not viewing a specific location -->
-                <template v-else>
+                        <!-- Show Location Menu Links -->
+                        <Menu :active-name="activeLink" theme="light" width="auto" key="location-menu">
+                            <MenuItem v-for="(menuLink, index) in locationMenuLinks" :key="index"
+                                :name="menuLink.name" class="" @click.native="navigateToLocationLink(menuLink.linkName)">
+                                <!-- Menu Icon -->
+                                <Icon :type="menuLink.icon" :size="20" />
+                                <!-- Menu Name -->
+                                <span class="text-capitalize">{{ menuLink.name }}</span>
+                            </MenuItem>
+                        </Menu>
+                        
+                    </template>
 
-                    <div class="w-100 bg-primary text-white bg-success font-weight-bold mt-3 mb-3 p-2">
-                        <Icon type="ios-pin" class="mr-1" :size="20" />
-                        <span>{{ store.name }}</span>
-                    </div>
+                    <!-- If we are not viewing a specific location -->
+                    <template v-else>
 
-                    <!-- Show Store Menu Links -->
-                    <Menu :active-name="activeLink" theme="light" width="auto" key="store-menu">
-                        <MenuItem v-for="(menuLink, index) in storeMenuLinks" :key="index"
-                            :name="menuLink.name" class="" @click.native="navigateToStoreLink(menuLink.linkName)">
-                            <!-- Menu Icon -->
-                            <Icon :type="menuLink.icon" :size="20" />
-                            <!-- Menu Name -->
-                            <span class="text-capitalize">{{ menuLink.name }}</span>
-                        </MenuItem>
-                    </Menu>
-                    
+                        <div class="w-100 bg-primary text-white bg-success font-weight-bold mt-3 mb-3 p-2">
+                            <Icon type="ios-pin" class="mr-1" :size="20" />
+                            <span>{{ store.name }}</span>
+                        </div>
+
+                        <!-- Show Store Menu Links -->
+                        <Menu :active-name="activeLink" theme="light" width="auto" key="store-menu">
+                            <MenuItem v-for="(menuLink, index) in storeMenuLinks" :key="index"
+                                :name="menuLink.name" class="" @click.native="navigateToStoreLink(menuLink.linkName)">
+                                <!-- Menu Icon -->
+                                <Icon :type="menuLink.icon" :size="20" />
+                                <!-- Menu Name -->
+                                <span class="text-capitalize">{{ menuLink.name }}</span>
+                            </MenuItem>
+                        </Menu>
+                        
+                    </template>
+
                 </template>
 
             </Sider>
@@ -160,15 +164,14 @@
                         the child component is saving the changes. It returns a true or false status so that this
                         component is aware of whether we are still saving or not. This can be used to disable the
                         "Save Changes" button
-
-                    @selectedLocation: This is an event from the nested child component that informs this component that
-                        the child component has a store location that has been selected. This event also passes that 
-                        location to this component for additional use if required e.g to display the selected 
-                        location details such as location name.
                 -->
-                <router-view :store="store" :requestToSaveChanges="requestToSaveChanges" 
-                             @selectedLocation="handleSelectedLocation" @updatedStore="handleUpdatedStore"
-                             @unsavedChanges="handleUnsavedChanges" @isSaving="handlesIsSaving"/>
+                <template v-if="!isLoadingStore && !isLoadingLocation">
+
+                    <router-view :store="store" :location="location" :requestToSaveChanges="requestToSaveChanges" 
+                                @updatedStore="handleUpdatedStore" @unsavedChanges="handleUnsavedChanges" 
+                                @isSaving="handlesIsSaving"/>
+
+                </template>
                     
             </Content>
 
@@ -201,9 +204,10 @@
             return {
                 store: null,
                 location: null,
-                isLoading: false,
+                isLoadingStore: false,
                 isSavingChanges: false,
                 requestToSaveChanges: 0,
+                isLoadingLocation: false,
                 hasUnsavedChanges: false,
                 storeMenuLinks: [
                     {
@@ -254,6 +258,11 @@
                         icon: 'ios-basket-outline'
                     },
                     {
+                        name: 'Instant Carts',
+                        linkName: 'show-location-instant-carts',
+                        icon: 'ios-basket-outline'
+                    },
+                    {
                         name: 'orders',
                         linkName: '',
                         icon: 'ios-stats-outline'
@@ -271,17 +280,24 @@
                 ]
             }
         },
+        watch: {
+            //  If the route changes
+            $route (newVal, oldVal) {
+
+                //  If we have the location url
+                if( newVal.params.location_url ){
+
+                    //  Fetch the location
+                    this.fetchLocation();
+
+                }
+
+            }
+        },
         computed: {
             isViewingLocations(){
                 //  Check if we are viewing the store locations
                 if( ['show-locations', 'show-location'].includes(this.$route.name) ){
-                    return true;
-                }
-                return false
-            },
-            isViewingSpecificLocation(){
-                //  Check if we are viewing a specific store location
-                if( ['show-location'].includes(this.$route.name) ){
                     return true;
                 }
                 return false
@@ -293,6 +309,9 @@
                 }else if( ['show-locations', 'show-location'].includes(this.$route.name) ){
                     return 'locations';
                 }
+            },
+            locationUrl(){
+                return decodeURIComponent(this.$route.params.location_url);
             },
             storeUrl(){
                 return decodeURIComponent(this.$route.params.store_url);
@@ -319,6 +338,7 @@
                 this.isSavingChanges = status;
             },
             handleSelectedLocation(location){
+                alert('handleSelectedLocation');
                 this.location = Object.assign({}, location);
             },
             handleUpdatedStore(store){
@@ -348,6 +368,8 @@
 
                 //  Visit the url
                 window.location.href = href;
+
+                this.location = null;
 
             },
             navigateToLocationLink(linkName){
@@ -386,7 +408,7 @@
                     const self = this;
 
                     //  Start loader
-                    self.isLoading = true;
+                    self.isLoadingStore = true;
 
                     //  Use the api call() function, refer to api.js
                     api.call('get', this.storeUrl)
@@ -399,7 +421,7 @@
                             self.store = data || null;
 
                             //  Stop loader
-                            self.isLoading = false;
+                            self.isLoadingStore = false;
 
                             self.$emit('changeHeading', self.store.name)
 
@@ -410,7 +432,43 @@
                             console.error(response);
 
                             //  Stop loader
-                            self.isLoading = false;
+                            self.isLoadingStore = false;
+
+                        });
+                }
+            },
+            fetchLocation() {
+
+                //  If we have the location url
+                if( this.locationUrl ){
+
+                    //  Hold constant reference to the current Vue instance
+                    const self = this;
+
+                    //  Start loader
+                    self.isLoadingLocation = true;
+
+                    //  Use the api call() function, refer to api.js
+                    api.call('get', this.locationUrl)
+                        .then(({data}) => {
+                            
+                            //  Console log the data returned
+                            console.log(data);
+
+                            //  Get the location
+                            self.location = data || null;
+
+                            //  Stop loader
+                            self.isLoadingLocation = false;
+
+                        })         
+                        .catch(response => { 
+
+                            //  Log the responce
+                            console.error(response);
+
+                            //  Stop loader
+                            self.isLoadingLocation = false;
 
                         });
                 }
@@ -420,6 +478,14 @@
 
             //  Fetch the store
             this.fetchStore();
+
+            //  If we have the location url
+            if( this.$route.params.location_url ){
+
+                //  Fetch the location
+                this.fetchLocation();
+
+            }
             
         }
     }

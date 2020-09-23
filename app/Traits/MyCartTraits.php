@@ -12,7 +12,19 @@ trait MyCartTraits
 
     /*  getCartDetails() method:
      *
-     *  This method is used to get the details of the cart. It requires the items in the cart, 
+     *  This method is used to get the details of the cart. It requires that the items
+     *  provided include the product id and quantity e.g
+     * 
+     *  $info['items'] = [ 
+     *      ['id' => 1, 'quantity' => 3],
+     *      ['id' => 2, 'quantity' => 5] 
+     *      ...
+     *  ]
+     * 
+     *  Coupons can also be provided as coupons codes, coupon id or coupon data.
+     * 
+     * 
+     * 
      *  the store discounts and coupons if any. The items variable is an array of individual 
      *  items with an "id" and "quantity". The method will fetch all the items by "id" and 
      *  get their details as well as calculate the individual items and cart sub-totals, 
@@ -26,9 +38,10 @@ trait MyCartTraits
             //  Set the default values
             $info = array_merge([
                 'items' => [], 
-                'store_id' => null, 
+                'store_id' => null,
                 'coupon_ids' => [],
-                'coupon_codes' => [],
+                'coupon_codes' => [], 
+                'store_coupons' => [],
                 'delivery_fee' => null
 
             //  Overide the default values with specific details
@@ -49,8 +62,8 @@ trait MyCartTraits
             //  Get the delivery fee
             $delivery_fee = $info['delivery_fee'];
 
-            //  Store coupons
-            $coupons = [];
+            //  Get the coupons
+            $coupons = $info['store_coupons'];
 
             //  If the store id is provided
             if( $store_id != null  ){
@@ -61,8 +74,15 @@ trait MyCartTraits
                 //  If we have a store
                 if( $store ){
                     
-                    //  Get the store coupons (if any)
-                    $coupons = $store->coupons;
+                    //  Return store coupons that do not already exist in the coupon collection
+                    $store_coupons = collect($store->coupons)->filter(function($coupon) use ($coupons){
+
+                        return !collect($coupons)->contains('id', $coupon->id);
+
+                    })->toArray();
+
+                    //  Get the store coupons (if any) and add them to the existing coupons
+                    $coupons = array_merge($coupons, $store_coupons);
 
                 }
 
@@ -78,7 +98,7 @@ trait MyCartTraits
             $coupon_total = 0;
 
             //  Total amount discounted because of items on sale
-            $discount_total = 0;
+            $sale_discount_total = 0;
 
             //  The total of all the cart item costs and coupons
             $grand_total = 0;
@@ -90,7 +110,7 @@ trait MyCartTraits
                 $sub_total += $item['sub_total'];
 
                 /*  Calculate the total amount discounted because of items on sale  */  
-                $discount_total += $item['discount'];
+                $sale_discount_total += $item['sale_discount'];
 
                 /*  Calculate the grand total (includes discount)  */
                 $grand_total += $item['grand_total'];
@@ -117,7 +137,7 @@ trait MyCartTraits
             }
 
             /*  Calculate the coupon and discount total  */     
-            $coupon_and_discount_total = $coupon_total + $discount_total;
+            $coupon_and_discount_total = $coupon_total + $sale_discount_total;
 
             $cartDetails = [
                 'items' => $cart_items,
@@ -128,7 +148,7 @@ trait MyCartTraits
                 'items_summarized_inline' => $this->getItemsSummarizedInline($cart_items),
                 'sub_total' => $sub_total,
                 'coupon_total' => $coupon_total,
-                'discount_total' => $discount_total,
+                'sale_discount_total' => $sale_discount_total,
                 'coupon_and_discount_total' => $coupon_and_discount_total,
                 'delivery_fee' => $delivery_fee,
                 'grand_total' => $grand_total
@@ -296,8 +316,8 @@ trait MyCartTraits
                     /*  Get the related item sub total (based on the regular price)  */  
                     $sub_total = $relatedItem['unit_regular_price'] * $quantity;
 
-                    /*  Get the related item discount  */
-                    $discount = $relatedItem['discount'] * $quantity;
+                    /*  Get the related item sale discount  */
+                    $sale_discount = $relatedItem['sale_discount'] * $quantity;
 
                     /*  Get the related item grand total (based on the regular/sale price)  */
                     $grand_total = $unit_price * $quantity;
@@ -312,15 +332,15 @@ trait MyCartTraits
                         'is_new', 'is_featured', 'parent_product_id',
 
                         /** Product Attributes  */
-                        'resource_type', 'unit_price', 'discount'
+                        'resource_type', 'unit_price', 'sale_discount'
 
                     ]);
 
                     /*  Update the details of the cart item to match its quantity  */
                     $cartItem['quantity'] = $quantity;
-                    $cartItem['discount'] = $discount;
                     $cartItem['sub_total'] = $sub_total;
                     $cartItem['grand_total'] = $grand_total;
+                    $cartItem['sale_discount'] = $sale_discount;
 
                     /*  Add the current cart item to the rest of the cart items  */
                     array_push($cartItems, $cartItem);

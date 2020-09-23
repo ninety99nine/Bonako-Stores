@@ -3,14 +3,15 @@
 namespace App;
 
 use App\Traits\UserTraits;
-use Laravel\Passport\HasApiTokens;
-use Illuminate\Notifications\Notifiable;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Passport\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable, UserTraits;
+    use HasApiTokens;
+    use Notifiable;
+    use UserTraits;
 
     /**
      * The attributes that are mass assignable.
@@ -18,7 +19,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'email', 'password', 'account_type'
+        'name', 'email', 'mobile_number', 'password', 'account_type',
     ];
 
     /**
@@ -40,7 +41,7 @@ class User extends Authenticatable
     ];
 
     /**
-     *  Checks if a given user is a Super Admin
+     *  Checks if a given user is a Super Admin.
      */
     public function isSuperAdmin()
     {
@@ -48,7 +49,7 @@ class User extends Authenticatable
     }
 
     /**
-     *  The stores that this user created
+     *  The stores that this user created.
      */
     public function createdStores()
     {
@@ -57,8 +58,8 @@ class User extends Authenticatable
 
     /**
      *  The stores that were shared with this user
-     *  NOTE: These stores are assigned but not 
-     *  created by the user
+     *  NOTE: These stores are assigned but not
+     *  created by the user.
      */
     public function sharedStores()
     {
@@ -68,7 +69,7 @@ class User extends Authenticatable
     }
 
     /**
-     *  The stores that are either created or shared with this user
+     *  The stores that are either created or shared with this user.
      */
     public function stores()
     {
@@ -76,11 +77,10 @@ class User extends Authenticatable
     }
 
     /**
-     *  The locations that are either created or shared with this user
+     *  The locations that are either created or shared with this user.
      */
     public function locations()
     {
         return $this->belongsToMany('App\Location')->withPivot(['user_id', 'location_id', 'type']);
     }
-    
 }

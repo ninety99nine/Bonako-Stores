@@ -2,7 +2,6 @@
 
 namespace App\Traits;
 
-use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Location as LocationResource;
 use App\Http\Resources\Locations as LocationsResource;
 
@@ -19,37 +18,31 @@ trait LocationTraits
      */
     public function convertToApiFormat($locations = null)
     {
-        if( $locations ){
-                
+        if ($locations) {
             //  Transform the multiple instances
             return new LocationsResource($locations);
-
-        }else{
-            
+        } else {
             //  Transform the single instance
             return new LocationResource($this);
-
         }
     }
- 
+
     /*  This method creates a new Version
      */
-    public function initiateCreate( $request )
+    public function initiateCreate($request)
     {
         //  Set the request variable
         $this->request = $request;
 
         //  Validate the request
         $validation_data = $request->validate([
-            'name' => 'required'
+            'name' => 'required',
         ]);
 
         //  If we have the location id representing the location to clone
-        if ( $request->input('clone_location_id') ) {
-
+        if ($request->input('clone_location_id')) {
             //  Retrieve the location to clone
-            $this->location_to_clone = \App\Location::where('id', $request->input('clone_location_id') )->first();
-
+            $this->location_to_clone = \App\Location::where('id', $request->input('clone_location_id'))->first();
         }
 
         //  Set the template
@@ -77,12 +70,9 @@ trait LocationTraits
             'allow_pickups' => $this->request->input('allow_pickups'),
             'online_payment_methods' => $this->request->input('online_payment_methods'),
             'offline_payment_methods' => $this->request->input('offline_payment_methods'),
-
-            
         ];
 
         try {
-
             /*
              *  Create new a location, then retrieve a fresh instance
              */
@@ -90,19 +80,14 @@ trait LocationTraits
 
             //  If the location was created successfully
             if ($this->location) {
-
                 //  Assign user as an Admin to this location
                 $this->assignUserAsAdmin();
 
                 return $this->location->fresh();
-
             }
-
         } catch (\Exception $e) {
-
             //  Throw a validation error
             throw $e;
-            
         }
     }
 
@@ -114,8 +99,7 @@ trait LocationTraits
         [
             'type' => 'admin',
             'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
+            'updated_at' => date('Y-m-d H:i:s'),
         ]);
     }
-
 }

@@ -85,7 +85,7 @@ class InstantCart extends Model
      * 
      */
     protected $appends = [
-        'resource_type', 'short_code'
+        'resource_type', 'short_code', 'cart'
     ];
 
     /*
@@ -94,6 +94,40 @@ class InstantCart extends Model
     public function getShortCodeAttribute()
     {
         return '*250*'.$this->code.'#';
+    }
+
+    /*
+     *  Returns a shortcode version of the instant cart code
+     */
+    public function getCartAttribute()
+    {
+        //  Retrieve the product ids and quantity
+        $items = collect($this->products)->map(function($product){
+            return [
+                'id' => $product->id,
+                'quantity' => $product->pivot->quantity
+            ];
+        });
+
+        //  Retrieve the ids of the coupons we want to apply
+        $coupon_ids = collect($this->coupons)->map(function($coupon){
+            return $coupon->id;
+        });
+
+        //  Retrieve the store coupons available for use against the coupons we want to apply
+        $store_coupons = collect($this->coupons)->toArray();
+
+        //  Set the cart details (Cart Items + Store Coupons)
+        $info = [
+            'items' => $items,
+            'coupon_ids' => $coupon_ids,
+            'store_coupons' => $store_coupons
+        ];
+
+        //  Build and return the cart details
+        $cart = (new MyCart)->getCartDetails($info);
+
+        return $cart;
     }
 
     public function setActiveAttribute($value)

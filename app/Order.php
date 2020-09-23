@@ -78,6 +78,15 @@ class Order extends Model
 
     protected $allowedOrderableColumns = [];
 
+    /*
+     *  Scope:
+     *  Returns orders that are being searched
+     */
+    public function scopeSearch($query, $searchTerm)
+    {
+        return $query->where('number', $searchTerm);
+    }
+
     /**
      *  Returns the owning store
      */
