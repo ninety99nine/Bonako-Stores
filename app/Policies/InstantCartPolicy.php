@@ -16,13 +16,20 @@ class InstantCartPolicy
      */
     public function before($user, $ability)
     {
-        /** Note that this will run before any other checks. This means is we return true we will be authorized
-         *  for every action. However be aware that if we return false here, then we are also not authorizing 
-         *  all other methods. We must be careful here, we only return true if the user is a "Super Admin" 
-         *  but nothing is they are not, since we want other methods to run their own local checks. 
-         * 
-        */
-        if($user->isSuperAdmin()) return true;
+        try {
+
+            /** Note that this will run before any other checks. This means is we return true we will be authorized
+             *  for every action. However be aware that if we return false here, then we are also not authorizing 
+             *  all other methods. We must be careful here, we only return true if the user is a "Super Admin" 
+             *  but nothing is they are not, since we want other methods to run their own local checks.  
+             */
+            if($user->isSuperAdmin()) return true;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
     
     /**
@@ -33,8 +40,16 @@ class InstantCartPolicy
      */
     public function viewAll(User $user)
     {
-        //  Only the Super Admin can view all instant carts
-        return $user->isSuperAdmin();
+        try {
+
+            //  Only the Super Admin can view all instant carts
+            return $user->isSuperAdmin();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -46,9 +61,17 @@ class InstantCartPolicy
      */
     public function view(User $user, InstantCart $instant_cart)
     {
-        //  Only an Admin or Editor can view this instant cart
-        return $instant_cart->store()->isAdmin($user->id)  ||
-               $instant_cart->store()->isEditor($user->id);
+        try {
+
+            //  Only an Admin or Editor can view this instant cart
+            return $instant_cart->store->isAdmin($user->id)  ||
+                $instant_cart->store()->isEditor($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -59,8 +82,16 @@ class InstantCartPolicy
      */
     public function create(User $user)
     {
-        //  Any Authenticated user can create a instant carts
-        return auth('api')->user() ? true : false;
+        try {
+
+            //  Any Authenticated user can create a instant carts
+            return auth('api')->user() ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -72,9 +103,17 @@ class InstantCartPolicy
      */
     public function update(User $user, InstantCart $instant_cart)
     {
-        //  Only an Admin, Editor can update this instant cart
-        return  $instant_cart->store()->isAdmin($user->id)  ||
-                $instant_cart->store()->isEditor($user->id);
+        try {
+
+            //  Only an Admin, Editor can update this instant cart
+            return  $instant_cart->store->isAdmin($user->id)  ||
+                    $instant_cart->store()->isEditor($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -86,8 +125,16 @@ class InstantCartPolicy
      */
     public function delete(User $user, InstantCart $instant_cart)
     {
-        //  Only an Admin can delete this instant cart
-        return $instant_cart->store()->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can delete this instant cart
+            return $instant_cart->store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -99,8 +146,16 @@ class InstantCartPolicy
      */
     public function restore(User $user, InstantCart $instant_cart)
     {
-        //  Only an Admin can restore this instant cart
-        return $instant_cart->store()->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can restore this instant cart
+            return $instant_cart->store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -112,7 +167,15 @@ class InstantCartPolicy
      */
     public function forceDelete(User $user, InstantCart $instant_cart)
     {
-        //  Only an Admin can force delete this instant cart
-        return $instant_cart->store()->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can force delete this instant cart
+            return $instant_cart->store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 }

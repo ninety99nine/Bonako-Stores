@@ -22,7 +22,15 @@ class ProductPolicy
          *  but nothing is they are not, since we want other methods to run their own local checks. 
          * 
         */
-        if($user->isSuperAdmin()) return true;
+        try {
+            
+            if($user->isSuperAdmin()) return true;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
     
     /**
@@ -33,8 +41,16 @@ class ProductPolicy
      */
     public function viewAll(User $user)
     {
-        //  Only the Super Admin can view all products
-        return $user->isSuperAdmin();
+        try {
+        
+            //  Only the Super Admin can view all products
+            return $user->isSuperAdmin();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -46,9 +62,17 @@ class ProductPolicy
      */
     public function view(User $user, Product $product)
     {
-        //  Only an Admin or Editor can view this product
-        return $product->store()->isAdmin($user->id)  ||
-               $product->store()->isEditor($user->id);
+        try {
+
+            //  Only an Admin or Editor can view this product
+            return $product->store->isAdmin($user->id)  ||
+                $product->store()->isEditor($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -59,8 +83,16 @@ class ProductPolicy
      */
     public function create(User $user)
     {
-        //  Any Authenticated user can create a instant carts
-        return auth('api')->user() ? true : false;
+        try {
+
+            //  Any Authenticated user can create a instant carts
+            return auth('api')->user() ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -72,9 +104,17 @@ class ProductPolicy
      */
     public function update(User $user, Product $product)
     {
-        //  Only an Admin, Editor can update this product
-        return  $product->store()->isAdmin($user->id)  ||
-                $product->store()->isEditor($user->id);
+        try {
+
+            //  Only an Admin, Editor can update this product
+            return  $product->store->isAdmin($user->id)  ||
+                    $product->store()->isEditor($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -86,8 +126,16 @@ class ProductPolicy
      */
     public function delete(User $user, Product $product)
     {
-        //  Only an Admin can delete this product
-        return $product->store()->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can delete this product
+            return $product->store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -99,8 +147,16 @@ class ProductPolicy
      */
     public function restore(User $user, Product $product)
     {
-        //  Only an Admin can restore this product
-        return $product->store()->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can restore this product
+            return $product->store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -112,7 +168,15 @@ class ProductPolicy
      */
     public function forceDelete(User $user, Product $product)
     {
-        //  Only an Admin can force delete this product
-        return $product->store()->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can force delete this product
+            return $product->store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 }

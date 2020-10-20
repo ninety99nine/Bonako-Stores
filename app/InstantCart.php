@@ -101,33 +101,42 @@ class InstantCart extends Model
      */
     public function getCartAttribute()
     {
-        //  Retrieve the product ids and quantity
-        $items = collect($this->products)->map(function($product){
-            return [
-                'id' => $product->id,
-                'quantity' => $product->pivot->quantity
+        try {
+            
+            //  Retrieve the product ids and quantity
+            $items = collect($this->products)->map(function($product){
+                return [
+                    'id' => $product->id,
+                    'quantity' => $product->pivot->quantity
+                ];
+            });
+
+            //  Retrieve the ids of the coupons we want to apply
+            $coupon_ids = collect($this->coupons)->map(function($coupon){
+                return $coupon->id;
+            });
+
+            //  Retrieve the store coupons available for use against the coupons we want to apply
+            $store_coupons = collect($this->coupons)->toArray();
+
+            //  Set the cart details (Cart Items + Store Coupons)
+            $info = [
+                'items' => $items,
+                'coupon_ids' => $coupon_ids,
+                'store_coupons' => $store_coupons
             ];
-        });
 
-        //  Retrieve the ids of the coupons we want to apply
-        $coupon_ids = collect($this->coupons)->map(function($coupon){
-            return $coupon->id;
-        });
+            //  Build and return the cart details
+            $cart = (new MyCart)->getCartDetails($info);
 
-        //  Retrieve the store coupons available for use against the coupons we want to apply
-        $store_coupons = collect($this->coupons)->toArray();
+            return $cart;
 
-        //  Set the cart details (Cart Items + Store Coupons)
-        $info = [
-            'items' => $items,
-            'coupon_ids' => $coupon_ids,
-            'store_coupons' => $store_coupons
-        ];
+        } catch (\Exception $e) {
 
-        //  Build and return the cart details
-        $cart = (new MyCart)->getCartDetails($info);
+            throw($e);
 
-        return $cart;
+        }
+
     }
 
     public function setActiveAttribute($value)

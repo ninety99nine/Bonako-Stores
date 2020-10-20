@@ -18,7 +18,15 @@ class HomeController extends Controller
      */
     public function home(Request $request)
     {
-        //  Return the home Api Resource
-        return new HomeResource($request);
+        try {
+
+            //  Return the home Api Resource
+            return new HomeResource($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
     }
 }

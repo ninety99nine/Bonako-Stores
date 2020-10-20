@@ -2,14 +2,15 @@
 
 namespace App;
 
-use DB;
-use App\Traits\StoreTraits;
 use App\Traits\CommonTraits;
+use App\Traits\StoreTraits;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 
 class Store extends Model
 {
-    use StoreTraits, CommonTraits;
+    use StoreTraits;
+    use CommonTraits;
 
     /**
      * The table associated with the model.
@@ -27,7 +28,7 @@ class Store extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'online', 'offline_message', 'user_id', 'currency', 'minimum_stock_quantity'
+        'name', 'online', 'offline_message', 'user_id', 'currency', 'minimum_stock_quantity',
     ];
 
     /*
@@ -63,7 +64,7 @@ class Store extends Model
     }
 
     /**
-     *  Returns coupons for this store
+     *  Returns coupons for this store.
      */
     public function coupons()
     {
@@ -78,10 +79,17 @@ class Store extends Model
         return $this->hasMany('App\InstantCart')->with(['products', 'coupons'])->latest();
     }
 
+    /**
+     *  Get the store ratings.
+     */
+    public function ratings()
+    {
+        return $this->hasMany('App\StoreRating');
+    }
+
     /** ATTRIBUTES
-     * 
-     *  Note that the "resource_type" is defined within CommonTraits
-     * 
+     *
+     *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
         'resource_type',
@@ -89,32 +97,34 @@ class Store extends Model
 
     public function setOnlineAttribute($value)
     {
-        $this->attributes['online'] = ( ($value == 'true' || $value === '1') ? 1 : 0);
+        $this->attributes['online'] = (($value == 'true' || $value === '1') ? 1 : 0);
     }
 
     //  ON DELETE EVENT
     public static function boot()
     {
-        parent::boot();
+        try {
+            parent::boot();
 
-        // before delete() method call this
-        static::deleting(function ($store) {
+            // before delete() method call this
+            static::deleting(function ($store) {
+                //  Delete all locations
+                foreach ($store->locations as $location) {
+                    $location->delete();
+                }
 
-            //  Delete all locations
-            foreach ($store->locations as $location) {
-                $location->delete();
-            }
+                //  Delete all products
+                foreach ($store->products as $product) {
+                    $product->delete();
+                }
 
-            //  Delete all products
-            foreach ($store->products as $product) {
-                $product->delete();
-            }
+                //  Delete all records of users being assigned to this store
+                DB::table('store_user')->where(['store_id' => $store->id])->delete();
 
-            //  Delete all records of users being assigned to this store
-            DB::table('store_user')->where(['store_id' => $store->id])->delete();
-
-            // do the rest of the cleanup...
-        });
+                // do the rest of the cleanup...
+            });
+        } catch (\Exception $e) {
+            throw($e);
+        }
     }
-
 }

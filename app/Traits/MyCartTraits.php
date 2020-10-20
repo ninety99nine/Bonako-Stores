@@ -157,198 +157,222 @@ trait MyCartTraits
             //  Action was executed successfully
             return $cartDetails;
 
+
+
         } catch (\Exception $e) {
 
-            //  Handle error
-            return response()->json(['message' => $e->getMessage()], 404);
-        
+            throw($e);
+
         }
     }
 
-    public function calcultateCoupons($sub_total = 0 , $coupons = [], $coupon_ids = [], $coupon_codes = []){
+    public function calcultateCoupons($sub_total = 0 , $coupons = [], $coupon_ids = [], $coupon_codes = [])
+    {
+        try {
 
-        $total = 0;
+            $total = 0;
 
-        //  If we don't have any coupons
-        if( count($coupons) == 0 ){
-            
-            //  Return "0" as the total coupon amount applied
-            return $total;
-
-        }
-
-        //  Foreach cart coupon, calculate the total cart coupon
-        foreach ($coupons as $key => $coupon) {
-
-            //  If this coupon is active
-            if( $coupon['active'] ){
-
-                $isValid = true;
-    
-                //	Check if we have a matching coupon id provided
-                $isValid = collect($coupon_ids)->contains(function ($coupon_id, $key) use ($coupon) {
-    
-                    //	Check if we have matching id
-                    return ($coupon_id == $coupon['id']);
-    
-                });
-    
-                //  If the coupon did not match any given coupon id
-                if( !$isValid ){
-    
-                    //  If the coupon uses a specific code
-                    if( $coupon['uses_code'] == true ){
-        
-                        //	Check if we have a matching coupon code provided
-                        $isValid = collect($coupon_codes)->contains(function ($coupon_code, $key) use ($coupon) {
-        
-                            //	Check if we have matching codes
-                            return ($coupon_code == $coupon['code']);
-                            
-                        });
-        
-                    }
-    
-                }
-    
-                //  If the coupon did not match any given coupon id or coupon code
-                if( !$isValid ){
-    
-                    //  If the coupon must always be applied regardless
-                    if( $coupon['always_apply'] == true ){
-                        
-                        $isValid = true;
-        
-                    }
-                    
-                }
-    
-                //  If we can continue
-                if( $isValid ){
-        
-                    //	Check if we have already applied this coupon
-                    $alreadyApplied = collect($this->coupons)->contains(function ($applied_coupon, $key) use ($coupon) {
-    
-                        //	Check if we have matching ids
-                        return ($applied_coupon['id'] == $coupon['id']);
-                        
-                    });
-    
-                    //  If we haven't yet applied this coupon
-                    if( !$alreadyApplied ){
+            //  If we don't have any coupons
+            if( count($coupons) == 0 ){
                 
-                        //  If its a percentage rate based coupon
-                        if ($coupon['is_percentage_rate']) {
-            
-                            //  Calculate the percentage coupon amount and add to the total coupon
-                            $total += $coupon['percentage_rate']/100 * $sub_total;
-            
-                        //  If its a flat rate based coupon
-                        } elseif ($coupon['is_fixed_rate']) {
-            
-                            //  Add the fixed coupon to the total coupon
-                            $total += $coupon['fixed_rate'];
-            
-                        }
-    
-                        //  Add this coupon as an applied coupon
-                        array_push( $this->coupons, collect($coupon)->except(['store_id', 'created_at', 'updated_at']));
-    
-                    }
-    
-                }
+                //  Return "0" as the total coupon amount applied
+                return $total;
 
             }
 
-        }  
+            //  Foreach cart coupon, calculate the total cart coupon
+            foreach ($coupons as $key => $coupon) {
 
-        return $total;
+                //  If this coupon is active
+                if( $coupon['active'] ){
+
+                    $isValid = true;
+        
+                    //	Check if we have a matching coupon id provided
+                    $isValid = collect($coupon_ids)->contains(function ($coupon_id, $key) use ($coupon) {
+        
+                        //	Check if we have matching id
+                        return ($coupon_id == $coupon['id']);
+        
+                    });
+        
+                    //  If the coupon did not match any given coupon id
+                    if( !$isValid ){
+        
+                        //  If the coupon uses a specific code
+                        if( $coupon['uses_code'] == true ){
+            
+                            //	Check if we have a matching coupon code provided
+                            $isValid = collect($coupon_codes)->contains(function ($coupon_code, $key) use ($coupon) {
+            
+                                //	Check if we have matching codes
+                                return ($coupon_code == $coupon['code']);
+                                
+                            });
+            
+                        }
+        
+                    }
+        
+                    //  If the coupon did not match any given coupon id or coupon code
+                    if( !$isValid ){
+        
+                        //  If the coupon must always be applied regardless
+                        if( $coupon['always_apply'] == true ){
+                            
+                            $isValid = true;
+            
+                        }
+                        
+                    }
+        
+                    //  If we can continue
+                    if( $isValid ){
+            
+                        //	Check if we have already applied this coupon
+                        $alreadyApplied = collect($this->coupons)->contains(function ($applied_coupon, $key) use ($coupon) {
+        
+                            //	Check if we have matching ids
+                            return ($applied_coupon['id'] == $coupon['id']);
+                            
+                        });
+        
+                        //  If we haven't yet applied this coupon
+                        if( !$alreadyApplied ){
+                    
+                            //  If its a percentage rate based coupon
+                            if ($coupon['is_percentage_rate']) {
+                
+                                //  Calculate the percentage coupon amount and add to the total coupon
+                                $total += $coupon['percentage_rate']/100 * $sub_total;
+                
+                            //  If its a flat rate based coupon
+                            } elseif ($coupon['is_fixed_rate']) {
+                
+                                //  Add the fixed coupon to the total coupon
+                                $total += $coupon['fixed_rate'];
+                
+                            }
+        
+                            //  Add this coupon as an applied coupon
+                            array_push( $this->coupons, collect($coupon)->except(['store_id', 'created_at', 'updated_at']));
+        
+                        }
+        
+                    }
+
+                }
+
+            }  
+
+            return $total;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
 
     }
 
-    public function convertToMoney($amount = 0){
+    public function convertToMoney($amount = 0)
+    {
+        try {
 
-        return number_format($amount, 2, '.', ',');
-        
+            return number_format($amount, 2, '.', ',');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }   
     }
 
     public function buildItems($items)
     {
-        /*  Item Structure
-         *  
-         *  Each item from the $items array should contain the item price
-         *  as well as the item quantity.
-         *
-         *  $items = [
-                ['id'=>1, quantity=>2],
-                ['id'=>2, quantity=>3]
-            ]
-         */
+        try {
 
-        $cartItems = [];
+            /*  Item Structure
+            *  
+            *  Each item from the $items array should contain the item price
+            *  as well as the item quantity.
+            *
+            *  $items = [
+                    ['id'=>1, quantity=>2],
+                    ['id'=>2, quantity=>3]
+                ]
+            */
 
-        //  Lets get the ids of the items in the cart
-        $itemIds = collect($items)->map(function ($item) {
-            
-            return $item['id'];
+            $cartItems = [];
 
-        });
+            //  Lets get the ids of the items in the cart
+            $itemIds = collect($items)->map(function ($item) {
+                
+                return $item['id'];
 
-        //  Lets get the items from the DB that are related to the cart items
-        $selectedColumns = ['id', 'name', 'description', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price', 'sku', 'barcode'];
-        $relatedItems = Product::select( $selectedColumns )->whereIn('id', $itemIds)->get();
+            });
 
-        //  Foreach item
-        foreach ($items as $key => $item) {
+            //  Lets get the items from the DB that are related to the cart items
+            $selectedColumns = ['id', 'name', 'description', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price', 'sku', 'barcode'];
+            $relatedItems = Product::select( $selectedColumns )->whereIn('id', $itemIds)->get();
 
-            //  Foreach related item
-            foreach ($relatedItems as $key => $relatedItem) {
+            //  Foreach item
+            foreach ($items as $key => $item) {
 
-                //  If the related item id and the cart item id match
-                if ($relatedItem['id'] == $item['id']) {
+                //  Foreach related item
+                foreach ($relatedItems as $key => $relatedItem) {
 
-                    /*  Get the item quantity  */ 
-                    $quantity =  $item['quantity'] ?? 1;
+                    //  If the related item id and the cart item id match
+                    if ($relatedItem['id'] == $item['id']) {
 
-                    /*  Update the related item sub total  */   
-                    $unit_price = $relatedItem['unit_price'];
+                        /*  Get the item quantity  */ 
+                        $quantity =  $item['quantity'] ?? 1;
 
-                    /*  Get the related item sub total (based on the regular price)  */  
-                    $sub_total = $relatedItem['unit_regular_price'] * $quantity;
+                        /*  Update the related item sub total  */   
+                        $unit_price = $relatedItem['unit_price'];
 
-                    /*  Get the related item sale discount  */
-                    $sale_discount = $relatedItem['sale_discount'] * $quantity;
+                        /*  Get the related item sub total (based on the regular price)  */  
+                        $sub_total = $relatedItem['unit_regular_price'] * $quantity;
 
-                    /*  Get the related item grand total (based on the regular/sale price)  */
-                    $grand_total = $unit_price * $quantity;
+                        /*  Get the related item sale discount  */
+                        $sale_discount = $relatedItem['sale_discount'] * $quantity;
 
-                    /*  Build the cart item using the related item information  */
-                    $cartItem = collect($relatedItem->toArray())->only([
+                        /*  Get the related item grand total (based on the regular/sale price)  */
+                        $grand_total = $unit_price * $quantity;
 
-                        /** Product Details  */
-                        'name', 'description', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price',
-                        'sku', 'barcode', 'stock_quantity', 'allow_stock_management', 'auto_manage_stock',
-                        'variant_attributes', 'allow_variants', 'allow_downloads', 'show_on_store',
-                        'is_new', 'is_featured', 'parent_product_id',
+                        /*  Build the cart item using the related item information  */
+                        $cartItem = collect($relatedItem->toArray())->only([
 
-                        /** Product Attributes  */
-                        'resource_type', 'unit_price', 'sale_discount'
+                            /** Product Details  */
+                            'id', 'name', 'description', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price',
+                            'sku', 'barcode', 'stock_quantity', 'allow_stock_management', 'auto_manage_stock',
+                            'variant_attributes', 'allow_variants', 'allow_downloads', 'show_on_store',
+                            'is_new', 'is_featured', 'parent_product_id',
 
-                    ]);
+                            /** Product Attributes  */
+                            'resource_type', 'unit_price', 'sale_discount'
 
-                    /*  Update the details of the cart item to match its quantity  */
-                    $cartItem['quantity'] = $quantity;
-                    $cartItem['sub_total'] = $sub_total;
-                    $cartItem['grand_total'] = $grand_total;
-                    $cartItem['sale_discount'] = $sale_discount;
+                        ]);
 
-                    /*  Add the current cart item to the rest of the cart items  */
-                    array_push($cartItems, $cartItem);
+                        /*  Update the details of the cart item to match its quantity  */
+                        $cartItem['quantity'] = $quantity;
+                        $cartItem['sub_total'] = $sub_total;
+                        $cartItem['grand_total'] = $grand_total;
+                        $cartItem['sale_discount'] = $sale_discount;
+
+                        /*  Add the current cart item to the rest of the cart items  */
+                        array_push($cartItems, $cartItem);
+                    }
                 }
             }
-        }
 
-        return $cartItems;
+            return $cartItems;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /*  getTotalItemQuantity()
@@ -362,21 +386,28 @@ trait MyCartTraits
      */
     public function getTotalItemQuantity($items)
     {
+        try {
 
-        $total_quantity = 0;
+            $total_quantity = 0;
 
-        if( count( $items ) ){
+            if( count( $items ) ){
 
-            foreach($items as $key => $item){
-    
-                //  Get the item quantity and add to the total item quantity
-                $total_quantity = $total_quantity + intval($item['quantity']);
-    
+                foreach($items as $key => $item){
+        
+                    //  Get the item quantity and add to the total item quantity
+                    $total_quantity = $total_quantity + intval($item['quantity']);
+        
+                }
+
             }
 
-        }
+            return $total_quantity;
 
-        return $total_quantity;
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
         
     }
 
@@ -389,16 +420,24 @@ trait MyCartTraits
      */
     public function getItemsSummarizedInArray($items)
     {
-        $items_inline = [];
+        try {
 
-        foreach($items as $key => $item){
+            $items_inline = [];
 
-            //  Get the item quantity and name then add to array
-            $items_inline[$key] = $item['quantity']."x(".ucfirst($item['name']).")";
+            foreach($items as $key => $item){
+
+                //  Get the item quantity and name then add to array
+                $items_inline[$key] = $item['quantity']."x(".ucfirst($item['name']).")";
+
+            }
+
+            return $items_inline;
+
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
-
-        return $items_inline;
         
     }
 
@@ -411,19 +450,27 @@ trait MyCartTraits
      */
     public function getItemsSummarizedInline($items)
     {
-        $items_inline = '';
+        try {
 
-        foreach($items as $item){
+            $items_inline = '';
 
-            //  Get the item quantity and name
-            $items_inline .= $item['quantity']."x(".ucfirst($item['name']).")";
-            
-            //  Separate items using a comma
-            $items_inline .= (next($items)) ? ', ' : '';
+            foreach($items as $item){
+
+                //  Get the item quantity and name
+                $items_inline .= $item['quantity']."x(".ucfirst($item['name']).")";
+                
+                //  Separate items using a comma
+                $items_inline .= (next($items)) ? ', ' : '';
+
+            }
+
+            return $items_inline;
+
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
-
-        return $items_inline;
         
     }
 }

@@ -43,6 +43,13 @@ class user extends JsonResource
                     'title' => 'The stores that are created or shared with this user',
                     'total' => $this->stores()->count(),
                 ],
+
+                //  Link to the user's favourite stores
+                'bos:favourite_stores' => [
+                    'href' => route('my-favourite-stores'),
+                    'title' => 'This user\'s favourite stores',
+                    'total' => $this->favouriteStores()->count(),
+                ],
             ],
 
             /*  Embedded Resources */

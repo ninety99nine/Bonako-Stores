@@ -21,9 +21,6 @@ class Order extends JsonResource
             'number' => $this->number,
             'currency' => $this->currency,
             'created_date' => $this->created_date,
-            'status' => $this->status,
-            'payment_status' => $this->payment_status,
-            'fulfillment_status' => $this->fulfillment_status,
             'item_lines' => $this->item_lines,
             'coupon_lines' => $this->coupon_lines,
             'sub_total' => $this->sub_total,
@@ -37,6 +34,14 @@ class Order extends JsonResource
             'checkout_method' => $this->checkout_method,
             'store_id' => $this->store_id,
             'location_id' => $this->location_id,
+
+            //  Attributes
+            'status' => $this->status,
+            'payment_status' => $this->payment_status,
+            'fulfillment_status' => $this->fulfillment_status,
+            'unfulfilled_item_lines' => $this->unfulfilled_item_lines,
+            'quantity_of_fulfilled_item_lines' => $this->quantity_of_fulfilled_item_lines,
+            'quantity_of_unfulfilled_item_lines' => $this->quantity_of_unfulfilled_item_lines,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
@@ -53,7 +58,13 @@ class Order extends JsonResource
                 'self' => [
                     'href' => route('order', ['order_id' => $this->id]),
                     'title' => 'This order'
-                ]
+                ],
+
+                //  Link to fulfil order
+                'bos:fulfil' => [
+                    'href' => route('order-fulfillment', ['order_id' => $this->id]),
+                    'title' => 'The POST route to fulfil this order'
+                ],
                 
             ],
 

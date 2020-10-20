@@ -31,48 +31,49 @@ trait LocationTraits
      */
     public function initiateCreate($request)
     {
-        //  Set the request variable
-        $this->request = $request;
-
-        //  Validate the request
-        $validation_data = $request->validate([
-            'name' => 'required',
-        ]);
-
-        //  If we have the location id representing the location to clone
-        if ($request->input('clone_location_id')) {
-            //  Retrieve the location to clone
-            $this->location_to_clone = \App\Location::where('id', $request->input('clone_location_id'))->first();
-        }
-
-        //  Set the template
-        $template = [
-            'user_id' => auth('api')->user()->id,
-            'name' => $this->request->input('name'),
-            'online' => $this->request->input('online'),
-            'about_us' => $this->request->input('about_us'),
-            'store_id' => $this->request->input('store_id'),
-            'contact_us' => $this->request->input('contact_us'),
-            'abbreviation' => $this->request->input('abbreviation'),
-            'allow_payments' => $this->request->input('allow_payments'),
-            'call_to_action' => $this->request->input('call_to_action'),
-            'allow_delivery' => $this->request->input('allow_delivery'),
-            'offline_message' => $this->request->input('offline_message'),
-            'delivery_note' => $this->request->input('delivery_note'),
-            'delivery_flat_fee' => $this->request->input('delivery_flat_fee'),
-            'delivery_days' => $this->request->input('delivery_days'),
-            'pickup_days' => $this->request->input('pickup_days'),
-            'delivery_times' => $this->request->input('delivery_times'),
-            'pickup_note' => $this->request->input('pickup_note'),
-            'pickup_times' => $this->request->input('pickup_times'),
-            'delivery_destinations' => $this->request->input('delivery_destinations'),
-            'pickup_destinations' => $this->request->input('pickup_destinations'),
-            'allow_pickups' => $this->request->input('allow_pickups'),
-            'online_payment_methods' => $this->request->input('online_payment_methods'),
-            'offline_payment_methods' => $this->request->input('offline_payment_methods'),
-        ];
-
         try {
+
+            //  Set the request variable
+            $this->request = $request;
+
+            //  Validate the request
+            $validation_data = $request->validate([
+                'name' => 'required',
+            ]);
+
+            //  If we have the location id representing the location to clone
+            if ($request->input('clone_location_id')) {
+                //  Retrieve the location to clone
+                $this->location_to_clone = \App\Location::where('id', $request->input('clone_location_id'))->first();
+            }
+
+            //  Set the template
+            $template = [
+                'user_id' => auth('api')->user()->id,
+                'name' => $this->request->input('name'),
+                'online' => $this->request->input('online'),
+                'about_us' => $this->request->input('about_us'),
+                'store_id' => $this->request->input('store_id'),
+                'contact_us' => $this->request->input('contact_us'),
+                'abbreviation' => $this->request->input('abbreviation'),
+                'allow_payments' => $this->request->input('allow_payments'),
+                'call_to_action' => $this->request->input('call_to_action'),
+                'allow_delivery' => $this->request->input('allow_delivery'),
+                'offline_message' => $this->request->input('offline_message'),
+                'delivery_note' => $this->request->input('delivery_note'),
+                'delivery_flat_fee' => $this->request->input('delivery_flat_fee'),
+                'delivery_days' => $this->request->input('delivery_days'),
+                'pickup_days' => $this->request->input('pickup_days'),
+                'delivery_times' => $this->request->input('delivery_times'),
+                'pickup_note' => $this->request->input('pickup_note'),
+                'pickup_times' => $this->request->input('pickup_times'),
+                'delivery_destinations' => $this->request->input('delivery_destinations'),
+                'pickup_destinations' => $this->request->input('pickup_destinations'),
+                'allow_pickups' => $this->request->input('allow_pickups'),
+                'online_payment_methods' => $this->request->input('online_payment_methods'),
+                'offline_payment_methods' => $this->request->input('offline_payment_methods'),
+            ];
+        
             /*
              *  Create new a location, then retrieve a fresh instance
              */
@@ -85,21 +86,88 @@ trait LocationTraits
 
                 return $this->location->fresh();
             }
+
+
         } catch (\Exception $e) {
-            //  Throw a validation error
-            throw $e;
+
+            throw($e);
+
         }
     }
 
     public function assignUserAsAdmin()
     {
-        //  Associate the location with the current user as admin
-        auth('api')->user()->locations()->save($this->location,
-        //  Pivot table values
-        [
-            'type' => 'admin',
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-    }
+        try {
+
+            //  Associate the location with the current user as admin
+            auth('api')->user()->locations()->save($this->location,
+            //  Pivot table values
+            [
+                'type' => 'admin',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    } 
+   
+    /*
+     *  Checks if a given user is the owner of the location
+     */
+   public function isOwner($user_id)
+   {
+       try {
+
+           return $this->whereUserId($user_id)->exists();
+
+       } catch (\Exception $e) {
+
+           throw($e);
+
+       }
+   }
+
+   /*
+    *  Checks if a given user is the admin of the location
+    */
+   public function isAdmin($user_id = null)
+   {
+       try{
+
+           if ( !empty($user_id) ) {
+
+               return $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'admin')->exists();
+
+           }
+
+       } catch (\Exception $e) {
+
+           throw($e);
+
+       }
+   }
+
+   /*
+    *  Checks if a given user is a viewer of the location
+    */
+   public function isViewer($user_id = null)
+   {
+       try {
+
+           if ( !empty($user_id) ) {
+               
+               return $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'viewer')->exists();
+
+           }
+
+       } catch (\Exception $e) {
+
+           throw($e);
+
+       }
+   }
 }

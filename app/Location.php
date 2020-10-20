@@ -171,22 +171,31 @@ class Location extends Model
     //  ON DELETE EVENT
     public static function boot()
     {
-        parent::boot();
+        try {
 
-        // before delete() method call this
-        static::deleting(function ($location) {
-            //  Delete all products
-            foreach ($location->products as $product) {
-                $product->delete();
-            }
+            parent::boot();
 
-            //  Delete all records of users being assigned to this location
-            DB::table('location_user')->where(['location_id' => $location->id])->delete();
+            // before delete() method call this
+            static::deleting(function ($location) {
+                
+                //  Delete all products
+                foreach ($location->products as $product) {
+                    $product->delete();
+                }
 
-            //  Delete all records of products being assigned to this location
-            DB::table('product_allocations')->where(['owner_id' => $location->id, 'owner_type' => 'location'])->delete();
+                //  Delete all records of users being assigned to this location
+                DB::table('location_user')->where(['location_id' => $location->id])->delete();
 
-            // do the rest of the cleanup...
-        });
+                //  Delete all records of products being assigned to this location
+                DB::table('product_allocations')->where(['owner_id' => $location->id, 'owner_type' => 'location'])->delete();
+
+                // do the rest of the cleanup...
+            });
+            
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 }

@@ -61,13 +61,12 @@ class Product extends Model
     }
 
     /**
-     *  Returns the list of locations that this product belongs to.
-     *
-     *   public function locations()
-     *   {
-     *       return $this->belongsToMany('App\Location');
-     *   }
+     *  Returns the owning store
      */
+    public function store()
+    {
+        return $this->belongsTo('App\Store');
+    }
 
     /**
      *  Returns the locations that this product is assigned to.
@@ -201,28 +200,31 @@ class Product extends Model
     //  ON DELETE EVENT
     public static function boot()
     {
-        parent::boot();
+        try {
+            
+            parent::boot();
 
-        // before delete() method call this
-        static::deleting(function ($product) {
-            //  Delete all variations
-            foreach ($product->variations as $variation) {
-                $variation->delete();
-            }
+            // before delete() method call this
+            static::deleting(function ($product) {
+                
+                //  Delete all variations
+                foreach ($product->variations as $variation) {
+                    $variation->delete();
+                }
 
-            //  Delete all variables
-            $product->variables()->delete();
+                //  Delete all variables
+                $product->variables()->delete();
 
-            //  Delete all discounts
-            $product->discounts()->delete();
+                //  Delete all records of this product being assigned to specific locations, instant carts, etc
+                DB::table('product_allocations')->where(['product_id' => $product->id])->delete();
 
-            //  Delete all coupons
-            $product->coupons()->delete();
+                // do the rest of the cleanup...
+            });
+            
+        } catch (\Exception $e) {
 
-            //  Delete all records of this product being assigned to specific locations
-            DB::table('location_product')->where(['product_id' => $product->id])->delete();
+            throw($e);
 
-            // do the rest of the cleanup...
-        });
+        }
     }
 }

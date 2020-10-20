@@ -15,13 +15,20 @@ class UserPolicy
      */
     public function before($user, $ability)
     {
-        /** Note that this will run before any other checks. This means is we return true we will be authorized
-         *  for every action. However be aware that if we return false here, then we are also not authorizing 
-         *  all other methods. We must be careful here, we only return true if the user is a "Super Admin" 
-         *  but nothing is they are not, since we want other methods to run their own local checks. 
-         * 
-        */
-        if($user->isSuperAdmin()) return true;
+        try {
+
+            /** Note that this will run before any other checks. This means is we return true we will be authorized
+             *  for every action. However be aware that if we return false here, then we are also not authorizing 
+             *  all other methods. We must be careful here, we only return true if the user is a "Super Admin" 
+             *  but nothing is they are not, since we want other methods to run their own local checks. 
+             */
+            if($user->isSuperAdmin()) return true;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
     
     /**
@@ -32,7 +39,15 @@ class UserPolicy
      */
     public function viewAll(User $user)
     {
-        return true;
+        try {
+
+            return true;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -44,7 +59,15 @@ class UserPolicy
      */
     public function view(User $user, User $model)
     {
-        return true;
+        try {
+
+            return true;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -55,8 +78,16 @@ class UserPolicy
      */
     public function create(User $user)
     {
-        //  Any Authenticated user can create a instant carts
-        return auth('api')->user() ? true : false;
+        try {
+
+            //  Any Authenticated user can create a instant carts
+            return auth('api')->user() ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -68,7 +99,15 @@ class UserPolicy
      */
     public function update(User $user, User $model)
     {
-        return true;
+        try {
+
+            return true;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -92,7 +131,15 @@ class UserPolicy
      */
     public function restore(User $user, User $model)
     {
-        return true;
+        try {
+
+            return true;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -104,6 +151,14 @@ class UserPolicy
      */
     public function forceDelete(User $user, User $model)
     {
-        return true;
+        try {
+
+            return true;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 }

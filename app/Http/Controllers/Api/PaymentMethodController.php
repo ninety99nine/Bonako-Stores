@@ -18,19 +18,27 @@ class PaymentMethodController extends Controller
 
     public function getPaymentMethods(Request $request)
     {
-        //  Get the payment methods
-        $Payment_method = \App\PaymentMethod::paginate(100) ?? null;
-
-        //  Check if the stores exist
-        if ($Payment_method) {
-                
-            //  Return an API Readable Format of the PaymentMethod Instance
-            return ( new \App\PaymentMethod() )->convertToApiFormat($Payment_method);
+        try {
             
-        } else {
+            //  Get the payment methods
+            $Payment_method = \App\PaymentMethod::paginate(100) ?? null;
 
-            //  Not Found
-            return help_resource_not_fonud();
+            //  Check if the stores exist
+            if ($Payment_method) {
+                    
+                //  Return an API Readable Format of the PaymentMethod Instance
+                return ( new \App\PaymentMethod() )->convertToApiFormat($Payment_method);
+                
+            } else {
+
+                //  Not Found
+                return help_resource_not_fonud();
+
+            }
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
 
         }
     }

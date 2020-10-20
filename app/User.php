@@ -77,6 +77,14 @@ class User extends Authenticatable
     }
 
     /**
+     *  Get the favourite stores of the user.
+     */
+    public function favouriteStores()
+    {
+        return $this->belongsToMany('App\Store', 'favourite_stores');
+    }
+
+    /**
      *  The locations that are either created or shared with this user.
      */
     public function locations()

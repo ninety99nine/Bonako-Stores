@@ -24,6 +24,8 @@ Route::namespace('Api')->group(function () {
         Route::get('/', 'UserController@getUser')->name('profile');
 
         Route::get('/stores', 'UserController@getUserStores')->name('stores');
+
+        Route::get('/favourite-stores', 'UserController@getUserFavouriteStores')->name('favourite-stores');
     });
 
     //  Store Resource Routes
@@ -39,9 +41,11 @@ Route::namespace('Api')->group(function () {
             Route::put('/{store_id}', 'StoreController@updateStore')->name('store-update')->where('store_id', '[0-9]+');
             Route::delete('/{store_id}', 'StoreController@deleteStore')->name('store-delete')->where('store_id', '[0-9]+');
         });
+        //  Single store rating statistics  /stores/{store_id}/rating-statistics
+        Route::get('/{store_id}/rating-statistics', 'StoreController@getStoreRatingStatistics')->name('store-rating-statistics')->where('store_id', '[0-9]+');
 
         //  Single store locations  /stores/{store_id}/locations
-        Route::get('/{store_id}/locations', 'StoreController@getStoreLocations')->name('store-locations')->where('store_id', '[0-9]+');        //  Single location instant carts  /locations/{location_id}/instant-carts
+        Route::get('/{store_id}/locations', 'StoreController@getStoreLocations')->name('store-locations')->where('store_id', '[0-9]+');
 
         //  Single store coupons  /stores/{store_id}/coupons
         Route::get('/{store_id}/coupons', 'StoreController@getStoreCoupons')->name('store-coupons')->where('store_id', '[0-9]+');
@@ -72,6 +76,10 @@ Route::namespace('Api')->group(function () {
 
         //  Single location orders  /locations/{location_id}/orders
         Route::get('/{location_id}/orders', 'LocationController@getLocationOrders')->name('location-orders')->where('location_id', '[0-9]+');
+        Route::get('/{location_id}/orders?fulfillment_status=fulfilled', 'LocationController@getLocationOrders')->name('location-fulfilled-orders')->where('location_id', '[0-9]+');
+        Route::get('/{location_id}/orders?fulfillment_status=unfulfilled', 'LocationController@getLocationOrders')->name('location-unfulfilled-orders')->where('location_id', '[0-9]+');
+        Route::get('/{location_id}/orders?status=cancelled', 'LocationController@getLocationOrders')->name('location-cancelled-orders')->where('location_id', '[0-9]+');
+        Route::get('/{location_id}/unrated-orders', 'LocationController@getLocationUnratedOrders')->name('location-unrated-orders')->where('location_id', '[0-9]+');
 
         //  Single location instant carts  /locations/{location_id}/instant-carts
         Route::get('/{location_id}/instant-carts', 'LocationController@getLocationInstantCarts')->name('location-instant-carts')->where('location_id', '[0-9]+');
@@ -101,6 +109,10 @@ Route::namespace('Api')->group(function () {
 
         //  Single order  /orders/{order_id}
         Route::get('/{order_id}', 'OrderController@getOrder')->name('order')->where('order_id', '[0-9]+');
+        Route::delete('/{order_id}', 'OrderController@deleteOrder')->name('order-delete')->where('order_id', '[0-9]+');
+
+        //  Fulfillment related resources
+        Route::post('/{order_id}/fulfil', 'OrderController@fulfilOrder')->name('order-fulfillment')->where('order_id', '[0-9]+');
     });
 
     //  Coupon Resource Routes

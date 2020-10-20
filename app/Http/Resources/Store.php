@@ -2,8 +2,6 @@
 
 namespace App\Http\Resources;
 
-use App\Http\Resources\Version as VersionResource;
-use App\Http\Resources\ShortCode as ShortCodeResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class Store extends JsonResource
@@ -32,7 +30,6 @@ class Store extends JsonResource
 
             /*  Resource Links */
             '_links' => [
-
                 'curies' => [
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
@@ -47,38 +44,35 @@ class Store extends JsonResource
                 'bos:locations' => [
                     'href' => route('store-locations', ['store_id' => $this->id]),
                     'title' => 'The store locations',
-                    'total' => $this->locations()->count()
+                    'total' => $this->locations()->count(),
                 ],
 
                 //  Link to the create products
                 'bos:product-create' => [
                     'href' => route('product-create'),
-                    'title' => 'The POST route to create a new product'
+                    'title' => 'The POST route to create a new product',
                 ],
 
                 //  Link to the instant carts
                 'bos:coupons' => [
                     'href' => route('store-coupons', ['store_id' => $this->id]),
                     'title' => 'The store coupons',
-                    'total' => $this->coupons()->count()
+                    'total' => $this->coupons()->count(),
                 ],
 
                 //  Link to the instant carts
                 'bos:products' => [
                     'href' => route('store-products', ['store_id' => $this->id]),
                     'title' => 'The store products',
-                    'total' => $this->products()->count()
+                    'total' => $this->products()->count(),
                 ],
 
                 //  Link to the instant carts
                 'bos:instant_carts' => [
                     'href' => route('store-instant-carts', ['store_id' => $this->id]),
                     'title' => 'The store instant carts',
-                    'total' => $this->instantCarts()->count()
+                    'total' => $this->instantCarts()->count(),
                 ],
-
-                
-
             ],
 
             /*  Embedded Resources */

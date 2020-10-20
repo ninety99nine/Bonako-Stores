@@ -37,31 +37,31 @@ trait InstantCartTraits
      */
     public function initiateCreate( $request )
     {   
-        //  Set the request variable
-        $this->request = $request;
-
-        $store_id = $request->input('store_id') ?? null;
-        $location_id = $request->input('location_id') ?? null;
-
-        //  Set the template
-        $template = [
-
-            /*  Basic Info  */
-            'name' => $request->input('name'),
-            'description' => $request->input('description'),
-    
-            /*  Status  */
-            'active' => $request->input('active'),
-
-            /*  Store Info  */
-            'store_id' => $store_id,
-
-            /*  Location Info  */
-            'location_id' => $location_id
-            
-        ];
-
         try {
+
+            //  Set the request variable
+            $this->request = $request;
+
+            $store_id = $request->input('store_id') ?? null;
+            $location_id = $request->input('location_id') ?? null;
+
+            //  Set the template
+            $template = [
+
+                /*  Basic Info  */
+                'name' => $request->input('name'),
+                'description' => $request->input('description'),
+        
+                /*  Status  */
+                'active' => $request->input('active'),
+
+                /*  Store Info  */
+                'store_id' => $store_id,
+
+                /*  Location Info  */
+                'location_id' => $location_id
+                
+            ];
             
             /*
              *  Create new a instant_cart, then retrieve a fresh instance
@@ -87,9 +87,8 @@ trait InstantCartTraits
 
         } catch (\Exception $e) {
 
-            //  Throw a validation error
-            throw ValidationException::withMessages(['general' => $e->getMessage()]);
-            
+            throw($e);
+
         }
     }
 
@@ -97,35 +96,35 @@ trait InstantCartTraits
      */
     public function initiateUpdate( $request )
     {   
-        //  Get the current instant cart instance
-        $this->instant_cart = $this;
-
-        //  Set the request variable
-        $this->request = $request;
-
-        $id = $request->input('id') ?? null;
-        $store_id = $request->input('store_id') ?? null;
-        $location_id = $request->input('location_id') ?? null;
-
-        //  Set the template
-        $template = [
-
-            /*  Basic Info  */
-            'name' => $request->input('name'),
-            'description' => $request->input('description'),
-    
-            /*  Status  */
-            'active' => $request->input('active'),
-
-            /*  Store Info  */
-            'store_id' => $store_id,
-
-            /*  Location Info  */
-            'location_id' => $location_id
-            
-        ];
-
         try {
+
+            //  Get the current instant cart instance
+            $this->instant_cart = $this;
+
+            //  Set the request variable
+            $this->request = $request;
+
+            $id = $request->input('id') ?? null;
+            $store_id = $request->input('store_id') ?? null;
+            $location_id = $request->input('location_id') ?? null;
+
+            //  Set the template
+            $template = [
+
+                /*  Basic Info  */
+                'name' => $request->input('name'),
+                'description' => $request->input('description'),
+        
+                /*  Status  */
+                'active' => $request->input('active'),
+
+                /*  Store Info  */
+                'store_id' => $store_id,
+
+                /*  Location Info  */
+                'location_id' => $location_id
+                
+            ];
             
             /*
              *  Create new a instant_cart, then retrieve a fresh instance
@@ -148,9 +147,8 @@ trait InstantCartTraits
 
         } catch (\Exception $e) {
 
-            //  Throw a validation error
-            throw ValidationException::withMessages(['general' => $e->getMessage()]);
-            
+            throw($e);
+
         }
     }
     
@@ -161,73 +159,98 @@ trait InstantCartTraits
      */
     public function setInstantCartCode()
     {
-        //  Set the unique instant_cart code
-        $this->update(['code' => '0'.$this->id]);
+        try {
+
+            //  Set the unique instant_cart code
+            $this->update(['code' => '0'.$this->id]);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     public function assignProductsToInstantCart()
     {
-        $products = $this->request->input('products') ?? [];
-        
-        if( count($products) ){
+        try {
 
-            $products_to_add = [];
+            $products = $this->request->input('products') ?? [];
+            
+            if( count($products) ){
 
-            foreach ($products as $key => $product) {
+                $products_to_add = [];
 
-                $product_id = $product['id'];
-                $product_quantity = $product['quantity'];
+                foreach ($products as $key => $product) {
 
-                //  Associate the product with the instant cart
-                array_push($products_to_add,
-                [
-                    'arrangement' => ($key + 1),
-                    'product_id' => $product_id,
-                    'owner_type' => 'instant_cart',
-                    'quantity' => $product_quantity,
-                    'owner_id' => $this->instant_cart->id,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                    $product_id = $product['id'];
+                    $product_quantity = $product['quantity'];
+
+                    //  Associate the product with the instant cart
+                    array_push($products_to_add,
+                    [
+                        'arrangement' => ($key + 1),
+                        'product_id' => $product_id,
+                        'owner_type' => 'instant_cart',
+                        'quantity' => $product_quantity,
+                        'owner_id' => $this->instant_cart->id,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                }
+
+                //  Delete previous products allocated to this instant cart
+                DB::table('product_allocations')->where('owner_id', $this->instant_cart->id)->where('owner_type', 'instant_cart')->delete();
+                
+                //  Allocate new products to this instant cart
+                DB::table('product_allocations')->insert($products_to_add);
 
             }
+        
 
-            //  Delete previous products allocated to this instant cart
-            DB::table('product_allocations')->where('owner_id', $this->instant_cart->id)->where('owner_type', 'instant_cart')->delete();
-            
-            //  Allocate new products to this instant cart
-            DB::table('product_allocations')->insert($products_to_add);
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
     }
 
     public function assignCouponsToInstantCart()
     {
-        $coupon_ids = $this->request->input('coupon_ids') ?? [];
-        
-        if( count($coupon_ids) ){
+        try {
 
-            $coupons_to_add = [];
+            $coupon_ids = $this->request->input('coupon_ids') ?? [];
+            
+            if( count($coupon_ids) ){
 
-            foreach ($coupon_ids as $key => $coupon_id) {
+                $coupons_to_add = [];
 
-                //  Associate the coupon with the instant cart
-                array_push($coupons_to_add,
-                [
-                    'coupon_id' => $coupon_id,
-                    'owner_type' => 'instant_cart',
-                    'owner_id' => $this->instant_cart->id,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                foreach ($coupon_ids as $key => $coupon_id) {
+
+                    //  Associate the coupon with the instant cart
+                    array_push($coupons_to_add,
+                    [
+                        'coupon_id' => $coupon_id,
+                        'owner_type' => 'instant_cart',
+                        'owner_id' => $this->instant_cart->id,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                }
+
+                //  Delete previous coupons allocated to this instant cart
+                DB::table('coupon_allocations')->where('owner_id', $this->instant_cart->id)->where('owner_type', 'instant_cart')->delete();
+                
+                //  Allocate new coupons to this instant cart
+                DB::table('coupon_allocations')->insert($coupons_to_add);
 
             }
 
-            //  Delete previous coupons allocated to this instant cart
-            DB::table('coupon_allocations')->where('owner_id', $this->instant_cart->id)->where('owner_type', 'instant_cart')->delete();
-            
-            //  Allocate new coupons to this instant cart
-            DB::table('coupon_allocations')->insert($coupons_to_add);
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
     }

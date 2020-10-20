@@ -32,35 +32,36 @@ trait ProductTraits
      */
     public function initiateCreate($request)
     {
-        //  Set the request variable
-        $this->request = $request;
-
-        //  Validate the request
-        $validation_data = $request->validate([
-            'name' => 'required',
-        ]);
-
-        //  Set the template
-        $template = [
-            'name' => $request->input('name'),
-            'type' => $request->input('type'),
-            'user_id' => auth('api')->user()->id,
-            'active' => $request->input('active'),
-            'store_id' => $request->input('store_id'),
-            'description' => $request->input('description'),
-            'cost_per_item' => $request->input('cost_per_item'),
-            'unit_sale_price' => $request->input('unit_sale_price'),
-            'unit_regular_price' => $request->input('unit_regular_price'),
-            'variant_attributes' => $request->input('variant_attributes'),
-
-            'allow_stock_management' => $request->input('allow_stock_management'),
-            'auto_manage_stock' => $request->input('auto_manage_stock'),
-            'stock_quantity' => $request->input('stock_quantity'),
-            'barcode' => $request->input('barcode'),
-            'sku' => $request->input('sku'),
-        ];
-
         try {
+
+            //  Set the request variable
+            $this->request = $request;
+
+            //  Validate the request
+            $validation_data = $request->validate([
+                'name' => 'required',
+            ]);
+
+            //  Set the template
+            $template = [
+                'name' => $request->input('name'),
+                'type' => $request->input('type'),
+                'user_id' => auth('api')->user()->id,
+                'active' => $request->input('active'),
+                'store_id' => $request->input('store_id'),
+                'description' => $request->input('description'),
+                'cost_per_item' => $request->input('cost_per_item'),
+                'unit_sale_price' => $request->input('unit_sale_price'),
+                'unit_regular_price' => $request->input('unit_regular_price'),
+                'variant_attributes' => $request->input('variant_attributes'),
+
+                'allow_stock_management' => $request->input('allow_stock_management'),
+                'auto_manage_stock' => $request->input('auto_manage_stock'),
+                'stock_quantity' => $request->input('stock_quantity'),
+                'barcode' => $request->input('barcode'),
+                'sku' => $request->input('sku'),
+            ];
+
             /*
              *  Create new a product, then retrieve a fresh instance
              */
@@ -73,52 +74,62 @@ trait ProductTraits
                 //  Return a fresh instance
                 return $this->product;
             }
+
         } catch (\Exception $e) {
-            //  Throw a validation error
-            throw ValidationException::withMessages(['general' => $e->getMessage()]);
+
+            throw($e);
+
         }
     }
 
     public function assignProductToLocation()
     {
-        if ($this->request->input('location_id')) {
-            //  Get the location we want to place this product
-            $location = \App\Location::where('id', $this->request->input('location_id'))->first();
+        try {
 
-            //  Get all the current product allocations by order of arrangement
-            $product_allocations = DB::table('product_allocations')->where('owner_id', $location->id)->where('owner_type', 'location')->orderBy('arrangement')->get();
+            if ($this->request->input('location_id')) {
+                //  Get the location we want to place this product
+                $location = \App\Location::where('id', $this->request->input('location_id'))->first();
 
-            //  Create a new product allocation and add the product we just created as the first on the list
-            $new_product_allocations[] = [
-                'arrangement' => 1,
-                'owner_type' => 'location',
-                'owner_id' => $location->id,
-                'created_at' => DB::raw('now()'),
-                'updated_at' => DB::raw('now()'),
-                'product_id' => $this->product->id,
-            ];
+                //  Get all the current product allocations by order of arrangement
+                $product_allocations = DB::table('product_allocations')->where('owner_id', $location->id)->where('owner_type', 'location')->orderBy('arrangement')->get();
 
-            /** Get all the current product allocations and add them in their original
-             *  order but arranged after the new product we just created. Since the
-             *  $key starts from 0, 1, 2, 3 ... we need to add "1" to allow
-             *  increments starting from 1, 2, 3 ...
-             */
-            foreach ($product_allocations as $key => $product_allocation) {
+                //  Create a new product allocation and add the product we just created as the first on the list
                 $new_product_allocations[] = [
+                    'arrangement' => 1,
                     'owner_type' => 'location',
                     'owner_id' => $location->id,
-                    'arrangement' => ($key + 2),
                     'created_at' => DB::raw('now()'),
                     'updated_at' => DB::raw('now()'),
-                    'product_id' => $product_allocation->product_id,
+                    'product_id' => $this->product->id,
                 ];
+
+                /** Get all the current product allocations and add them in their original
+                 *  order but arranged after the new product we just created. Since the
+                 *  $key starts from 0, 1, 2, 3 ... we need to add "1" to allow
+                 *  increments starting from 1, 2, 3 ...
+                 */
+                foreach ($product_allocations as $key => $product_allocation) {
+                    $new_product_allocations[] = [
+                        'owner_type' => 'location',
+                        'owner_id' => $location->id,
+                        'arrangement' => ($key + 2),
+                        'created_at' => DB::raw('now()'),
+                        'updated_at' => DB::raw('now()'),
+                        'product_id' => $product_allocation->product_id,
+                    ];
+                }
+
+                //  Delete all the current product allocations
+                DB::table('product_allocations')->where('owner_id', $location->id)->where('owner_type', 'location')->delete();
+
+                //  Insert all the product allocations in their updated order of arrangement
+                DB::table('product_allocations')->insert($new_product_allocations);
             }
 
-            //  Delete all the current product allocations
-            DB::table('product_allocations')->where('owner_id', $location->id)->where('owner_type', 'location')->delete();
+        } catch (\Exception $e) {
 
-            //  Insert all the product allocations in their updated order of arrangement
-            DB::table('product_allocations')->insert($new_product_allocations);
+            throw($e);
+
         }
     }
 
@@ -363,9 +374,12 @@ trait ProductTraits
                     return $created_variations;
                 }
             }
+
+
         } catch (\Exception $e) {
-            //  Throw a validation error
-            throw ValidationException::withMessages(['general' => $e->getMessage()]);
+
+            throw($e);
+
         }
     }
 }

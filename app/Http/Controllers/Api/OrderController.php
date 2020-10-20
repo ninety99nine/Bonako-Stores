@@ -19,35 +19,117 @@ class OrderController extends Controller
 
     public function createOrder( Request $request )
     {
-        /** We need to allow creation of orders using the Bonako Dashboard
-         *  and by requests from the USSD Application, which must pass an
-         *  access token that we must verify here to allow order creation.
-         *  This is so that we do not allow the route to be accessible by
-         *  just everyone for potential malicious use.
-         */
+        try {
 
-        //  if ($this->user && $this->user->can('create', Order::class)) {
-        if( true ){
+            if ($this->user && $this->user->can('create', Order::class)) {
 
-            //  Create the Order
-            $order = (new Order)->initiateCreate( $request );
+                //  Create the Order
+                $order = (new Order)->initiateCreate( $request );
 
-            return $order;
+                //  If the created successfully
+                if( $order ){
 
-            //  If the created successfully
-            if( $order ){
+                    //  Return an API Readable Format of the Order Instance
+                    return $order->convertToApiFormat();
 
-                //  Return an API Readable Format of the Order Instance
-                return $order->convertToApiFormat();
+                }
+
+            } else {
+
+                //  Not Authourized
+                return help_not_authorized();
 
             }
 
-        } else {
+        } catch (\Exception $e) {
 
-            //  Not Authourized
-            return help_not_authorized();
+            return help_handle_exception($e);
 
         }
+    }
+
+    public function fulfilOrder( Request $request, $order_id )
+    {
+        try {
+
+            //  Get the order
+            $order = order::where('id', $order_id)->first() ?? null;
+
+            //  Check if the order exists
+            if ($order) {
+
+                //  Check if the user is authourized to fulfill the order
+                if ($this->user && $this->user->can('fulfill', $order)) {
+
+                    //  Fulfill the order
+                    if( $order->initiateFulfillment($orderInfo = $request->all()) ){
+
+                        //  Return success
+                        return response()->json(null, 200);
+
+                    }
+
+                } else {
+
+                    //  Not Authourized
+                    return help_not_authorized();
+
+                }
+
+            } else {
+
+                //  Not Found
+                return help_resource_not_fonud();
+
+            }
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+        
+    }
+
+    public function deleteOrder( Request $request, $order_id )
+    {
+        try{
+
+            //  Get the order
+            $order = \App\Order::where('id', $order_id)->first() ?? null;
+
+            //  Check if the order exists
+            if ($order) {
+
+                //  Check if the user is authourized to permanently delete the order
+                if ($this->user && $this->user->can('forceDelete', $order)) {
+
+                    //  Delete the order
+                    $order->delete();
+
+                    //  Return nothing
+                    return response()->json(null, 200);
+
+                } else {
+
+                    //  Not Authourized
+                    return help_not_authorized();
+
+                }
+                
+            } else {
+
+                //  Not Found
+                return help_resource_not_fonud();
+
+            }
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+
     }
 
 }

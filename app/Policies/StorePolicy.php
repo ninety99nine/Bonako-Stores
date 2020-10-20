@@ -16,14 +16,21 @@ class StorePolicy
      */
     public function before($user, $ability)
     {
-        /* Note that this will run before any other checks. This means is we return true we will be authorized
-         *  for every action. However be aware that if we return false here, then we are also not authorizing
-         *  all other methods. We must be careful here, we only return true if the user is a "Super Admin"
-         *  but nothing is they are not, since we want other methods to run their own local checks.
-         *
-        */
-        if ($user->isSuperAdmin()) {
-            return true;
+        try {
+
+            /* Note that this will run before any other checks. This means is we return true we will be authorized
+            *  for every action. However be aware that if we return false here, then we are also not authorizing
+            *  all other methods. We must be careful here, we only return true if the user is a "Super Admin"
+            *  but nothing is they are not, since we want other methods to run their own local checks.
+            */
+            if ($user->isSuperAdmin()) {
+                return true;
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
         }
     }
 
@@ -34,8 +41,16 @@ class StorePolicy
      */
     public function viewAll(User $user)
     {
-        //  Only the Super Admin can view all stores
-        return $user->isSuperAdmin();
+        try {
+
+            //  Only the Super Admin can view all stores
+            return $user->isSuperAdmin();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -45,8 +60,16 @@ class StorePolicy
      */
     public function view(User $user, Store $store)
     {
-        //  Only an Admin can view this store
-        return $store->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can view this store
+            return $store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -56,10 +79,16 @@ class StorePolicy
      */
     public function create(User $user)
     {
-        return true;
+        try {
 
-        //  Any Authenticated user can create a store
-        return auth('api')->user() ? true : false;
+            //  Any Authenticated user can create a store
+            return auth('api')->user() ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -69,8 +98,16 @@ class StorePolicy
      */
     public function update(User $user, Store $store)
     {
-        //  Only an Admin can update this store
-        return $store->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can update this store
+            return $store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -80,8 +117,16 @@ class StorePolicy
      */
     public function delete(User $user, Store $store)
     {
-        //  Only an Admin can delete this store
-        return $store->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can delete this store
+            return $store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -91,8 +136,16 @@ class StorePolicy
      */
     public function restore(User $user, Store $store)
     {
-        //  Only an Admin can restore this store
-        return $store->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can restore this store
+            return $store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -102,7 +155,15 @@ class StorePolicy
      */
     public function forceDelete(User $user, Store $store)
     {
-        //  Only an Admin can force delete this store
-        return $store->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can force delete this store
+            return $store->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 }

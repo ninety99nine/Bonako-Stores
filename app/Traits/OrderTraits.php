@@ -33,91 +33,93 @@ trait OrderTraits
         }
     }
 
-    /*  This method creates a new order
+    /** initiateCreate() method  
+     *   
+     *  This method creates a new order
      */
     public function initiateCreate( $request )
     {   
-        //  Set the request variable
-        $this->request = $request;
-        
-        $products = $request->input('products') ?? null;
-        $store_id = $request->input('store_id') ?? null;
-        $location_id = $request->input('location_id') ?? null;
-        $coupon_codes = $request->input('coupon_codes') ?? null;
-        $delivery_fee = $request->input('delivery_fee') ?? null;
-        $customer_info = $request->input('customer_info') ?? null;
-        $delivery_info = $request->input('delivery_info') ?? null;
-        $checkout_method = $request->input('checkout_method') ?? null;
-        $payment_status = $request->input('payment_status') ?? null;
-        
-        $info = [
-            'items' => $products,
-            'store_id' => $store_id,
-            'coupon_codes' => $coupon_codes,
-            'delivery_fee' => $delivery_fee
-        ];
-
-        //  Get the store matching the store id
-        $store = \App\Store::where('id', $store_id)->first();
-
-        //  Get the cart details
-        $cart = ( new \App\MyCart() )->getCartDetails($info);
-
-        //  Set the template
-        $template = [
-
-            /*  Basic Info  */
-            'number' => null,
-            'currency' => $store->currency,
-            'created_date' => Carbon::now()->format('Y-m-d H:i:s'),
-
-            /*  Item Info  */
-            'item_lines' => $cart['items'] ?? null,
-
-            'coupon_lines' => $cart['coupons'] ?? null,
-
-            /*  Cart Info  */
-            'sub_total' => $cart['sub_total'] ?? 0,
-            'coupon_total' => $cart['coupon_total'] ?? 0,
-            'discount_total' => $cart['discount_total'] ?? 0,
-            'coupon_and_discount_total' => $cart['coupon_and_discount_total'] ?? 0,
-            'delivery_fee' => $cart['delivery_fee'] ?? 0,
-            'grand_total' => $cart['grand_total'] ?? 0,
-
-            /*  Customer Info  */
-            'customer_info' => [
-                'first_name' => $customer_info['first_name'],
-                'last_name' => $customer_info['last_name'],
-                'mobile_number' => $customer_info['mobile_number']
-            ],
-
-            /*  Delivery Info  */
-            'delivery_info' => [
-                'type' => $delivery_info['type'],     // e.g 'deliver_to_me', 'pickup_myself'
-                'deliver_to_me' => [
-                    'physical_address' => $delivery_info['deliver_to_me']['physical_address'],
-                    'destination' => $delivery_info['deliver_to_me']['destination'],
-                    'time' => $delivery_info['deliver_to_me']['time'],
-                    'day' => $delivery_info['deliver_to_me']['day'],
-                ],
-                'pickup_myself' => [
-                    'destination' => $delivery_info['pickup_myself']['destination'],
-                    'time' => $delivery_info['pickup_myself']['time'],
-                    'day' => $delivery_info['pickup_myself']['day'],
-                ]
-            ],
-
-            /*  Checkout Info  */
-            'checkout_method' => $checkout_method,
-
-            /*  Store Info  */
-            'store_id' => $store->id ?? null,
-
-            /*  Location Info  */
-            'location_id' => $location_id ?? null
-        ];
-
         try {
+                
+            //  Set the request variable
+            $this->request = $request;
+            
+            $products = $request->input('products') ?? null;
+            $store_id = $request->input('store_id') ?? null;
+            $location_id = $request->input('location_id') ?? null;
+            $coupon_codes = $request->input('coupon_codes') ?? null;
+            $delivery_fee = $request->input('delivery_fee') ?? null;
+            $customer_info = $request->input('customer_info') ?? null;
+            $delivery_info = $request->input('delivery_info') ?? null;
+            $checkout_method = $request->input('checkout_method') ?? null;
+            $payment_status = $request->input('payment_status') ?? null;
+            
+            $info = [
+                'items' => $products,
+                'store_id' => $store_id,
+                'coupon_codes' => $coupon_codes,
+                'delivery_fee' => $delivery_fee
+            ];
+
+            //  Get the store matching the store id
+            $store = \App\Store::where('id', $store_id)->first();
+
+            //  Get the cart details
+            $cart = ( new \App\MyCart() )->getCartDetails($info);
+
+            //  Set the template
+            $template = [
+
+                /*  Basic Info  */
+                'number' => null,
+                'currency' => $store->currency,
+                'created_date' => Carbon::now()->format('Y-m-d H:i:s'),
+
+                /*  Item Info  */
+                'item_lines' => $cart['items'] ?? null,
+
+                'coupon_lines' => $cart['coupons'] ?? null,
+
+                /*  Cart Info  */
+                'sub_total' => $cart['sub_total'] ?? 0,
+                'coupon_total' => $cart['coupon_total'] ?? 0,
+                'discount_total' => $cart['discount_total'] ?? 0,
+                'coupon_and_discount_total' => $cart['coupon_and_discount_total'] ?? 0,
+                'delivery_fee' => $cart['delivery_fee'] ?? 0,
+                'grand_total' => $cart['grand_total'] ?? 0,
+
+                /*  Customer Info  */
+                'customer_info' => [
+                    'first_name' => $customer_info['first_name'],
+                    'last_name' => $customer_info['last_name'],
+                    'mobile_number' => $customer_info['mobile_number']
+                ],
+
+                /*  Delivery Info  */
+                'delivery_info' => [
+                    'type' => $delivery_info['type'],     // e.g 'deliver_to_me', 'pickup_myself'
+                    'deliver_to_me' => [
+                        'physical_address' => $delivery_info['deliver_to_me']['physical_address'],
+                        'destination' => $delivery_info['deliver_to_me']['destination'],
+                        'time' => $delivery_info['deliver_to_me']['time'],
+                        'day' => $delivery_info['deliver_to_me']['day'],
+                    ],
+                    'pickup_myself' => [
+                        'destination' => $delivery_info['pickup_myself']['destination'],
+                        'time' => $delivery_info['pickup_myself']['time'],
+                        'day' => $delivery_info['pickup_myself']['day'],
+                    ]
+                ],
+
+                /*  Checkout Info  */
+                'checkout_method' => $checkout_method,
+
+                /*  Store Info  */
+                'store_id' => $store->id ?? null,
+
+                /*  Location Info  */
+                'location_id' => $location_id ?? null
+            ];
             
             /*
              *  Create new a order, then retrieve a fresh instance
@@ -145,12 +147,148 @@ trait OrderTraits
 
         } catch (\Exception $e) {
 
-            //  Throw a validation error
-            throw ValidationException::withMessages(['general' => $e->getMessage()]);
-            
+            throw($e);
+
+        }
+    }
+
+
+
+    /*  initiateFulfillment() method
+     *
+     *  This method is used to create order fulfillment
+     *  of the current order items. The $orderInfo holds
+     *  additional order fulfillment details if any.
+     */
+    public function initiateFulfillment( $orderInfo = null )
+    {
+        try {
+
+            $fulfilled_item_lines = [];
+            $unfulfilled_item_lines = $this->unfulfilled_item_lines;
+
+            //  If we have item lines already provided then this means we want to fulfill specific item lines
+            if( isset($orderInfo['item_lines']) && !empty($orderInfo['item_lines']) ){
+
+                //  Foreach specified item line
+                foreach($orderInfo['item_lines'] as $fulfilled_item_line){
+
+                    if( count($unfulfilled_item_lines) ){
+
+                        //  Foreach unfulfilled order item line
+                        foreach( $unfulfilled_item_lines as $unfulfilled_item_line ){
+    
+                            //  Lets check if the current unfulfilled line item matches the current specified item line
+                            if( $unfulfilled_item_line['id'] == $fulfilled_item_line['id'] ){
+    
+                                if( intval($fulfilled_item_line['quantity']) != 0){
+    
+                                    //  The quantity we want to fulfil cannot be more than the actual quantity available for fulfillment
+                                    $hasValidQuantity = intval($fulfilled_item_line['quantity']) <= intval($unfulfilled_item_line['quantity']);
+        
+                                    $quantity =  $hasValidQuantity ? intval($fulfilled_item_line['quantity']) : intval($unfulfilled_item_line['quantity']);
+        
+                                    $fulfilled_item_line['quantity'] = $quantity;
+    
+                                }
+    
+                            }
+    
+                        }
+
+                    }
+                            
+                    array_push($fulfilled_item_lines, $fulfilled_item_line);
+
+                }
+
+            }
+
+            if( !empty($fulfilled_item_lines) ){
+
+                //  Create a new fulfillment
+                $fulfillment = ( new \App\Fulfillment() )->create([
+
+                    //  Fulfillment notes 
+                    'notes' => $orderInfo['notes'] ?? null,
+    
+                    //  Fulfillment item lines
+                    'item_lines' => $fulfilled_item_lines,
+
+                    'recipient_info' => [
+                        
+                        //  Recipient name 
+                        'name' => $orderInfo['name'] ?? null,
+                        
+                        //  Recipient mobile number
+                        'mobile_number' => $orderInfo['mobile_number'] ?? null
+
+                    ],
+
+                    'order_id' => $this->id
+    
+                ]);
+
+                //  If the fulfillment was created successfully
+                if ($fulfillment) {
+
+                    //  Update fulfilment status
+                    $this->updateFulfilmentStatus();
+
+                }
+
+                return true;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
         }
     }
     
+
+    public function updateFulfilmentStatus()
+    {
+        try {
+
+            $orderInstance = $this->fresh();
+
+            //  If the quantity of fulfilled item lines is zero (0)
+            if( $orderInstance->quantity_of_fulfilled_item_lines == 0 ){
+
+                //  Mark as unfulfilled
+                $status = 'unfulfilled';
+
+            //  If the quantity of unfulfilled item lines is zero (0)
+            }elseif( $orderInstance->quantity_of_unfulfilled_item_lines == 0 ){
+
+                //  Mark as fully fulfilled
+                $status = 'fulfilled';
+
+            //  Otherwise
+            }else{
+
+                //  Mark as partially fulfilled
+                $status = 'partially fulfilled';
+
+            }
+
+            //  Update the fulfillment status
+            $orderInstance->update([
+
+                'fulfillment_status' => $status
+
+            ]);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        } 
+    }
+
     /*  setOrderNumber()
      *
      *  This method creates a unique order number using the order id.
@@ -159,32 +297,64 @@ trait OrderTraits
      */
     public function setOrderNumber()
     {
-        /*  Generate a unique order number.
-         *  Get the order id, and Pad the left side with leading "0"
-         *  e.g 123 = 00123, 1234 = 01234, 12345 = 12345
-         */
-        $order_number = str_pad($this->id, 5, 0, STR_PAD_LEFT);
+        try {
 
-        //  Set the unique order number
-        $this->update(['number' => $order_number]);
+            /*  Generate a unique order number.
+            *  Get the order id, and Pad the left side with leading "0"
+            *  e.g 123 = 00123, 1234 = 01234, 12345 = 12345
+            */
+            $order_number = str_pad($this->id, 5, 0, STR_PAD_LEFT);
+
+            //  Set the unique order number
+            $this->update(['number' => $order_number]);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     public function setStatusToPaid()
     {
-        //  Set order status to "Paid"
-        $this->updatePaymentStatus( $status = 'paid' );
+        try {
+
+            //  Set order status to "Paid"
+            $this->updatePaymentStatus( $status = 'paid' );
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     public function setStatusToUnpaid()
     {
-        //  Set order status to "Unpaid"
-        $this->updatePaymentStatus( $status = 'unpaid' );
+        try {
+
+            //  Set order status to "Unpaid"
+            $this->updatePaymentStatus( $status = 'unpaid' );
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     public function setStatusToFailedPayment()
     {
-        //  Set order status to "Failed Payment"
-        $this->updatePaymentStatus( $status = 'failed payment' );
+        try {
+
+            //  Set order status to "Failed Payment"
+            $this->updatePaymentStatus( $status = 'failed payment' );
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     public function updatePaymentStatus( $status = null )
@@ -247,10 +417,9 @@ trait OrderTraits
 
         } catch (\Exception $e) {
 
-            //  Return the error
-            return oq_api_notify_error('Query Error', $e->getMessage(), 404);
-            
-        }  
+            throw($e);
+
+        }
     }
 
     public function updateStatus( $status = 'open' )
@@ -266,10 +435,9 @@ trait OrderTraits
 
         } catch (\Exception $e) {
 
-            //  Return the error
-            return oq_api_notify_error('Query Error', $e->getMessage(), 404);
-            
-        }  
+            throw($e);
+
+        }
     }
     
 }

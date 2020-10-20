@@ -16,13 +16,20 @@ class LocationPolicy
      */
     public function before($user, $ability)
     {
-        /** Note that this will run before any other checks. This means is we return true we will be authorized
-         *  for every action. However be aware that if we return false here, then we are also not authorizing 
-         *  all other methods. We must be careful here, we only return true if the user is a "Super Admin" 
-         *  but nothing is they are not, since we want other methods to run their own local checks. 
-         * 
-        */
-        if($user->isSuperAdmin()) return true;
+        try {
+
+            /** Note that this will run before any other checks. This means is we return true we will be authorized
+             *  for every action. However be aware that if we return false here, then we are also not authorizing 
+             *  all other methods. We must be careful here, we only return true if the user is a "Super Admin" 
+             *  but nothing is they are not, since we want other methods to run their own local checks.
+             */
+            if($user->isSuperAdmin()) return true;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
     
     /**
@@ -33,8 +40,16 @@ class LocationPolicy
      */
     public function viewAll(User $user)
     {
-        //  Only the Super Admin can view all locations
-        return $user->isSuperAdmin();
+        try {
+
+            //  Only the Super Admin can view all locations
+            return $user->isSuperAdmin();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -46,9 +61,17 @@ class LocationPolicy
      */
     public function view(User $user, Location $location)
     {
-        //  Only an Admin or Editor can view this location
-        return $location->project()->isAdmin($user->id)  ||
-               $location->project()->isEditor($user->id);
+        try {
+
+            //  Only an Admin or Editor can view this location
+            return $location->project->isAdmin($user->id)  ||
+                $location->project()->isEditor($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -59,8 +82,16 @@ class LocationPolicy
      */
     public function create(User $user)
     {
-        //  Any Authenticated user can create a instant carts
-        return auth('api')->user() ? true : false;
+        try {
+
+            //  Any Authenticated user can create a instant carts
+            return auth('api')->user() ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -72,9 +103,17 @@ class LocationPolicy
      */
     public function update(User $user, Location $location)
     {
-        //  Only an Admin, Editor can update this location
-        return  $location->project()->isAdmin($user->id)  ||
-                $location->project()->isEditor($user->id);
+        try {
+
+            //  Only an Admin, Editor can update this location
+            return  $location->project->isAdmin($user->id)  ||
+                    $location->project()->isEditor($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -86,8 +125,16 @@ class LocationPolicy
      */
     public function delete(User $user, Location $location)
     {
-        //  Only an Admin can delete this location
-        return $location->project()->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can delete this location
+            return $location->project->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -99,8 +146,16 @@ class LocationPolicy
      */
     public function restore(User $user, Location $location)
     {
-        //  Only an Admin can restore this location
-        return $location->project()->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can restore this location
+            return $location->project->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -112,7 +167,15 @@ class LocationPolicy
      */
     public function forceDelete(User $user, Location $location)
     {
-        //  Only an Admin can force delete this location
-        return $location->project()->isAdmin($user->id);
+        try {
+
+            //  Only an Admin can force delete this location
+            return $location->project->isAdmin($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 }
