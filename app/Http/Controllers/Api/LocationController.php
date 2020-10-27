@@ -63,7 +63,7 @@ class LocationController extends Controller
     {
         try {
             //  Get the location
-            $location = Location::where('id', $location_id)->first() ?? null;
+            $location = Location::find($location_id) ?? null;
 
             //  Check if the location exists
             if ($location) {

@@ -22,14 +22,6 @@ class Location extends Model
         'allow_delivery' => 'boolean',              //  Return the following 1/0 as true/false
         'allow_pickups' => 'boolean',      //  Return the following 1/0 as true/false
         'allow_payments' => 'boolean',              //  Return the following 1/0 as true/false
-        'online_payment_methods' => 'array',
-        'offline_payment_methods' => 'array',
-        'delivery_destinations' => 'array',
-        'delivery_days' => 'array',
-        'delivery_times' => 'array',
-        'pickup_destinations' => 'array',
-        'pickup_days' => 'array',
-        'pickup_times' => 'array',
     ];
 
     /**
@@ -39,8 +31,8 @@ class Location extends Model
      */
     protected $fillable = [
         'name', 'abbreviation', 'about_us', 'contact_us', 'call_to_action', 'allow_delivery', 'allow_pickups',
-        'delivery_note', 'delivery_flat_fee', 'allow_payments', 'online_payment_methods', 'offline_payment_methods', 
-        'delivery_destinations', 'pickup_destinations', 'delivery_days', 'pickup_note', 'pickup_days', 'delivery_times', 
+        'delivery_note', 'delivery_flat_fee', 'allow_payments', 'online_payment_methods', 'offline_payment_methods',
+        'delivery_destinations', 'pickup_destinations', 'delivery_days', 'pickup_note', 'pickup_days', 'delivery_times',
         'pickup_times', 'online', 'offline_message', 'user_id', 'store_id',
     ];
 
@@ -97,55 +89,55 @@ class Location extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type'
+        'resource_type',
     ];
 
     public function getOnlinePaymentMethodsAttribute($value)
     {
         //  If null, convert to array
-        return (is_null($value) ? [] : $value);
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getOfflinePaymentMethodsAttribute($value)
     {
         //  If null, convert to array
-        return (is_null($value) ? [] : $value);
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getDeliveryDestinationsAttribute($value)
     {
         //  If null, convert to array
-        return (is_null($value) ? [] : $value);
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getDeliveryDaysAttribute($value)
     {
         //  If null, convert to array
-        return (is_null($value) ? [] : $value);
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getDeliveryTimesAttribute($value)
     {
         //  If null, convert to array
-        return (is_null($value) ? [] : $value);
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getPickupDestinationsAttribute($value)
     {
         //  If null, convert to array
-        return (is_null($value) ? [] : $value);
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getPickupDaysAttribute($value)
     {
         //  If null, convert to array
-        return (is_null($value) ? [] : $value);
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getPickupTimesAttribute($value)
     {
         //  If null, convert to array
-        return (is_null($value) ? [] : $value);
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function setOnlineAttribute($value)
@@ -172,12 +164,10 @@ class Location extends Model
     public static function boot()
     {
         try {
-
             parent::boot();
 
             // before delete() method call this
             static::deleting(function ($location) {
-                
                 //  Delete all products
                 foreach ($location->products as $product) {
                     $product->delete();
@@ -191,11 +181,8 @@ class Location extends Model
 
                 // do the rest of the cleanup...
             });
-            
         } catch (\Exception $e) {
-
             throw($e);
-
         }
     }
 }
