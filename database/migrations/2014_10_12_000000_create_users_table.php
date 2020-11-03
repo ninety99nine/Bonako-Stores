@@ -23,6 +23,9 @@ class CreateUsersTable extends Migration
             $table->string('account_type')->default('basic');
             $table->rememberToken();
             $table->timestamps();
+
+            /*  Indexes  */
+            $table->index(['mobile_number']);
         });
     }
 

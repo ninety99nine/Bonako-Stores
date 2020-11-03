@@ -8,8 +8,8 @@ use App\Mail\SendPasswordResetLink;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -36,55 +36,115 @@ class AuthController extends Controller
             *  mobile number.
             *
             */
-
             $login_via_ussd = $request->input('login_via_ussd');
 
-            if ($login_via_ussd === true || $login_via_ussd === 'true') {
-                /* If the user provided a mobile number via USSD then
-                *  we can get the user using this mobile number.
-                */
-                if ($mobile_number = $request->input('mobile_number')) {
-                    //  Get the user that owns the given mobile number
-                    $user = \App\User::where('mobile_number', $mobile_number)->first();
+            //  Validate "Login Via USSD"
+            $validator = Validator::make($request->all(), [
 
-                    //  Login the given user
-                    auth()->login($user);
+                /** Validation Rules
+                 * 
+                 *  # If we want to login via USSD then make sure that the user provided their mobile number.
+                 *  # If we want to login via WEB then make sure that the user provided their email and password
+                 *
+                 */
+                'login_via_ussd' => 'sometimes|required|accepted',
+                'mobile_number' => 'required_if:login_via_ussd,true|required_if:login_via_ussd,1|regex:/^[0-9]+$/i',
+                'password' => 'required_without:login_via_ussd|required_if:login_via_ussd,false|required_if:login_via_ussd,0',
+                'email' => 'required_without:login_via_ussd|required_if:login_via_ussd,false|required_if:login_via_ussd,0|email',
+
+            ], [
+                //  Login Via USSD Validation Error Messages
+                'login_via_ussd.required' => 'The login_via_ussd attribute must be set equal to "true" or "1" to implement login via USSD',
+                'login_via_ussd.accepted' => 'The login_via_ussd attribute must be set equal to "true" or "1" to implement login via USSD',
+                
+                //  Mobile Number Validation Error Messages
+                'mobile_number.required_if' => 'The mobile_number attribute is required since you are logging in via USSD',
+                'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567',
+
+                //  Email Validation Error Messages
+                'email.email' => 'Enter a valid email address to login e.g email@example.com',
+                'email.required_without' => 'Enter your email to login e.g email@example.com',
+                'email.required_if' => 'Enter your email to login e.g email@example.com',
+                'email.required' => 'Enter your email to login e.g email@example.com',
+
+                //  Password Validation Error Messages
+                'password.required_without' => 'Enter your password to login',
+                'password.required_if' => 'Enter your password to login',
+                'password.required' => 'Enter your password to login',
+            ]);
+
+            //  If the validation failed
+            if ($validator->fails()) {
+
+                //  Throw Validation Exception with validation errors
+                throw ValidationException::withMessages(collect($validator->errors())->toArray());
+
+            }
+
+            //  If we want to login via USSD
+            if ( in_array($login_via_ussd, [true, 1, 'true', '1']) ) {
+
+                //  Get the Mobile Number
+                $mobile_number = $request->input('mobile_number');
+
+                /** IMPORTANT SECURITY NOTICE
+                 * 
+                 *  This is where we can check if the API GRANT TOKEN has been provided
+                 *  and whether or not the GRANT TOKEN is valid. If it is, we can then
+                 *  attempt to login the user that matches the given mobile number
+                 *  otherwise we must return a failed login indicating that the
+                 *  GRANT TOKEN provided is invalid.
+                */
+
+                //  Get the user that owns the given mobile number
+                $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+
+                //  If the user was found
+                if( $user ){
+
+                    //  Login using the given user
+                    auth()->loginUsingId($user->id);
 
                     //  If we are logged in
                     if (auth()->user()) {
+                        
                         //  Create new access token
                         return $this->createNewAccessToken();
+
                     } else {
-                        //  Failed to login. Throw a validation error
-                        throw ValidationException::withMessages(['general' => 'Failed to login user via USSD']);
+
+                        //  Failed to login - Throw 401 error
+                        return help_login_failed();
+                    
                     }
-                } else {
-                    //  The mobile number is not provided. Throw a validation error
-                    throw ValidationException::withMessages(['mobile_number' => 'Mobile number required to login via USSD']);
+
+                }else{
+                    
+                    //  The account with the given mobile number does not exist. Throw a validation error
+                    throw ValidationException::withMessages(['mobile_number' => 'The account using the mobile number "'.$mobile_number.'" does not exist.']);
+                    
                 }
 
-                //  Create new access token
-                return $this->createNewAccessToken();
+            //  If we want to login via WEB
             } else {
 
-                //  Validate the login inputs
-                $loginData = $request->validate([
-                    'email' => 'email|required',
-                    'password' => 'required',
-                ]);
-
-                //  Get the user's email
-                $email = $loginData['email'];
+                //  Get the login credentials
+                $credentials = $request->only('email', 'password');
 
                 //  Attempt to login
-                if (auth()->attempt($loginData)) {
+                if (auth()->attempt($credentials)) {
+
                     //  Create new access token
                     return $this->createNewAccessToken();
 
-                //  If attempt to login failed
+                //  If our attempt to login failed
                 } else {
+
+                    //  Get the user's email address
+                    $email = $request->input('email');
+
                     //  Check if a user with the given email address exists
-                    if (\App\User::where('email', $email)->exists()) {
+                    if (DB::table('users')->where('email', $email)->exists()) {
                         //  Since the email exists, this means that the password is incorrent. Throw a validation error
                         throw ValidationException::withMessages(['password' => 'Your password is incorrect']);
                     } else {
@@ -93,32 +153,27 @@ class AuthController extends Controller
                     }
                 }
             }
-
         } catch (\Exception $e) {
-
             return help_handle_exception($e);
-
         }
     }
 
     public function createNewAccessToken()
     {
         try {
-
             //  Get the logged in user
             $user = auth()->user();
 
             //  Create new access token
-            $accessToken = auth()->user()->createToken('authToken');
+            $accessToken = $user->createToken('authToken');
 
             //  Return response
             return response([
                 'user' => (new UserResource($user)),
                 'access_token' => $accessToken,
             ]);
-
         } catch (\Exception $e) {
-
+            
             throw($e);
 
         }
@@ -127,7 +182,6 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try {
-
             //  Get the authenticated user
             $user = auth()->user();
 
@@ -152,44 +206,34 @@ class AuthController extends Controller
 
             //  Return nothing
             return response(null, 200);
-
         } catch (\Exception $e) {
-
             return help_handle_exception($e);
-
         }
     }
 
     public function register(Request $request)
     {
         try {
-
             $validator = Validator::make($request->all(), [
                 'name' => 'required|max:55',
                 'email' => 'sometimes|required|email|unique:users,email',
                 'mobile_number' => 'sometimes|required|unique:users,mobile_number',
                 'password' => 'sometimes|required|confirmed',
             ]);
-                
+
             //  If the validation failed
             if ($validator->fails()) {
-
                 //  Throw a validation errors
-                throw ValidationException::withMessages( collect($validator->errors())->toArray() );
-
-            }else{
-
+                throw ValidationException::withMessages(collect($validator->errors())->toArray());
+            } else {
                 // Retrieve the validated input data
                 $registration_data = $request->all();
-
             }
-            
+
             //  If the password was provided
-            if( isset($registration_data['password']) ){
-                
+            if (isset($registration_data['password'])) {
                 //  Hash the password using bcrypt
                 $registration_data['password'] = bcrypt($registration_data['password']);
-                
             }
 
             //  Create new user
@@ -203,18 +247,14 @@ class AuthController extends Controller
                 'user' => $user,
                 'access_token' => $accessToken,
             ]);
-
         } catch (\Exception $e) {
-
             return help_handle_exception($e);
-
         }
     }
 
     public function sendPasswordResetLink(Request $request)
     {
         try {
-
             /** Validate the user input
              *
              *  password_reset_url: The client url used to attach the password reset token
@@ -231,25 +271,25 @@ class AuthController extends Controller
             //  Get the password reset url
             $password_reset_url = $userData['password_reset_url'];
 
-            //  Check if a user with the given email address exists
-            if (\App\User::where('email', $email)->exists()) {
-                //  Get the user
-                $user = \App\User::where('email', $email)->first();
+            //  Get the user (If no result is found Laravel will return Null)
+            $user = \App\User::where('email', $email)->first();
 
+            /** Check if a user with the given email address exists.
+             *  If the $user is equal to NUll, then this will not
+             *  pass since the user was not found.
+             */
+            if ($user) {
                 //  Delete any old password reset tokens
                 DB::table('password_resets')->where('email', $email)->delete();
+
+                //  Generate a random password reset token (60 characters long)
+                $token = Str::random(60);
 
                 //  Create a new password reset token
                 DB::table('password_resets')->insert([
                     'email' => $email,
-                    'token' => Str::random(60),
+                    'token' => $token,
                 ]);
-
-                //  Get the new password reset data
-                $password_reset = DB::table('password_resets')->where('email', $email)->first();
-
-                //  Get the new password reset token
-                $token = $password_reset->token;
 
                 //  Generate the password reset endpoint and include the users token and email
                 $password_reset_link = $password_reset_url.'?token='.$token.'&email='.urlencode($user->email);
@@ -274,18 +314,14 @@ class AuthController extends Controller
                 //  The account with the given email does not exist. Throw a validation error
                 throw ValidationException::withMessages(['email' => 'The account using the email "'.$email.'" does not exist.']);
             }
-
         } catch (\Exception $e) {
-
             return help_handle_exception($e);
-
         }
     }
 
     public function resetPassword(Request $request)
     {
         try {
-
             //  Validate the user's inputs
             $userData = $request->validate([
                 'email' => 'email|required',
@@ -337,11 +373,8 @@ class AuthController extends Controller
                 //  The provided token is not valid
                 return response()->json(['message' => 'The account using the email "'.$email.'" does not exist.'], 404);
             }
-
         } catch (\Exception $e) {
-
             return help_handle_exception($e);
-
         }
     }
 }

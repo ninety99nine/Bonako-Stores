@@ -2,14 +2,9 @@
 
 namespace App\Exceptions;
 
-use Throwable;
 use Exception;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\Eloquent\RelationNotFoundException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Symfony\Component\HttpKernel\Exception\ThrottleRequestsException;
-use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Throwable;
 
 class Handler extends ExceptionHandler
 {
@@ -19,7 +14,6 @@ class Handler extends ExceptionHandler
      * @var array
      */
     protected $dontReport = [
-        //
     ];
 
     /**
@@ -35,7 +29,6 @@ class Handler extends ExceptionHandler
     /**
      * Report or log an exception.
      *
-     * @param  \Throwable  $exception
      * @return void
      *
      * @throws \Exception
@@ -48,30 +41,18 @@ class Handler extends ExceptionHandler
     /**
      * Render an exception into an HTTP response.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Throwable  $exception
+     * @param \Illuminate\Http\Request $request
+     *
      * @return \Symfony\Component\HttpFoundation\Response
      *
      * @throws \Throwable
      */
     public function render($request, Throwable $e)
     {
-
-        /** API Error handling and reporting
-         *  
-         *  Here we define the returned JSON response for each exception
-         *  encountered during an API Call
-         * 
-         */
-        if ($request->expectsJson()) {
-
-            //  Refer to our helper.php file for help_handle_exception($e)
-            if( $response = help_handle_exception($e) ){
-                
-                return $response;
-
+        if ($exceptionMessage = help_handle_exception($e)) {
+            if ($exceptionMessage) {
+                return $exceptionMessage;
             }
-
         }
 
         return parent::render($request, $e);

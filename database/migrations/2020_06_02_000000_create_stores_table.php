@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class CreateStoresTable extends Migration
 {
@@ -12,7 +12,6 @@ class CreateStoresTable extends Migration
     public function up()
     {
         Schema::create('stores', function (Blueprint $table) {
-            
             $table->increments('id');
 
             /*  Basic Info  */
@@ -29,7 +28,9 @@ class CreateStoresTable extends Migration
 
             /*  Timestamps  */
             $table->timestamps();
-            
+
+            /*  Foreign Keys & Indexes  */
+            $table->foreign('user_id')->references('id')->on('users');
         });
     }
 

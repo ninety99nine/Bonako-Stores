@@ -15,9 +15,10 @@ class UserController extends Controller
             //  Get the specified user's id
             $user_id = $request->route('user_id');
 
+            //  If we have a specified user id
             if ($user_id) {
-                //  Get the specified user
-                $this->user = \App\User::where('id', $user_id)->first() ?? null;
+                //  Get the specified user using the provided user id
+                $this->user = \App\User::find($user_id) ?? null;
 
                 //  Check if the user exists
                 if (!$this->user) {

@@ -138,6 +138,35 @@ class LocationController extends Controller
         }
     }
 
+    public function getLocationUsers(Request $request, $location_id)
+    {
+        try {
+            $limit = $request->input('limit');
+
+            //  Get the location
+            $location = \App\Location::where('id', $location_id)->first() ?? null;
+
+            if (!empty($search_term = $request->input('search'))) {
+                //  Get the location products
+                $users = $location->users()->search($search_term)->paginate($limit) ?? null;
+            } else {
+                //  Get the location products
+                $users = $location->users()->paginate($limit) ?? null;
+            }
+
+            //  Check if the location users exist
+            if ($users) {
+                //  Return an API Readable Format of the User Instance
+                return ( new \App\User() )->convertToApiFormat($users);
+            } else {
+                //  Not Found
+                return help_resource_not_fonud();
+            }
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
     public function getLocationOrders(Request $request, $location_id)
     {
         try {
