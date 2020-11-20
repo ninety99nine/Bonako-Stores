@@ -37,8 +37,6 @@ class CreateProductsTable extends Migration
             $table->unsignedInteger('store_id')->nullable();
             $table->unsignedInteger('user_id')->nullable();
 
-            $table->longText('description')->nullable()->default('text');
-
             /*  Timestamps  */
             $table->timestamps();
         });
