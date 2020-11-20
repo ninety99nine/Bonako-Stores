@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class CreateCouponsTable extends Migration
 {
@@ -12,10 +12,9 @@ class CreateCouponsTable extends Migration
     public function up()
     {
         Schema::create('coupons', function (Blueprint $table) {
-
             $table->increments('id');
 
-            /*  Coupon Details  */    
+            /*  Coupon Details  */
             $table->string('name')->nullable();
             $table->string('description')->nullable();
             $table->boolean('active')->nullable()->default(false);
@@ -24,7 +23,7 @@ class CreateCouponsTable extends Migration
             $table->string('code');
             $table->boolean('is_fixed_rate')->nullable()->default(false);
             $table->float('fixed_rate');
-            $table->tinyInt('is_percentage_rate')->nullable()->default(false);
+            $table->tinyInteger('is_percentage_rate')->nullable()->default(false);
             $table->tinyInteger('percentage_rate');
 
             /*  Ownership Information  */
@@ -32,7 +31,6 @@ class CreateCouponsTable extends Migration
 
             /*  Timestamps  */
             $table->timestamps();
-            
         });
     }
 
