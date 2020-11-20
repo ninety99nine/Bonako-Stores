@@ -18,7 +18,7 @@ class CreateStoresTable extends Migration
             $table->string('name')->nullable();
             $table->boolean('online')->nullable()->default(false);
             $table->string('offline_message')->nullable();
-            $table->unsignedInteger('user_id')->nullable();
+            $table->bigInteger('user_id')->unsigned()->nullable();
 
             /*  Currency Info  */
             $table->char('currency', 3)->default('BWP');
