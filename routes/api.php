@@ -41,9 +41,12 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::get('/{store_id}', 'StoreController@getStore')->name('store')->where('store_id', '[0-9]+');
         Route::put('/{store_id}', 'StoreController@updateStore')->name('store-update')->where('store_id', '[0-9]+');
         Route::delete('/{store_id}', 'StoreController@deleteStore')->name('store-delete')->where('store_id', '[0-9]+');
-
-        //  Single store rating statistics: /stores/{store_id}/rating-statistics
-        Route::get('/{store_id}/rating-statistics', 'StoreController@getStoreRatingStatistics')->name('store-rating-statistics')->where('store_id', '[0-9]+');
+        
+        //  Single store users: /stores/{store_id}/users
+        Route::get('/{store_id}/users', 'StoreController@getStoreUsers')->name('store-users')->where('store_id', '[0-9]+');
+        
+        //  Single store products: /stores/{store_id}/products
+        Route::get('/{store_id}/products', 'StoreController@getStoreProducts')->name('store-products')->where('store_id', '[0-9]+');
 
         //  Single store locations: /stores/{store_id}/locations
         Route::get('/{store_id}/locations', 'StoreController@getStoreLocations')->name('store-locations')->where('store_id', '[0-9]+');
@@ -51,11 +54,12 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         //  Single store coupons: /stores/{store_id}/coupons
         Route::get('/{store_id}/coupons', 'StoreController@getStoreCoupons')->name('store-coupons')->where('store_id', '[0-9]+');
 
-        //  Single store products: /stores/{store_id}/products
-        Route::get('/{store_id}/products', 'StoreController@getStoreProducts')->name('store-products')->where('store_id', '[0-9]+');
-
         //  Single store instant carts: /stores/{store_id}/instant-carts
         Route::get('/{store_id}/instant-carts', 'StoreController@getStoreInstantCarts')->name('store-instant-carts')->where('store_id', '[0-9]+');
+    
+        //  Single store rating statistics: /stores/{store_id}/rating-statistics
+        Route::get('/{store_id}/rating-statistics', 'StoreController@getStoreRatingStatistics')->name('store-rating-statistics')->where('store_id', '[0-9]+');
+
     });
 
     //  Location Resource Routes

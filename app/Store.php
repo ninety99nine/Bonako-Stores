@@ -18,7 +18,6 @@ class Store extends Model
      * @var string
      */
     protected $casts = [
-        'currency' => 'array',
         'online' => 'boolean',  //  Return the following 1/0 as true/false
     ];
 

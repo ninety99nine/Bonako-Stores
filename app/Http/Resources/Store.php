@@ -47,10 +47,11 @@ class Store extends JsonResource
                     'total' => $this->locations()->count(),
                 ],
 
-                //  Link to the create products
-                'bos:product-create' => [
-                    'href' => route('product-create'),
-                    'title' => 'The POST route to create a new product',
+                //  Link to the instant carts
+                'bos:products' => [
+                    'href' => route('store-products', ['store_id' => $this->id]),
+                    'title' => 'The store products',
+                    'total' => $this->products()->count(),
                 ],
 
                 //  Link to the instant carts
@@ -61,17 +62,16 @@ class Store extends JsonResource
                 ],
 
                 //  Link to the instant carts
-                'bos:products' => [
-                    'href' => route('store-products', ['store_id' => $this->id]),
-                    'title' => 'The store products',
-                    'total' => $this->products()->count(),
-                ],
-
-                //  Link to the instant carts
                 'bos:instant_carts' => [
                     'href' => route('store-instant-carts', ['store_id' => $this->id]),
                     'title' => 'The store instant carts',
                     'total' => $this->instantCarts()->count(),
+                ],
+
+                //  Link to the create products
+                'bos:product-create' => [
+                    'href' => route('product-create'),
+                    'title' => 'The POST route to create a new product',
                 ],
             ],
 

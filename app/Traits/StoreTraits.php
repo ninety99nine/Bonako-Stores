@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Http\Resources\Store as StoreResource;
 use App\Http\Resources\Stores as StoresResource;
 use DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 trait StoreTraits
@@ -35,33 +36,24 @@ trait StoreTraits
     public function initiateCreate($request)
     {
         try {
-
             //  Set the request variable
             $this->request = $request;
 
             //  Validate the request
-            $validation_data = $request->validate([
-                'name' => 'required',
-            ]);
+            $this->initiateValidation();
 
             //  If we have the store id representing the store to clone
             if ($request->input('clone_store_id')) {
                 //  Retrieve the store to clone
-                $this->store_to_clone = \App\Store::where('id', $request->input('clone_store_id'))->first();
+                $this->store_to_clone = \App\Store::find($request->input('clone_store_id'));
             }
 
-            //  Set the template
-            $template = [
-                'name' => $request->input('name'),
-                'online' => $request->input('online'),
-                'user_id' => auth('api')->user()->id ?? $request->input('user_id'),
-                'offline_message' => $request->input('offline_message') ?? $this->default_offline_offline_message,
-                'currency' => [
-                    'code' => 'BWP',
-                    'symbol' => 'P',
-                ],
-            ];
-            
+            //  Capture the resource fields allowed
+            $template = $request->only($this->getFillable())->except(['user_id']);
+
+            //  Set the current authenticated user as the user responsible for creating this resource
+            $template['user_id'] = auth('api')->user()->id;
+
             /*
              *  Create new a store, then retrieve a fresh instance
              */
@@ -78,38 +70,126 @@ trait StoreTraits
                 //  Return a fresh instance
                 return $this->store->fresh();
             }
-
-
         } catch (\Exception $e) {
-
             throw($e);
+        }
+    }
 
+    /*  This method updates an existing store
+     */
+    public function initiateUpdate($store, $request)
+    {
+        try {
+            //  Set the request variable
+            $this->request = $request;
+
+            //  Validate the request
+            $this->initiateValidation();
+
+            //  Capture the resource fields allowed
+            $template = $request->only($this->getFillable());
+
+            //  Set the original user as the primary user responsible for creating this resource
+            $template['user_id'] = $store->user_id;
+
+            //  Update the store details
+            $updated = $store->update($template);
+
+            //  If created successfully
+            if ($updated) {
+                //  Return a fresh instance
+                return $store->fresh();
+            }
+        } catch (\Exception $e) {
+            throw($e);
+        }
+    }
+
+    public function initiateValidation()
+    {
+        try {
+            //  Validation Rules
+            $validationRules = [
+                'name' => 'required|string|min:3|max:50|regex:/^[a-zA-Z0-9\s]+$/i',
+                'online' => 'sometimes|required|boolean',
+                'offline_message' => 'sometimes|nullable|string|max:255',
+                'currency' => 'sometimes|required|string|regex:/^[a-zA-Z]+$/i',
+                'minimum_stock_quantity' => 'sometimes|required|numeric|min:1',
+                'clone_store_id' => 'sometimes|required|numeric',
+                'user_id' => 'sometimes|required|numeric',
+            ];
+
+            //  Validation Custom Messages
+            $validationMessages = [
+                //  Name Validation Error Messages
+                'name.required' => 'The store name is required e.g Heavenly Fruits',
+                'name.string' => 'The store name must be a valid string e.g Heavenly Fruits',
+                'name.regex' => 'The store name must contain only letters, numbers and spaces e.g Heavenly Fruits',
+                'name.min' => 'The store name must be atleast 3 characters long',
+                'name.max' => 'The store name must not be more than 50 characters long',
+                //  Online Validation Error Messages
+                'online.boolean' => 'The store online attribute must be a boolean e.g true, false, 1 or 0',
+                //  Offline Message Validation Error Messages
+                'offline_message.string' => 'The store offline message must be a string e.g We are currently offline',
+                'offline_message.max' => 'The store offline message must not be more than 255 characters long',
+                //  Currency Validation Error Messages
+                'currency.required' => 'Enter a valid store currency e.g BWP, ZAR, USD',
+                'currency.string' => 'Enter a valid store currency e.g BWP, ZAR, USD',
+                'currency.regex' => 'The store currency must be a valid ISO 4217 standard e.g BWP, ZAR, USD',
+                //  Minimum Stock Quantity Validation Error Messages
+                'minimum_stock_quantity' => 'The store minimum stock quantity must be a valid number greater than 1',
+                //  Clone Store Id Validation Error Messages
+                'clone_store_id.required' => 'Provide a valid store id for the store to clone e.g 123',
+                'clone_store_id.numeric' => 'The store id for the store to clone must be a valid number e.g 123',
+                //  User Id Validation Error Messages
+                'user_id.required' => 'Provide a valid user id to link to this store e.g 123',
+                'user_id.numeric' => 'The user id must be a valid number e.g 123',
+            ];
+
+            //  Validate request
+            $validator = Validator::make($this->request->all(), $validationRules, $validationMessages);
+
+            //  If the validation failed
+            if ($validator->fails()) {
+                //  Throw Validation Exception with validation errors
+                throw ValidationException::withMessages(collect($validator->errors())->toArray());
+            }
+        } catch (\Exception $e) {
+            throw($e);
         }
     }
 
     public function assignUserAsAdmin()
     {
         try {
+            //  Get the currently authenticated users id
+            $user_id = auth('api')->user()->id;
 
-            auth('api')->user()->stores()->save($this->store,
-            //  Pivot table values
-            [
+            //  If the current authenticated user is a Super Admin
+            if (auth('api')->user()->isSuperAdmin()) {
+                //  If the Super Admin has provided a user responsible for this resource
+                if (!empty($this->request->input('user_id'))) {
+                    //  Set the provided user id as the user responsible for this resource
+                    $user_id = $this->request->input('user_id');
+                }
+            }
+
+            //  Add the user as an Admin to the current store
+            DB::table('store_user')->insert([
                 'type' => 'admin',
+                'user_id' => $user_id,
+                'store_id' => $this->store->id,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
-
         } catch (\Exception $e) {
-
             throw($e);
-
         }
     }
 
     public function assignLocationAndManageCloning()
     {
         try {
-
             //  If we have locations to clone
             if ($this->store_to_clone) {
                 /***************************
@@ -376,11 +456,8 @@ trait StoreTraits
                 //  Create a new location
                 $location = ( new \App\Location() )->initiateCreate($this->request);
             }
-
         } catch (\Exception $e) {
-
             throw($e);
-
         }
     }
 
@@ -390,13 +467,9 @@ trait StoreTraits
     public function isOwner($user_id)
     {
         try {
-
             return $this->whereUserId($user_id)->exists();
-
         } catch (\Exception $e) {
-
             throw($e);
-
         }
     }
 
@@ -405,18 +478,12 @@ trait StoreTraits
      */
     public function isAdmin($user_id = null)
     {
-        try{
-
-            if ( !empty($user_id) ) {
-
+        try {
+            if (!empty($user_id)) {
                 return $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'admin')->exists();
-
             }
-
         } catch (\Exception $e) {
-
             throw($e);
-
         }
     }
 
@@ -426,17 +493,11 @@ trait StoreTraits
     public function isViewer($user_id = null)
     {
         try {
-
-            if ( !empty($user_id) ) {
-                
+            if (!empty($user_id)) {
                 return $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'viewer')->exists();
-
             }
-
         } catch (\Exception $e) {
-
             throw($e);
-
         }
     }
 }

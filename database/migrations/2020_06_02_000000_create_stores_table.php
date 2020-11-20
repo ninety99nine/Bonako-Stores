@@ -21,7 +21,7 @@ class CreateStoresTable extends Migration
             $table->unsignedInteger('user_id')->nullable();
 
             /*  Currency Info  */
-            $table->json('currency')->nullable();
+            $table->char('currency', 3)->default('BWP');
 
             /*  Stock Info  */
             $table->unsignedInteger('minimum_stock_quantity')->default(10);
