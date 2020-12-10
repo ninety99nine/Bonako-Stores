@@ -62,7 +62,50 @@ class OrderController extends Controller
                 if ($this->user && $this->user->can('fulfill', $order)) {
 
                     //  Fulfill the order
-                    if( $order->initiateFulfillment($orderInfo = $request->all()) ){
+                    if( $order->initiateFulfillment($request) ){
+
+                        //  Return success
+                        return response()->json(null, 200);
+
+                    }
+
+                } else {
+
+                    //  Not Authourized
+                    return help_not_authorized();
+
+                }
+
+            } else {
+
+                //  Not Found
+                return help_resource_not_fonud();
+
+            }
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+        
+    }
+
+    public function cancelOrder( Request $request, $order_id )
+    {
+        try {
+
+            //  Get the order
+            $order = order::where('id', $order_id)->first() ?? null;
+
+            //  Check if the order exists
+            if ($order) {
+
+                //  Check if the user is authourized to cancel the order
+                if ($this->user && $this->user->can('cancel', $order)) {
+
+                    //  Cancel the order
+                    if( $order->initiateCancellation($request) ){
 
                         //  Return success
                         return response()->json(null, 200);

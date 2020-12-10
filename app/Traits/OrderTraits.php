@@ -89,6 +89,7 @@ trait OrderTraits
                 'grand_total' => $cart['grand_total'] ?? 0,
 
                 /*  Customer Info  */
+                'customer_id' => auth()->user()->id,
                 'customer_info' => [
                     'first_name' => $customer_info['first_name'],
                     'last_name' => $customer_info['last_name'],
@@ -152,7 +153,40 @@ trait OrderTraits
         }
     }
 
+    /** initiateCreate() method  
+     *   
+     *  This method updates an existing order
+     */
+    public function initiateUpdate( $request )
+    {   
+        try {
+                
+            //  Set the request variable
+            $this->request = $request;
 
+            //  Set the template
+            $template = [
+                'status' => $this->request->input('status'),
+                'cancellation_reason' => $this->request->input('cancellation_reason')
+            ];
+            
+            // Update existing order
+            $updated = $this->update($template);
+
+            //  If updated successfully
+            if ( $updated ) {
+
+                //  Return a fresh instance
+                return $this->fresh();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
 
     /*  initiateFulfillment() method
      *
@@ -160,9 +194,11 @@ trait OrderTraits
      *  of the current order items. The $orderInfo holds
      *  additional order fulfillment details if any.
      */
-    public function initiateFulfillment( $orderInfo = null )
+    public function initiateFulfillment( $request )
     {
         try {
+
+            $orderInfo = $request->all();
 
             $fulfilled_item_lines = [];
             $unfulfilled_item_lines = $this->unfulfilled_item_lines;
@@ -247,7 +283,27 @@ trait OrderTraits
 
         }
     }
-    
+
+    /*  initiateCancellation() method
+     *
+     *  This method is used to cancel an order.
+     */
+    public function initiateCancellation( $request )
+    {
+        try {
+            
+            //  Set the order status to cancelled
+            $request->request->add(['status' => 'cancelled']);
+
+            //  Update the order
+            return $this->initiateUpdate($request);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
 
     public function updateFulfilmentStatus()
     {

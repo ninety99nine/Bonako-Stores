@@ -40,9 +40,8 @@ class AuthController extends Controller
 
             //  Validate "Login Via USSD"
             $validator = Validator::make($request->all(), [
-
-                /** Validation Rules
-                 * 
+                /* Validation Rules
+                 *
                  *  # If we want to login via USSD then make sure that the user provided their mobile number.
                  *  # If we want to login via WEB then make sure that the user provided their email and password
                  *
@@ -51,12 +50,11 @@ class AuthController extends Controller
                 'mobile_number' => 'required_if:login_via_ussd,true|required_if:login_via_ussd,1|regex:/^[0-9]+$/i',
                 'password' => 'required_without:login_via_ussd|required_if:login_via_ussd,false|required_if:login_via_ussd,0',
                 'email' => 'required_without:login_via_ussd|required_if:login_via_ussd,false|required_if:login_via_ussd,0|email',
-
             ], [
                 //  Login Via USSD Validation Error Messages
                 'login_via_ussd.required' => 'The login_via_ussd attribute must be set equal to "true" or "1" to implement login via USSD',
                 'login_via_ussd.accepted' => 'The login_via_ussd attribute must be set equal to "true" or "1" to implement login via USSD',
-                
+
                 //  Mobile Number Validation Error Messages
                 'mobile_number.required_if' => 'The mobile_number attribute is required since you are logging in via USSD',
                 'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567',
@@ -75,71 +73,57 @@ class AuthController extends Controller
 
             //  If the validation failed
             if ($validator->fails()) {
-
                 //  Throw Validation Exception with validation errors
                 throw ValidationException::withMessages(collect($validator->errors())->toArray());
-
             }
 
             //  If we want to login via USSD
-            if ( in_array($login_via_ussd, [true, 1, 'true', '1']) ) {
-
+            if (in_array($login_via_ussd, [true, 1, 'true', '1'])) {
                 //  Get the Mobile Number
                 $mobile_number = $request->input('mobile_number');
 
                 /** IMPORTANT SECURITY NOTICE
-                 * 
+                 *
                  *  This is where we can check if the API GRANT TOKEN has been provided
                  *  and whether or not the GRANT TOKEN is valid. If it is, we can then
                  *  attempt to login the user that matches the given mobile number
                  *  otherwise we must return a failed login indicating that the
                  *  GRANT TOKEN provided is invalid.
-                */
+                 */
 
                 //  Get the user that owns the given mobile number
                 $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
 
                 //  If the user was found
-                if( $user ){
-
+                if ($user) {
                     //  Login using the given user
                     auth()->loginUsingId($user->id);
 
                     //  If we are logged in
                     if (auth()->user()) {
-                        
                         //  Create new access token
                         return $this->createNewAccessToken();
-
                     } else {
-
                         //  Failed to login - Throw 401 error
                         return help_login_failed();
-                    
                     }
-
-                }else{
-                    
+                } else {
                     //  The account with the given mobile number does not exist. Throw a validation error
                     throw ValidationException::withMessages(['mobile_number' => 'The account using the mobile number "'.$mobile_number.'" does not exist.']);
-                    
                 }
 
-            //  If we want to login via WEB
+                //  If we want to login via WEB
             } else {
-
                 //  Get the login credentials
                 $credentials = $request->only('email', 'password');
 
                 //  Attempt to login
                 if (auth()->attempt($credentials)) {
-
                     //  Create new access token
                     return $this->createNewAccessToken();
 
                 //  If our attempt to login failed
                 } else {
-
                     //  Get the user's email address
                     $email = $request->input('email');
 
@@ -173,9 +157,7 @@ class AuthController extends Controller
                 'access_token' => $accessToken,
             ]);
         } catch (\Exception $e) {
-            
             throw($e);
-
         }
     }
 
@@ -215,7 +197,8 @@ class AuthController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'name' => 'required|max:55',
+                'first_name' => 'required|max:25',
+                'last_name' => 'required|max:25',
                 'email' => 'sometimes|required|email|unique:users,email',
                 'mobile_number' => 'sometimes|required|unique:users,mobile_number',
                 'password' => 'sometimes|required|confirmed',

@@ -10,11 +10,11 @@ class HomeController extends Controller
 {
     /** home()
      *
-     *  1) returns the API links for the authenticated user
-     *     that is logged in using the Dashboard.
+     *  1) Returns the API links for the non-authenticated 
+     *     user that is logged in
      *
-     *  2) returns the API links for the authenticated user
-     *     that is logged in using their mobile phone via USSD.
+     *  2) Returns the API links for the authenticated 
+     *     user that is logged in
      */
     public function home(Request $request)
     {

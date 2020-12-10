@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use DB;
 use App\Http\Resources\Location as LocationResource;
 use App\Http\Resources\Locations as LocationsResource;
 
@@ -27,7 +28,9 @@ trait LocationTraits
         }
     }
 
-    /*  This method creates a new Version
+    /**  initiateCreate()
+     *
+     *  This method creates a new Location
      */
     public function initiateCreate($request)
     {
@@ -95,6 +98,78 @@ trait LocationTraits
         }
     }
 
+    /**  initiateUpdateProductArrangement()
+     *
+     *  This method updates the arrangement of products in the current location. 
+     *  The logic allows us to run a single query to update multiple products 
+     *  with different values of their arrangement for a given location.
+     */
+    public function initiateUpdateProductArrangement($request)
+    {
+        try {
+
+            //  Get the products assigned to this location (Products must not be variations)
+            $products = collect($this->products()->isNotVariation()->get())->toArray();
+
+            //  Get the request product arrangement
+            $product_arrangements = $request->input('product_arrangements');
+            
+            $ids = [];
+            $cases = [];
+            $params = [];
+
+            //  Foreach product we must arrange
+            foreach ($product_arrangements as $key => $product_arrangement) {
+
+                $id = $product_arrangement['id'];
+                $arrangement = $product_arrangement['arrangement'];
+
+                $cases[] = "WHEN {$id} then ?";
+                $params[] = $arrangement;
+                $ids[] = $id;
+
+                //  Remove from the products
+                $products = collect($products)->reject(function ($product) use ($id){
+                    return $product['id'] == $id;
+                });
+
+            }
+
+            //  Count how many products we have arranged
+            $total_product_arrangements = count($product_arrangements);
+
+            //  Foreach product we did not arrange
+            foreach ($products as $key => $product) {
+
+                $id = $product['id'];
+                $arrangement = $total_product_arrangements + ($key + 1);
+
+                $cases[] = "WHEN {$id} then ?";
+                $params[] = $arrangement;
+                $ids[] = $id;
+
+            }
+
+            $ids = implode(',', $ids);
+            $cases = implode(' ', $cases);
+
+            if (!empty($ids)) {
+                
+                DB::update("UPDATE products SET `arrangement` = CASE `id` {$cases} END WHERE `id` in ({$ids})", $params);
+            
+            }
+
+            //  Return the location products in their new order
+            return $this->products()->paginate();
+    
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
     public function assignUserAsAdmin()
     {
         try {
@@ -141,26 +216,6 @@ trait LocationTraits
            if ( !empty($user_id) ) {
 
                return $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'admin')->exists();
-
-           }
-
-       } catch (\Exception $e) {
-
-           throw($e);
-
-       }
-   }
-
-   /*
-    *  Checks if a given user is a viewer of the location
-    */
-   public function isViewer($user_id = null)
-   {
-       try {
-
-           if ( !empty($user_id) ) {
-               
-               return $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'viewer')->exists();
 
            }
 

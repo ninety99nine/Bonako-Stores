@@ -51,6 +51,8 @@ class Order extends Model
         /*  Status  */
         'status', 'payment_status', 'fulfillment_status',
 
+        'cancellation_reason',
+
         /*  Item Info  */
         'item_lines',
 
@@ -133,6 +135,15 @@ class Order extends Model
     public function scopeCancelled($query)
     {
         return $query->where('status', 'cancelled');
+    }
+
+    /*
+     *  Scope:
+     *  Returns orders that are placed by the current user
+     */
+    public function scopeUserIsCustomer($query)
+    {
+        return $query->where('customer_id', auth()->user()->id);
     }
 
     /*

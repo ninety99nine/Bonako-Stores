@@ -112,27 +112,136 @@ class LocationController extends Controller
     public function getLocationProducts(Request $request, $location_id)
     {
         try {
-            $limit = $request->input('limit');
-
             //  Get the location
             $location = \App\Location::where('id', $location_id)->first() ?? null;
 
-            if (!empty($search_term = $request->input('search'))) {
-                //  Get the location products
-                $products = $location->products()->search($search_term)->paginate($limit) ?? null;
-            } else {
-                //  Get the location products
-                $products = $location->products()->paginate($limit) ?? null;
-            }
-
             //  Check if the location products exist
-            if ($products) {
+            if ($location) {
+                $limit = $request->input('limit');
+                $active = $request->input('active');
+                $onsale = $request->input('onsale');
+                $search_term = $request->input('search');
+
+                $products = $location->products();
+
+                if ($active === '1') {
+                    $products = $products->active();
+                } elseif ($active === '0') {
+                    $products = $products->inActive();
+                }
+
+                if ($onsale === '1') {
+                    $products = $products->onSale();
+                }
+
+                //  If we need to search for specific products
+                if (!empty($search_term)) {
+                    $products = $products->search($search_term);
+                }
+
+                //  Get the location products
+                $products = $products->paginate($limit) ?? [];
+
                 //  Return an API Readable Format of the Product Instance
                 return ( new \App\Product() )->convertToApiFormat($products);
             } else {
                 //  Not Found
                 return help_resource_not_fonud();
             }
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    public function createLocationProduct(Request $request, $location_id)
+    {
+        try {
+
+            //  Get the location
+            $location = \App\Location::where('id', $location_id)->first() ?? null;
+
+            //  Check if the location exists
+            if ($location) {
+                
+                //  Check if the user is authourized to arrange the location products
+                if ($this->user && $this->user->can('update', $location)) {
+
+                    //  Check if the user is authourized to create products
+                    if ($this->user && $this->user->can('create', \App\Product::class)) {
+            
+                        //  Set the location id on the request
+                        $request->request->add(['location_id' => $location_id]);
+
+                        //  Create the location product
+                        $product = (new \App\Product())->initiateCreate($request);
+        
+                        //  If the created successfully
+                        if ($product) {
+
+                            //  Return an API Readable Format of the Product Instance
+                            return $product->convertToApiFormat();
+
+                        }
+
+                    } else {
+
+                        //  Not Authourized
+                        return help_not_authorized();
+                        
+                    }
+
+                } else {
+                    
+                    //  Not Authourized
+                    return help_not_authorized();
+
+                }
+
+            } else {
+                
+                //  Not Found
+                return help_resource_not_fonud();
+
+            }
+            
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    public function updateLocationProductArrangement(Request $request, $location_id)
+    {
+        try {
+
+            //  Get the location
+            $location = \App\Location::where('id', $location_id)->first() ?? null;
+
+            //  Check if the location exists
+            if ($location) {
+                
+                //  Check if the user is authourized to arrange the location products
+                if ($this->user && $this->user->can('update', $location)) {
+
+                    //  Update the product arrangement of the location
+                    $products = $location->initiateUpdateProductArrangement($request);
+
+                    //  Return an API Readable Format of the Product Instance
+                    return ( new \App\Product() )->convertToApiFormat($products);
+
+                } else {
+                    
+                    //  Not Authourized
+                    return help_not_authorized();
+
+                }
+
+            } else {
+                
+                //  Not Found
+                return help_resource_not_fonud();
+
+            }
+            
         } catch (\Exception $e) {
             return help_handle_exception($e);
         }
@@ -179,6 +288,9 @@ class LocationController extends Controller
             //  Get the fulfillment status e.g "fulfilled" or "unfulfilled"
             $fulfillment_status = $request->input('fulfillment_status');
 
+            //  Get the is_customer status e.g "0" or "1"
+            $is_customer = $request->input('is_customer');
+
             //  Get the location
             $location = \App\Location::where('id', $location_id)->first() ?? null;
 
@@ -186,32 +298,32 @@ class LocationController extends Controller
             $orders = $location->orders();
 
             //  If we want only open orders
-            if ($status == 'open') {
+            if ($status === 'open') {
                 //  Only fetch open orders
                 $orders = $orders->open();
             //  If we want only archieved orders
-            } elseif ($status == 'archieved') {
+            } elseif ($status === 'archieved') {
                 //  Only fetch archieved orders
                 $orders = $orders->archieved();
-            } elseif ($status == 'cancelled') {
+            } elseif ($status === 'cancelled') {
                 //  Only fetch cancelled orders
                 $orders = $orders->cancelled();
             }
 
             //  If we want only fulfilled orders
-            if ($fulfillment_status == 'fulfilled') {
+            if ($fulfillment_status === 'fulfilled') {
                 //  Only fetch fulfilled orders
                 $orders = $orders->fulfilled();
             //  If we want only unfulfilled orders
-            } elseif ($fulfillment_status == 'unfulfilled') {
+            } elseif ($fulfillment_status === 'unfulfilled') {
                 //  Only fetch unfulfilled orders
                 $orders = $orders->unfulfilled();
             }
 
             //  If we want to search
-            if (!empty($search_term = $request->input('search'))) {
+            if (!empty($search_term = trim($request->input('search')))) {
                 //  Search order
-                $orders = $orders->search($search_term)->paginate($limit) ?? null;
+                $orders = $orders->search($search_term);
             }
 
             //  Paginate orders

@@ -38,9 +38,11 @@ class UserController extends Controller
     {
         try {
             //  Check if the current auth user is authourized to view this user resource
-            if ($this->user->can('view', $this->user)) {
+            if (auth('api')->user()->can('view', $this->user)) {
+
                 //  Return an API Readable Format of the User Instance
                 return $this->user->convertToApiFormat();
+
             } else {
                 //  Not Authourized
                 return help_not_authorized();
@@ -53,51 +55,30 @@ class UserController extends Controller
     public function getUserStores(Request $request)
     {
         try {
-            //  Get the authenticated/specified user's stores
-            $stores = $this->user->stores()->latest()->paginate() ?? null;
+            //  Check if the current auth user is authourized to view this user resource
+            if (auth('api')->user()->can('view', $this->user)) {
 
-            //  Check if the stores exists
-            if ($stores) {
-                //  Check if the user is authourized to view the user stores
-                if (auth('api')->user()->can('view', $this->user)) {
-                    //  Return an API Readable Format of the Store Instance
-                    return ( new \App\Store() )->convertToApiFormat($stores);
-                } else {
-                    //  Not Authourized
-                    return help_not_authorized();
-                }
+                $type = $request->input('type');
+                $limit = $request->input('limit');
+                $search_term = $request->input('search');
+
+                //  Get the stores
+                $stores = $this->user->getStores($type, $limit, $search_term);
+
+                //  Paginate stores
+                $stores = $stores->paginate($limit) ?? [];
+    
+                //  Return an API Readable Format of the Store Instance
+                return ( new \App\Store() )->convertToApiFormat($stores);
+
             } else {
-                //  Not Found
-                return help_resource_not_fonud();
+                //  Not Authourized
+                return help_not_authorized();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
         }
-    }
-
-    public function getUserFavouriteStores(Request $request)
-    {
-        try {
-            //  Get the authenticated/specified user's stores
-            $stores = $this->user->favouriteStores()->latest()->paginate() ?? null;
-
-            //  Check if the stores exists
-            if ($stores) {
-                //  Check if the user is authourized to view the user stores
-                if (auth('api')->user()->can('view', $this->user)) {
-                    //  Return an API Readable Format of the Store Instance
-                    return ( new \App\Store() )->convertToApiFormat($stores);
-                } else {
-                    //  Not Authourized
-                    return help_not_authorized();
-                }
-            } else {
-                //  Not Found
-                return help_resource_not_fonud();
-            }
-        } catch (\Exception $e) {
-            return help_handle_exception($e);
-        }
+        
     }
 
     public function updateUser(Request $request, $id)
@@ -106,5 +87,20 @@ class UserController extends Controller
 
     public function destroyUser($id)
     {
+    }
+
+    public function checkMobileAccountExistence(Request $request, $mobile_number)
+    {
+        if ($mobile_number) {
+            $account = \App\User::where('mobile_number', $mobile_number)->first();
+
+            if ($account) {
+                //  Return true that the account exists
+                return response()->json(['account_exists' => true], 200);
+            }
+        }
+
+        //  Return false that the account does not exist
+        return response()->json(['account_exists' => false], 200);
     }
 }

@@ -63,9 +63,8 @@ class LocationPolicy
     {
         try {
 
-            //  Only an Admin or Editor can view this location
-            return $location->project->isAdmin($user->id)  ||
-                $location->project()->isEditor($user->id);
+            //  Any Authenticated user can view this location
+            return auth('api')->user() ? true : false;
 
         } catch (\Exception $e) {
 
@@ -84,7 +83,7 @@ class LocationPolicy
     {
         try {
 
-            //  Any Authenticated user can create a instant carts
+            //  Any Authenticated user can create locations
             return auth('api')->user() ? true : false;
 
         } catch (\Exception $e) {
@@ -105,9 +104,8 @@ class LocationPolicy
     {
         try {
 
-            //  Only an Admin, Editor can update this location
-            return  $location->project->isAdmin($user->id)  ||
-                    $location->project()->isEditor($user->id);
+            //  Only an Admin can update this location
+            return $location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -128,7 +126,7 @@ class LocationPolicy
         try {
 
             //  Only an Admin can delete this location
-            return $location->project->isAdmin($user->id);
+            return $location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -149,7 +147,7 @@ class LocationPolicy
         try {
 
             //  Only an Admin can restore this location
-            return $location->project->isAdmin($user->id);
+            return $location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -170,7 +168,7 @@ class LocationPolicy
         try {
 
             //  Only an Admin can force delete this location
-            return $location->project->isAdmin($user->id);
+            return $location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 

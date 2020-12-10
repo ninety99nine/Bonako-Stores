@@ -63,9 +63,8 @@ class InstantCartPolicy
     {
         try {
 
-            //  Only an Admin or Editor can view this instant cart
-            return $instant_cart->store->isAdmin($user->id)  ||
-                $instant_cart->store()->isEditor($user->id);
+            //  Any Authenticated user can view this instant cart
+            return auth('api')->user() ? true : false;
 
         } catch (\Exception $e) {
 
@@ -105,9 +104,8 @@ class InstantCartPolicy
     {
         try {
 
-            //  Only an Admin, Editor can update this instant cart
-            return  $instant_cart->store->isAdmin($user->id)  ||
-                    $instant_cart->store()->isEditor($user->id);
+            //  Only an Admin can update this instant cart
+            return $instant_cart->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -128,7 +126,7 @@ class InstantCartPolicy
         try {
 
             //  Only an Admin can delete this instant cart
-            return $instant_cart->store->isAdmin($user->id);
+            return $instant_cart->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -149,7 +147,7 @@ class InstantCartPolicy
         try {
 
             //  Only an Admin can restore this instant cart
-            return $instant_cart->store->isAdmin($user->id);
+            return $instant_cart->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -170,7 +168,7 @@ class InstantCartPolicy
         try {
 
             //  Only an Admin can force delete this instant cart
-            return $instant_cart->store->isAdmin($user->id);
+            return $instant_cart->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 

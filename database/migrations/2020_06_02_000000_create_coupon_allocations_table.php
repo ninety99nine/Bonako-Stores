@@ -14,8 +14,8 @@ class CreateCouponAllocationsTable extends Migration
         Schema::create('coupon_allocations', function (Blueprint $table) {
 
             $table->increments('id');
-            $table->unsignedInteger('coupon_id');
-            $table->unsignedInteger('owner_id');
+            $table->bigInteger('coupon_id')->unsigned()->nullable();
+            $table->bigInteger('owner_id')->unsigned()->nullable();
             $table->string('owner_type');
 
             /*  Timestamps  */

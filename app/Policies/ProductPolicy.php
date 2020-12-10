@@ -64,9 +64,8 @@ class ProductPolicy
     {
         try {
 
-            //  Only an Admin or Editor can view this product
-            return $product->store->isAdmin($user->id)  ||
-                $product->store()->isEditor($user->id);
+            //  Any Authenticated user can view this product
+            return auth('api')->user() ? true : false;
 
         } catch (\Exception $e) {
 
@@ -85,7 +84,7 @@ class ProductPolicy
     {
         try {
 
-            //  Any Authenticated user can create a instant carts
+            //  Any Authenticated user can create products
             return auth('api')->user() ? true : false;
 
         } catch (\Exception $e) {
@@ -106,9 +105,8 @@ class ProductPolicy
     {
         try {
 
-            //  Only an Admin, Editor can update this product
-            return  $product->store->isAdmin($user->id)  ||
-                    $product->store()->isEditor($user->id);
+            //  Only an Admin can update this product
+            return $product->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -129,7 +127,7 @@ class ProductPolicy
         try {
 
             //  Only an Admin can delete this product
-            return $product->store->isAdmin($user->id);
+            return $product->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -150,7 +148,7 @@ class ProductPolicy
         try {
 
             //  Only an Admin can restore this product
-            return $product->store->isAdmin($user->id);
+            return $product->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -171,7 +169,7 @@ class ProductPolicy
         try {
 
             //  Only an Admin can force delete this product
-            return $product->store->isAdmin($user->id);
+            return $product->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 

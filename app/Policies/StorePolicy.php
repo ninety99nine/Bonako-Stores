@@ -62,8 +62,8 @@ class StorePolicy
     {
         try {
 
-            //  Only an Admin can view this store
-            return $store->isAdmin($user->id);
+            //  Any Authenticated user can view this store
+            return auth('api')->user() ? true : false;
 
         } catch (\Exception $e) {
 

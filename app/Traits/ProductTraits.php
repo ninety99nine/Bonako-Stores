@@ -28,7 +28,9 @@ trait ProductTraits
         }
     }
 
-    /** This method creates a new product
+    /** initiateCreate()
+     * 
+     *  This method creates a new product
      */
     public function initiateCreate($request)
     {
@@ -44,17 +46,18 @@ trait ProductTraits
 
             //  Set the template
             $template = [
+                'arrangement' => 1,
                 'name' => $request->input('name'),
                 'type' => $request->input('type'),
                 'user_id' => auth('api')->user()->id,
                 'active' => $request->input('active'),
                 'store_id' => $request->input('store_id'),
+                'location_id' => $request->input('location_id'),
                 'description' => $request->input('description'),
                 'cost_per_item' => $request->input('cost_per_item'),
                 'unit_sale_price' => $request->input('unit_sale_price'),
                 'unit_regular_price' => $request->input('unit_regular_price'),
                 'variant_attributes' => $request->input('variant_attributes'),
-
                 'allow_stock_management' => $request->input('allow_stock_management'),
                 'auto_manage_stock' => $request->input('auto_manage_stock'),
                 'stock_quantity' => $request->input('stock_quantity'),
@@ -69,7 +72,9 @@ trait ProductTraits
 
             //  If created successfully
             if ($this->product) {
-                $this->assignProductToLocation();
+
+                //  Rearrange the location products
+                $this->rearrangeProducts();
 
                 //  Return a fresh instance
                 return $this->product;
@@ -82,48 +87,42 @@ trait ProductTraits
         }
     }
 
-    public function assignProductToLocation()
+    public function rearrangeProducts()
     {
         try {
 
             if ($this->request->input('location_id')) {
+                
                 //  Get the location we want to place this product
                 $location = \App\Location::where('id', $this->request->input('location_id'))->first();
 
-                //  Get all the current product allocations by order of arrangement
-                $product_allocations = DB::table('product_allocations')->where('owner_id', $location->id)->where('owner_type', 'location')->orderBy('arrangement')->get();
+                //  Get the products that belong to this location except the new product
+                $products = collect($location->products()->where('id', '!=', $this->product->id)->get())->toArray();
+                
+                $ids = [];
+                $cases = [];
+                $params = [];
 
-                //  Create a new product allocation and add the product we just created as the first on the list
-                $new_product_allocations[] = [
-                    'arrangement' => 1,
-                    'owner_type' => 'location',
-                    'owner_id' => $location->id,
-                    'created_at' => DB::raw('now()'),
-                    'updated_at' => DB::raw('now()'),
-                    'product_id' => $this->product->id,
-                ];
+                foreach ($products as $key => $product) {
 
-                /** Get all the current product allocations and add them in their original
-                 *  order but arranged after the new product we just created. Since the
-                 *  $key starts from 0, 1, 2, 3 ... we need to add "1" to allow
-                 *  increments starting from 1, 2, 3 ...
-                 */
-                foreach ($product_allocations as $key => $product_allocation) {
-                    $new_product_allocations[] = [
-                        'owner_type' => 'location',
-                        'owner_id' => $location->id,
-                        'arrangement' => ($key + 2),
-                        'created_at' => DB::raw('now()'),
-                        'updated_at' => DB::raw('now()'),
-                        'product_id' => $product_allocation->product_id,
-                    ];
+                    $id = $product['id'];
+                    $arrangement = ($key + 2);
+    
+                    $cases[] = "WHEN {$id} then ?";
+                    $params[] = $arrangement;
+                    $ids[] = $id;
+
                 }
 
-                //  Delete all the current product allocations
-                DB::table('product_allocations')->where('owner_id', $location->id)->where('owner_type', 'location')->delete();
+                $ids = implode(',', $ids);
+                $cases = implode(' ', $cases);
 
-                //  Insert all the product allocations in their updated order of arrangement
-                DB::table('product_allocations')->insert($new_product_allocations);
+                if (!empty($ids)) {
+                    
+                    DB::update("UPDATE products SET `arrangement` = CASE `id` {$cases} END WHERE `id` in ({$ids})", $params);
+                
+                }
+
             }
 
         } catch (\Exception $e) {

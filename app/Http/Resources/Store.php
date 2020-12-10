@@ -24,6 +24,9 @@ class Store extends JsonResource
             'offline_message' => $this->offline_message,
             'minimum_stock_quantity' => $this->minimum_stock_quantity,
 
+            'is_favourite' => count($this->favourites) ? true : false,
+            'favourites' => $this->favourites,
+
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
@@ -39,7 +42,16 @@ class Store extends JsonResource
                     'href' => route('store', ['store_id' => $this->id]),
                     'title' => 'This store',
                 ],
-
+                /*
+                //  Link to my store locations
+                'bos:my-locations' => [
+                    'href' => route('my-store-locations', ['store_id' => $this->id]),
+                    'title' => 'The store locations',
+                    'total' => $this->locations()->count(),
+                    //'total' => $this->locations()->asUser()->count(),
+                    //'total' => $this->locations()->asAdmin()->count(),
+                ],
+                */
                 //  Link to the store locations
                 'bos:locations' => [
                     'href' => route('store-locations', ['store_id' => $this->id]),
@@ -68,11 +80,12 @@ class Store extends JsonResource
                     'total' => $this->instantCarts()->count(),
                 ],
 
-                //  Link to the create products
-                'bos:product-create' => [
-                    'href' => route('product-create'),
-                    'title' => 'The POST route to create a new product',
+                //  Link to add or remove a favourite store
+                'bos:add_or_remove_favourite_store' => [
+                    'href' => route('store-favourite', ['store_id' => $this->id]),
+                    'title' => 'The POST route to add or remove a favourite store'
                 ],
+
             ],
 
             /*  Embedded Resources */

@@ -268,7 +268,7 @@
                     //  Store data
                     let arrangementData = {
                         location_id: this.location.id,
-                        product_arrangement: self.products.map((product, index) => {
+                        product_arrangements: self.products.map((product, index) => {
                             return {
                                 "id": product.id, 
                                 "arrangement": (index + 1)
@@ -277,7 +277,7 @@
                     }
 
                     //  Use the api call() function, refer to api.js
-                    return api.call('post', this.productArrangementUrl, arrangementData)
+                    return api.call('put', this.productArrangementUrl, arrangementData)
                         .then(({data}) => {
                             
                             //  Console log the data returned

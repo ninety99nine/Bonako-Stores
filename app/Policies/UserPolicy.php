@@ -61,7 +61,8 @@ class UserPolicy
     {
         try {
 
-            return true;
+            //  Any Authenticated user can view this user
+            return auth('api')->user() ? true : false;
 
         } catch (\Exception $e) {
 
@@ -80,7 +81,7 @@ class UserPolicy
     {
         try {
 
-            //  Any Authenticated user can create a instant carts
+            //  Any Authenticated user can create a new user
             return auth('api')->user() ? true : false;
 
         } catch (\Exception $e) {
@@ -101,7 +102,8 @@ class UserPolicy
     {
         try {
 
-            return true;
+            //  Only the Account Owner can update this user account
+            return $model->isAccountOwner($user->id);
 
         } catch (\Exception $e) {
 
@@ -119,7 +121,16 @@ class UserPolicy
      */
     public function delete(User $user, User $model)
     {
-        return true;
+        try {
+
+            //  Only the Account Owner can delete this user account
+            return $model->isAccountOwner($user->id);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -133,7 +144,8 @@ class UserPolicy
     {
         try {
 
-            return true;
+            //  Only the Account Owner can restore this user account
+            return $model->isAccountOwner($user->id);
 
         } catch (\Exception $e) {
 
@@ -153,7 +165,8 @@ class UserPolicy
     {
         try {
 
-            return true;
+            //  Only the Account Owner can force delete this user account
+            return $model->isAccountOwner($user->id);
 
         } catch (\Exception $e) {
 

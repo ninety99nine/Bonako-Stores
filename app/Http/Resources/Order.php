@@ -65,6 +65,12 @@ class Order extends JsonResource
                     'href' => route('order-fulfillment', ['order_id' => $this->id]),
                     'title' => 'The POST route to fulfil this order'
                 ],
+
+                //  Link to cancel order
+                'bos:cancel' => [
+                    'href' => route('order-cancellation', ['order_id' => $this->id]),
+                    'title' => 'The POST route to cancel this order'
+                ],
                 
             ],
 

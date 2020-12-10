@@ -12,9 +12,17 @@
 
                 <Form ref="registerForm" :model="registerForm" :rules="registerFormRules">
                     
-                    <!-- Enter Name -->
+                    <!-- Enter First Name -->
                     <FormItem prop="name" :error="serverNameError">
-                        <Input type="text" v-model="registerForm.name" placeholder="Name" :disabled="isLoading"
+                        <Input type="text" v-model="registerForm.first_name" placeholder="Name" :disabled="isLoading"
+                                @keyup.enter.native="handleSubmit()">
+                            <Icon type="ios-person-outline" slot="prepend"></Icon>
+                        </Input>
+                    </FormItem>    
+
+                    <!-- Enter Last Name -->
+                    <FormItem prop="name" :error="serverNameError">
+                        <Input type="text" v-model="registerForm.last_name" placeholder="Name" :disabled="isLoading"
                                 @keyup.enter.native="handleSubmit()">
                             <Icon type="ios-person-outline" slot="prepend"></Icon>
                         </Input>
@@ -156,7 +164,7 @@
                 //  Attempt to register using the auth register method found in the auth.js file
                 auth.register(
                     //  Pass registration details
-                    this.registerForm.name, this.registerForm.email, 
+                    this.registerForm.first_name, this.registerForm.last_name, this.registerForm.email, 
                     this.registerForm.password, this.registerForm.password_confirmation
                     ).then((data) => {
 

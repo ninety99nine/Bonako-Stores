@@ -36,10 +36,10 @@ class Product extends Model
      */
     protected $fillable = [
         //  Product Details
-        'name', 'description', 'active', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price',
-        'sku', 'barcode', 'stock_quantity', 'allow_stock_management', 'auto_manage_stock',
-        'variant_attributes', 'allow_variants', 'allow_downloads', 'show_on_store',
-        'is_new', 'is_featured', 'parent_product_id', 'user_id', 'store_id',
+        'name', 'description', 'arrangement', 'active', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price',
+        'sku', 'barcode', 'stock_quantity', 'allow_stock_management', 'auto_manage_stock', 'variant_attributes', 
+        'allow_variants', 'allow_downloads', 'show_on_store', 'is_new', 'is_featured', 'parent_product_id', 
+        'user_id', 'store_id', 'location_id',
     ];
 
     /*
@@ -60,8 +60,38 @@ class Product extends Model
         return $query->where('name', 'like', '%'.$searchTerm.'%')->orWhere('description', 'like', '%'.$searchTerm.'%');
     }
 
+    /*
+     *  Scope:
+     *  Returns products that are active (Visible products)
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereActive('1');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that are not active (Hidden products)
+     */
+    public function scopeInActive($query)
+    {
+        return $query->whereActive('0');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that are not active (Hidden products)
+     */
+    public function scopeOnSale($query)
+    {
+        /* A product is on sale if we have the sale price and is less than the regular price
+         *
+         */
+        return $query->whereNotNull('unit_sale_price')->whereRaw('unit_sale_price < unit_regular_price');
+    }
+
     /**
-     *  Returns the owning store
+     *  Returns the owning store.
      */
     public function store()
     {
@@ -69,11 +99,11 @@ class Product extends Model
     }
 
     /**
-     *  Returns the locations that this product is assigned to.
+     *  Returns the location owning location.
      */
-    public function locations()
+    public function location()
     {
-        return $this->morphedByMany('App\Location', 'owner');
+        return $this->belongsTo('App\Location');
     }
 
     /**
@@ -201,12 +231,10 @@ class Product extends Model
     public static function boot()
     {
         try {
-            
             parent::boot();
 
             // before delete() method call this
             static::deleting(function ($product) {
-                
                 //  Delete all variations
                 foreach ($product->variations as $variation) {
                     $variation->delete();
@@ -220,11 +248,8 @@ class Product extends Model
 
                 // do the rest of the cleanup...
             });
-            
         } catch (\Exception $e) {
-
             throw($e);
-
         }
     }
 }

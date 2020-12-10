@@ -49,7 +49,7 @@ trait StoreTraits
             }
 
             //  Capture the resource fields allowed
-            $template = $request->only($this->getFillable())->except(['user_id']);
+            $template = $request->only($this->getFillable());
 
             //  Set the current authenticated user as the user responsible for creating this resource
             $template['user_id'] = auth('api')->user()->id;
@@ -103,6 +103,35 @@ trait StoreTraits
         } catch (\Exception $e) {
             throw($e);
         }
+    }
+
+    public function addOrRemoveStoreAsFavourite()
+    {
+        //  Get the current authenticated user ID
+        $user_id = auth()->user()->id;
+
+        //  Check if the user already marked this store as a favourite
+        $exists = DB::table('favourites')->where(['store_id' => $this->id, 'user_id' => $user_id])->exists();
+
+        //  If we already have this store marked as a favourite
+        if ($exists) {
+
+            //  Unmark store as favourite
+            DB::table('favourites')->where(['store_id' => $this->id, 'user_id' => $user_id])->delete();
+
+        //  If we don't already have this store marked as a favourite
+        } else {
+
+            //  Mark store as favourite
+            DB::table('favourites')->insert([
+                'user_id' => $user_id,
+                'store_id' => $this->id,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+        }
+
     }
 
     public function initiateValidation()
@@ -481,20 +510,6 @@ trait StoreTraits
         try {
             if (!empty($user_id)) {
                 return $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'admin')->exists();
-            }
-        } catch (\Exception $e) {
-            throw($e);
-        }
-    }
-
-    /*
-     *  Checks if a given user is a viewer of the store
-     */
-    public function isViewer($user_id = null)
-    {
-        try {
-            if (!empty($user_id)) {
-                return $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'viewer')->exists();
             }
         } catch (\Exception $e) {
             throw($e);

@@ -47,7 +47,7 @@ class Home extends JsonResource
                     'title' => 'Send the password reset link',
                 ],
 
-                //  Link to send password reset link
+                //  Link to reset password
                 'bos:reset-password' => [
                     'href' => route('reset-password'),
                     'title' => 'Reset the user\'s password',
@@ -86,8 +86,11 @@ class Home extends JsonResource
 
             /*  Embedded Resources */
             '_embedded' => [
-                //  Me Resource
+                //  Me Resource (Set user profile)
                 'me' => ($user = auth('api')->user()) ? (new UserResource($user)) : null,
+
+                //  Set if authentication status
+                'authenticated' => (auth('api')->user()) ? true : false,
             ],
         ];
     }

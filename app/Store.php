@@ -6,6 +6,7 @@ use App\Traits\CommonTraits;
 use App\Traits\StoreTraits;
 use DB;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Store extends Model
 {
@@ -31,6 +32,75 @@ class Store extends Model
     ];
 
     /*
+     *  Scope:
+     *  Returns stores that are being searched
+     */
+    public function scopeSearch($query, $searchTerm)
+    {
+        return $query->where('name', 'like', '%'.$searchTerm.'%');
+    }
+
+    /*
+     *  Scope:
+     *  Returns stores that are active (Visible stores)
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereActive('1');
+    }
+
+    /*
+     *  Scope:
+     *  Returns stores that are not active (Hidden stores)
+     */
+    public function scopeInActive($query)
+    {
+        return $query->whereActive('0');
+    }
+
+    /*
+     *  Scope:
+     *  Returns stores where user is the owner. This means that the
+     *  stores were created by the user.
+     */
+    public function scopeAsOwner($query, $user_id)
+    {
+        return $query->where('stores.user_id', '=', $user_id);
+    }
+
+    /*
+     *  Scope:
+     *  Returns stores where user is not the owner. This means that
+     *  these stores have been shared with the user.
+     */
+    public function scopeAsNonOwner($query, $user_id)
+    {
+        return $query->where('store_user.user_id', '=', $user_id)
+                     ->where('stores.user_id', '!=', $user_id)->orWhereNull('stores.user_id');
+    }
+
+    /*
+     *  Scope:
+     *  Returns stores where user is the store admin
+     */
+    public function scopeAsAdmin($query, $user_id)
+    {
+        return $query->where('store_user.type', '=', 'admin')
+                     ->where('store_user.user_id', '=', $user_id);
+    }
+
+    /*
+     *  Scope:
+     *  Returns stores marked as the user's favourite stores
+     */
+    public function scopeAsFavourite($query, $user_id)
+    {
+        return $query->whereHas('favourites', function (Builder $query) use ($user_id){
+            $query->where('user_id', $user_id);
+        });
+    }
+
+    /*
      *  Returns the user that created this store
      */
     public function owner()
@@ -44,6 +114,14 @@ class Store extends Model
     public function users()
     {
         return $this->belongsToMany('App\User')->withPivot('type');
+    }
+
+    /*
+     *  Returns the users that have been assigned to this store
+     */
+    public function favourites()
+    {
+        return $this->hasMany('App\Favourite');
     }
 
     /*

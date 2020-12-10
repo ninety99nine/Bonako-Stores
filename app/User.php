@@ -19,7 +19,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'email', 'mobile_number', 'password', 'account_type',
+        'first_name', 'last_name', 'email', 'mobile_number', 'password', 'account_type',
     ];
 
     /**
@@ -40,49 +40,26 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    /**
-     *  Checks if a given user is a Super Admin.
-     */
-    public function isSuperAdmin()
-    {
-        return $this->account_type == 'superadmin';
-    }
-
-    /**
-     *  The stores that this user created.
-     */
-    public function createdStores()
-    {
-        return $this->hasMany('App\Store', 'user_id');
-    }
-
-    /**
-     *  The stores that were shared with this user
-     *  NOTE: These stores are assigned but not
-     *  created by the user.
-     */
-    public function sharedStores()
-    {
-        return $this->stores()
-                    ->where('user_id', '!=', auth()->user()->id)
-                    ->where('store_user.user_id', '=', auth()->user()->id);
-    }
+    /****************************
+     *   STORES                 *
+     ****************************/
 
     /**
      *  The stores that are either created or shared with this user.
+     *  Return each store with any favourite records that show
+     *  whether the user marked the store as a favourite
      */
     public function stores()
     {
-        return $this->belongsToMany('App\Store')->withPivot(['user_id', 'store_id', 'type']);
+        return $this->belongsToMany('App\Store')->withPivot(['user_id', 'store_id', 'type'])
+                    ->with(['favourites' => function ($hasMany) {
+                        $hasMany->where('user_id', auth()->user()->id);
+                    }])->latest();
     }
 
-    /**
-     *  Get the favourite stores of the user.
-     */
-    public function favouriteStores()
-    {
-        return $this->belongsToMany('App\Store', 'favourite_stores');
-    }
+    /****************************
+     *   LOCATIONS              *
+     ****************************/
 
     /**
      *  The locations that are either created or shared with this user.
@@ -91,4 +68,25 @@ class User extends Authenticatable
     {
         return $this->belongsToMany('App\Location')->withPivot(['user_id', 'location_id', 'type']);
     }
+
+    /**
+     *  The locations that this user created.
+     */
+    public function createdLocations()
+    {
+        return $this->hasMany('App\Location', 'user_id');
+    }
+
+    /**
+     *  The locations that were shared with this user
+     *  NOTE: These locations are assigned but not
+     *  created by the user.
+     */
+    public function sharedLocations()
+    {
+        return $this->locations()
+                    ->where('user_id', '!=', auth()->user()->id)
+                    ->where('location_user.user_id', '=', auth()->user()->id);
+    }
+    
 }

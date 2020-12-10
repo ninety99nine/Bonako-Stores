@@ -175,13 +175,14 @@ class Auth {
             });
     }
 
-    register (name, email, password, password_confirmation)
+    register (first_name, last_name, email, password, password_confirmation)
     {   
         /**  Make an Api call to get the API Register endpoint. We include the user's 
          *   registration details required for account creation.
          */
         let registrationData = {
-            name: name,
+            first_name: first_name,
+            last_name: last_name,
             email: email,
             password: password,
             password_confirmation: password_confirmation

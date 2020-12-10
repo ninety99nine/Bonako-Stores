@@ -64,9 +64,8 @@ class OrderPolicy
     {
         try {
 
-            //  Only an Admin or Editor can view this order
-            return $order->store->isAdmin($user->id)  ||
-                $order->store()->isEditor($user->id);
+            //  Any Authenticated user can view this order
+            return auth('api')->user() ? true : false;
 
         } catch (\Exception $e) {
 
@@ -105,11 +104,29 @@ class OrderPolicy
     public function fulfill(User $user, Order $order)
     {
         try {
-            //  Only an Admin, Editor can fulfill this order
+            
+            //  Only an Admin can fulfil this order
+            return $order->location->isAdmin($user->id);
 
-            //  Only an Admin or Staff member of the merchant account can fulfill this order
-            return  $order->store->isAdmin($user->id)  ||
-                    $order->store()->isEditor($user->id);
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     * Determine whether the user can cancel the order.
+     *
+     * @param  \App\User  $user
+     * @param  \App\Order  $order
+     * @return mixed
+     */
+    public function cancel(User $user, Order $order)
+    {
+        try {
+            //  Only an Admin can cancel this order
+            return $order->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -129,9 +146,8 @@ class OrderPolicy
     {
         try {
 
-            //  Only an Admin, Editor can update this order
-            return  $order->store->isAdmin($user->id)  ||
-                    $order->store()->isEditor($user->id);
+            //  Only an Admin can update this order
+            return $order->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -152,7 +168,7 @@ class OrderPolicy
         try {
 
             //  Only an Admin can delete this order
-            return $order->store->isAdmin($user->id);
+            return $order->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -173,7 +189,7 @@ class OrderPolicy
         try {
 
             //  Only an Admin can restore this order
-            return $order->store->isAdmin($user->id);
+            return $order->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 
@@ -194,7 +210,7 @@ class OrderPolicy
         try {
 
             //  Only an Admin can force delete this order
-            return $order->store->isAdmin($user->id);
+            return $order->location->isAdmin($user->id);
 
         } catch (\Exception $e) {
 

@@ -31,6 +31,9 @@ class CreateOrdersTable extends Migration
             /*  Fulfillment Status  */
             $table->string('fulfillment_status')->default('unfulfilled');
 
+            /*  Cancellation Reason  */
+            $table->string('cancellation_reason')->nullable();
+
             /*  Item Info  */
             $table->json('item_lines')->nullable();
 

@@ -17,7 +17,8 @@ class user extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
             'email' => $this->email,
             'mobile_number' => $this->mobile_number,
 
@@ -44,11 +45,25 @@ class user extends JsonResource
                     'total' => $this->stores()->count(),
                 ],
 
+                //  Link to the user's created stores
+                'bos:created-stores' => [
+                    'href' => route('my-created-stores'),
+                    'title' => 'The stores that are created by this user',
+                    'total' => $this->stores()->asOwner($this->id)->count(),
+                ],
+                
+                //  Link to the user's shared stores
+                'bos:shared-stores' => [
+                    'href' => route('my-shared-stores'),
+                    'title' => 'The stores that are shared with this user',
+                    'total' => $this->stores()->asNonOwner($this->id)->count(),
+                ],
+
                 //  Link to the user's favourite stores
                 'bos:favourite_stores' => [
                     'href' => route('my-favourite-stores'),
                     'title' => 'This user\'s favourite stores',
-                    'total' => $this->favouriteStores()->count(),
+                    'total' => $this->stores()->asFavourite($this->id)->count(),
                 ],
             ],
 

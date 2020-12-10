@@ -61,7 +61,7 @@ class StoreController extends Controller
             //  Check if the user is authourized to create the store
             if ($this->user && $this->user->can('create', Store::class)) {
                 //  Create the store
-                $store = (new Store())->initiateCreate($request);
+                return (new Store())->initiateCreate($request);
 
                 //  If the created successfully
                 if ($store) {
@@ -127,6 +127,41 @@ class StoreController extends Controller
         }
     }
 
+
+    public function addOrRemoveStoreAsFavourite(Request $request, $store_id)
+    {
+        try {
+            
+            //  Get the store
+            $store = \App\Store::where('id', $store_id)->first() ?? null;
+    
+            //  Check if the store exists
+            if ($store) {
+
+                //  Add or remove store as favourite
+                $success = $store->addOrRemoveStoreAsFavourite($store_id);
+                
+                //  If successful
+                if($success){
+
+                    //  Return success status
+                    return response()->json(null, 200);
+
+                }
+    
+            } else {
+                
+                //  Not Found
+                return help_resource_not_fonud();
+    
+            }
+
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+        
+    }
+    
     public function getStoreRatingStatistics(Request $request, $store_id)
     {
         try {

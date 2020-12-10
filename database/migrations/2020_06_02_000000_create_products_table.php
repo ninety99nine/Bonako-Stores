@@ -18,6 +18,7 @@ class CreateProductsTable extends Migration
             $table->string('name')->nullable();
             $table->string('description', 500)->nullable();
             $table->boolean('active')->nullable()->default(false);
+            $table->tinyInteger('arrangement')->nullable();
             $table->string('type')->nullable();
             $table->float('cost_per_item')->nullable();
             $table->float('unit_regular_price')->nullable();
@@ -35,6 +36,7 @@ class CreateProductsTable extends Migration
             $table->boolean('is_featured')->default(0);
             $table->unsignedInteger('parent_product_id')->nullable();
             $table->unsignedInteger('store_id')->nullable();
+            $table->unsignedInteger('location_id')->nullable();
             $table->unsignedInteger('user_id')->nullable();
 
             /*  Timestamps  */

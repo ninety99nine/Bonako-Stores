@@ -65,10 +65,37 @@ class Location extends JsonResource
                         'total' => $this->products()->count(),
                     ],
 
+                    //  Link to the products
+                    'bos:active-products' => [
+                        'href' => route('location-active-products', ['location_id' => $this->id]),
+                        'title' => 'The location products',
+                        'total' => $this->products()->active()->count(),
+                    ],
+
+                    //  Link to the products
+                    'bos:inactive-products' => [
+                        'href' => route('location-inactive-products', ['location_id' => $this->id]),
+                        'title' => 'The location products',
+                        'total' => $this->products()->inActive()->count(),
+                    ],
+
+                    //  Link to the products
+                    'bos:on-sale-products' => [
+                        'href' => route('location-on-sale-products', ['location_id' => $this->id]),
+                        'title' => 'The location products',
+                        'total' => $this->products()->onSale()->count(),
+                    ],
+
                     //  Link to the create products
                     'bos:product-create' => [
-                        'href' => route('product-create'),
-                        'title' => 'The POST route to create a new product',
+                        'href' => route('location-product-create', ['location_id' => $this->id]),
+                        'title' => 'The POST route to create a new product for this location',
+                    ],
+
+                    //  Link to update product arrangement
+                    'bos:product-arrangement' => [
+                        'href' => route('location-product-arrangement', ['location_id' => $this->id]),
+                        'title' => 'The PUT route to update the order of products for this location',
                     ],
 
                     //  Link to the users
@@ -119,7 +146,35 @@ class Location extends JsonResource
                         'total' => $this->orders()->cancelled()->count(),
                     ],
 
-                    //  Link to the cancelled orders
+                    //  Link to my orders
+                    'bos:my-orders' => [
+                        'href' => route('location-my-orders', ['location_id' => $this->id]),
+                        'title' => 'The location orders that have been placed by this user',
+                        'total' => $this->orders()->userIsCustomer()->count(),
+                    ],
+
+                    //  Link to my fulfilled orders
+                    'bos:my-fulfilled-orders' => [
+                        'href' => route('location-my-fulfilled-orders', ['location_id' => $this->id]),
+                        'title' => 'The location orders that are fulfilled for this user',
+                        'total' => $this->orders()->userIsCustomer()->fulfilled()->count(),
+                    ],
+
+                    //  Link to my unfulfilled orders
+                    'bos:my-unfulfilled-orders' => [
+                        'href' => route('location-my-unfulfilled-orders', ['location_id' => $this->id]),
+                        'title' => 'The location orders that are unfulfilled for this user',
+                        'total' => $this->orders()->userIsCustomer()->unfulfilled()->count(),
+                    ],
+
+                    //  Link to my cancelled orders
+                    'bos:my-cancelled-orders' => [
+                        'href' => route('location-my-cancelled-orders', ['location_id' => $this->id]),
+                        'title' => 'The location orders that are cancelled for this user',
+                        'total' => $this->orders()->userIsCustomer()->cancelled()->count(),
+                    ],
+
+                    //  Link to the unrated orders
                     'bos:unrated-orders' => [
                         'href' => route('location-unrated-orders', ['location_id' => $this->id]),
                         'title' => 'The location orders that are not rated',
