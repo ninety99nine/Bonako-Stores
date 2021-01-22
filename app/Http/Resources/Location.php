@@ -156,21 +156,21 @@ class Location extends JsonResource
                     //  Link to my fulfilled orders
                     'bos:my-fulfilled-orders' => [
                         'href' => route('location-my-fulfilled-orders', ['location_id' => $this->id]),
-                        'title' => 'The location orders that are fulfilled for this user',
+                        'title' => 'TThe location orders that have been placed by this user and are fulfilled',
                         'total' => $this->orders()->userIsCustomer()->fulfilled()->count(),
                     ],
 
                     //  Link to my unfulfilled orders
                     'bos:my-unfulfilled-orders' => [
                         'href' => route('location-my-unfulfilled-orders', ['location_id' => $this->id]),
-                        'title' => 'The location orders that are unfulfilled for this user',
+                        'title' => 'TThe location orders that have been placed by this user and are unfulfilled',
                         'total' => $this->orders()->userIsCustomer()->unfulfilled()->count(),
                     ],
 
                     //  Link to my cancelled orders
                     'bos:my-cancelled-orders' => [
                         'href' => route('location-my-cancelled-orders', ['location_id' => $this->id]),
-                        'title' => 'The location orders that are cancelled for this user',
+                        'title' => 'TThe location orders that have been placed by this user and are cancelled',
                         'total' => $this->orders()->userIsCustomer()->cancelled()->count(),
                     ],
 

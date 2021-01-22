@@ -52,7 +52,7 @@ class LocationController extends Controller
                 return ( new \App\Location() )->convertToApiFormat($locations);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -71,7 +71,7 @@ class LocationController extends Controller
                 return $location->convertToApiFormat();
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -102,7 +102,7 @@ class LocationController extends Controller
                 }
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -146,7 +146,7 @@ class LocationController extends Controller
                 return ( new \App\Product() )->convertToApiFormat($products);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -162,19 +162,19 @@ class LocationController extends Controller
 
             //  Check if the location exists
             if ($location) {
-                
+
                 //  Check if the user is authourized to arrange the location products
                 if ($this->user && $this->user->can('update', $location)) {
 
                     //  Check if the user is authourized to create products
                     if ($this->user && $this->user->can('create', \App\Product::class)) {
-            
+
                         //  Set the location id on the request
                         $request->request->add(['location_id' => $location_id]);
 
                         //  Create the location product
                         $product = (new \App\Product())->initiateCreate($request);
-        
+
                         //  If the created successfully
                         if ($product) {
 
@@ -187,23 +187,23 @@ class LocationController extends Controller
 
                         //  Not Authourized
                         return help_not_authorized();
-                        
+
                     }
 
                 } else {
-                    
+
                     //  Not Authourized
                     return help_not_authorized();
 
                 }
 
             } else {
-                
+
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
 
             }
-            
+
         } catch (\Exception $e) {
             return help_handle_exception($e);
         }
@@ -218,7 +218,7 @@ class LocationController extends Controller
 
             //  Check if the location exists
             if ($location) {
-                
+
                 //  Check if the user is authourized to arrange the location products
                 if ($this->user && $this->user->can('update', $location)) {
 
@@ -229,19 +229,19 @@ class LocationController extends Controller
                     return ( new \App\Product() )->convertToApiFormat($products);
 
                 } else {
-                    
+
                     //  Not Authourized
                     return help_not_authorized();
 
                 }
 
             } else {
-                
+
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
 
             }
-            
+
         } catch (\Exception $e) {
             return help_handle_exception($e);
         }
@@ -269,7 +269,7 @@ class LocationController extends Controller
                 return ( new \App\User() )->convertToApiFormat($users);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -335,7 +335,7 @@ class LocationController extends Controller
                 return ( new \App\Order() )->convertToApiFormat($orders);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -360,7 +360,7 @@ class LocationController extends Controller
                 return ( new \App\Order() )->convertToApiFormat($orders);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -384,7 +384,7 @@ class LocationController extends Controller
                 return ( new \App\InstantCart() )->convertToApiFormat($instant_carts);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -408,7 +408,7 @@ class LocationController extends Controller
                 return ( new \App\PaymentMethod() )->convertToApiFormat($payment_methods);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -436,7 +436,7 @@ class LocationController extends Controller
                 }
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);

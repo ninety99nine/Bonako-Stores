@@ -40,7 +40,7 @@ class InstantCartController extends Controller
 
                 //  Not Authourized
                 return help_not_authorized();
-                
+
             }
 
         } catch (\Exception $e) {
@@ -78,7 +78,7 @@ class InstantCartController extends Controller
             } else {
 
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
 
             }
 
@@ -107,10 +107,10 @@ class InstantCartController extends Controller
 
                     //  If the updated successfully
                     if ($instant_cart) {
-        
+
                         //  Return an API Readable Format of the InstantCart Instance
                         return $instant_cart->convertToApiFormat();
-        
+
                     }
 
                 } else {
@@ -122,7 +122,7 @@ class InstantCartController extends Controller
             } else {
 
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
 
             }
 
@@ -132,5 +132,5 @@ class InstantCartController extends Controller
 
         }
     }
-    
+
 }

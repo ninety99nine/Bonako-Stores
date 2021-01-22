@@ -26,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Relation::morphMap([
+            'store' => 'App\Store',
             'location' => 'App\Location',
             'instant_cart' => 'App\InstantCart',
         ]);
@@ -37,7 +38,7 @@ class AppServiceProvider extends ServiceProvider
             "withoutWrapping" method on the base resource class. Typically, you should call this
             method from your AppServiceProvider or another service provider that is loaded on
             every request to your application:
-            
+
             Reference: https://laravel.com/docs/5.7/eloquent-resources#concept-overview
 
         */

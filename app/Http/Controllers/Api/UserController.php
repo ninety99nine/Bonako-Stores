@@ -23,7 +23,7 @@ class UserController extends Controller
                 //  Check if the user exists
                 if (!$this->user) {
                     //  Not Found
-                    return help_resource_not_fonud();
+                    return help_resource_not_found();
                 }
             } else {
                 //  Get the authenticated user
@@ -34,7 +34,7 @@ class UserController extends Controller
         }
     }
 
-    public function getUser(Request $request)
+    public function getUser()
     {
         try {
             //  Check if the current auth user is authourized to view this user resource
@@ -54,31 +54,89 @@ class UserController extends Controller
 
     public function getUserStores(Request $request)
     {
+
         try {
-            //  Check if the current auth user is authourized to view this user resource
-            if (auth('api')->user()->can('view', $this->user)) {
 
-                $type = $request->input('type');
-                $limit = $request->input('limit');
-                $search_term = $request->input('search');
+            //  Return a list of stores
+            return $this->user->getStores($request);
 
-                //  Get the stores
-                $stores = $this->user->getStores($type, $limit, $search_term);
 
-                //  Paginate stores
-                $stores = $stores->paginate($limit) ?? [];
-    
-                //  Return an API Readable Format of the Store Instance
-                return ( new \App\Store() )->convertToApiFormat($stores);
-
-            } else {
-                //  Not Authourized
-                return help_not_authorized();
-            }
         } catch (\Exception $e) {
+
             return help_handle_exception($e);
+
         }
-        
+
+    }
+
+    public function getUserStore($store_id)
+    {
+        try {
+
+            //  Return a single store
+            return $this->user->getStore($store_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getUserStoreLocations(Request $request, $store_id)
+    {
+        try {
+
+            //  Return a list of locations
+            return $this->user->getStoreLocations($request, $store_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getUserStoreLocation($store_id, $location_id)
+    {
+        try {
+
+            //  Return a single location
+            return $this->user->getStoreLocation($store_id, $location_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getUserStoreDefaultLocation($store_id)
+    {
+        try {
+
+            //  Return a single location
+            return $this->user->getStoreDefaultLocation($store_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function updateUserStoreDefaultLocation(Request $request, $store_id)
+    {
+        try {
+
+            //  Update the default location
+            return $this->user->updateStoreDefaultLocation($request, $store_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
     }
 
     public function updateUser(Request $request, $id)

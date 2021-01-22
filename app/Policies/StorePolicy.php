@@ -100,8 +100,8 @@ class StorePolicy
     {
         try {
 
-            //  Only an Admin can update this store
-            return $store->isAdmin($user->id);
+            //  Only the Owner can update this store
+            return $store->isOwner($user->id);
 
         } catch (\Exception $e) {
 
@@ -119,8 +119,8 @@ class StorePolicy
     {
         try {
 
-            //  Only an Admin can delete this store
-            return $store->isAdmin($user->id);
+            //  Only the Owner can delete this store
+            return $store->isOwner($user->id);
 
         } catch (\Exception $e) {
 
@@ -138,8 +138,8 @@ class StorePolicy
     {
         try {
 
-            //  Only an Admin can restore this store
-            return $store->isAdmin($user->id);
+            //  Only the Owner can restore this store
+            return $store->isOwner($user->id);
 
         } catch (\Exception $e) {
 
@@ -157,8 +157,8 @@ class StorePolicy
     {
         try {
 
-            //  Only an Admin can force delete this store
-            return $store->isAdmin($user->id);
+            //  Only the Owner can force delete this store
+            return $store->isOwner($user->id);
 
         } catch (\Exception $e) {
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
@@ -22,10 +23,14 @@ class Locations extends ResourceCollection
      */
     public function toArray($request)
     {
-        return [
+        $data = [];
 
-            '_links' => [
-                
+        //  If we are paginating
+        if($this instanceof LengthAwarePaginator ) {
+
+            //  Provide pagination links
+            $data['_links'] = [
+
                 //  Link to current resource
                 'self' => [
                     'href' => url()->full(),
@@ -52,31 +57,34 @@ class Locations extends ResourceCollection
                     'title' => 'Last page of this collection',
                 ],
 
-                //  Link to search locations
+                //  Link to search
                 'search' => [
                     'href' => url()->current().'?search={searchTerms}',
                     'templated' => true,
                 ],
-                
-            ],
 
-            '_embedded' => [
-                'locations' => $this->collection,
-            ],
+            ];
 
-            'total' => $this->total(),
-            'count' => $this->count(),
-            'per_page' => $this->perPage(),
-            'current_page' => $this->currentPage(),
-            'total_pages' => $this->lastPage(),
-            
+            $data['total'] = $this->total();
+            $data['count'] = $this->count();
+            $data['per_page'] = $this->perPage();
+            $data['current_page'] = $this->currentPage();
+            $data['total_pages'] = $this->lastPage();
+
+        }
+
+        //  Provide the embedded content
+        $data['_embedded'] = [
+            'locations' => $this->collection,
         ];
+
+        return $data;
     }
 
     /*
-     *  This will remove all extra pagination fields from the JSON response (links, meta, etc) and allow you to 
-     *  customize the response as you'd like in toArray($request). The toResponse method call is NOT static, 
-     *  but instead calling the grandparent JsonResource::toResponse method, just as parent::toResponse would 
+     *  This will remove all extra pagination fields from the JSON response (links, meta, etc) and allow you to
+     *  customize the response as you'd like in toArray($request). The toResponse method call is NOT static,
+     *  but instead calling the grandparent JsonResource::toResponse method, just as parent::toResponse would
      *  call the ResourceCollection toResponse(..) instance method.
      *  Link: https://stackoverflow.com/questions/48094741/customising-laravel-5-5-api-resource-collection-pagination
      */

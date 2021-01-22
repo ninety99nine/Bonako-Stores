@@ -15,12 +15,32 @@ use Illuminate\Support\Facades\Route;
 
 //  API Home
 Route::get('/', 'Api\HomeController@home')->name('api-home');
+Route::get('/payment-methods', 'Api\HomeController@getPaymentMethods')->name('payment-methods');
+Route::get('/subscription-plans', 'Api\HomeController@getSubscriptionPlans')->name('subscription-plans');
 
-//  Mobile Account Routes
+//  Auth Routes
+Route::namespace('Api')->prefix('auth')->group(function () {
+    Route::post('login', 'AuthController@login')->name('login');
+    Route::post('register', 'AuthController@register')->name('register');
+    Route::post('account-exists', 'AuthController@accountExists')->name('account-exists');
+    Route::post('send-mobile-account-verification-code', 'AuthController@sendMobileAccountVerificationCode')->name('send-mobile-account-verification-code');
+    Route::post('verify-mobile-account-verification-code', 'AuthController@verifyMobileAccountVerificationCode')->name('verify-mobile-account-verification-code');
+    Route::post('send-password-reset-link', 'AuthController@sendPasswordResetLink')->name('send-password-reset-link');
+    Route::post('reset-password', 'AuthController@resetPassword')->name('reset-password');
+    Route::post('logout', 'AuthController@logout')->middleware('auth:api')->name('logout');
+});
+
+
+/** NOTE THAT THIS IS REPLACED BY THE "/account-exists" ROUTE ABOVE, BUT BEFORE WE CAN REMOVE THIS ROUTE BELOW
+ *  WE NEED TO UPDATE THE BONAKO USSD BUILDER TO USE THE NEW ROUTE ABOVE TO CHECK IF AN ACCOUNT EXISTS
+ *
+ *  REMOVE REMOVE REMOVE REMOVE REMOVE REMOVE REMOVE REMOVE REMOVE REMOVE REMOVE REMOVE REMOVE REMOVE
+ */
 Route::get('/{mobile_number}/mobile-account-exists', 'Api\UserController@checkMobileAccountExistence')->name('mobile-account-exists');
 
 //  Auth Routes
 Route::middleware('auth:api')->namespace('Api')->group(function () {
+
     //  Me Resource Routes
     Route::prefix('me')->name('my-')->group(function () {
         Route::get('/', 'UserController@getUser')->name('profile');
@@ -29,6 +49,21 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::get('/stores?type=created', 'UserController@getUserStores')->name('created-stores');
         Route::get('/stores?type=shared', 'UserController@getUserStores')->name('shared-stores');
         Route::get('/stores?type=favourite', 'UserController@getUserStores')->name('favourite-stores');
+
+        //  Single store    /api/me/store/{store_id}   name => my-store
+        Route::get('/stores/{store_id}', 'UserController@getUserStore')->name('store');
+
+        //  Single store resources    /api/me/store/{store_id}   name => my-store-*
+        Route::prefix('stores/{store_id}')->name('store-')->group(function () {
+
+            Route::get('/locations', 'UserController@getUserStoreLocations')->name('locations');
+            Route::get('/default-location', 'UserController@getUserStoreDefaultLocation')->name('default-location');
+            Route::put('/default-location', 'UserController@updateUserStoreDefaultLocation')->name('default-location-update');
+
+            //  Single Location    /api/me/store/{store_id}/locations   name => my-store-locations
+            Route::get('/locations/{location_id}', 'UserController@getUserStoreLocation')->name('location');
+        });
+
     });
 
     //  Store Resource Routes
@@ -43,6 +78,10 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
         Route::post('/{store_id}/favourite', 'StoreController@addOrRemoveStoreAsFavourite')->name('store-favourite')->where('store_id', '[0-9]+');
 
+        Route::post('/{store_id}/subscribe', 'StoreController@generateSubscription')->name('store-subscribe')->where('store_id', '[0-9]+');
+
+        Route::post('/{store_id}/generate-payment-shortcode', 'StoreController@generatePaymentShortCode')->name('store-generate-payment-shortcode')->where('store_id', '[0-9]+');
+
         //  Single store users: /stores/{store_id}/users
         Route::get('/{store_id}/users', 'StoreController@getStoreUsers')->name('store-users')->where('store_id', '[0-9]+');
 
@@ -51,6 +90,9 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
         //  Single store locations: /stores/{store_id}/locations
         Route::get('/{store_id}/locations', 'StoreController@getStoreLocations')->name('store-locations')->where('store_id', '[0-9]+');
+
+        //  Single store favourite locations: /stores/{store_id}/favourite-locations
+        Route::get('/{store_id}/locations?type=favourite', 'StoreController@getStoreLocations')->name('store-favourite-locations')->where('store_id', '[0-9]+');
 
         //  Single store coupons: /stores/{store_id}/coupons
         Route::get('/{store_id}/coupons', 'StoreController@getStoreCoupons')->name('store-coupons')->where('store_id', '[0-9]+');
@@ -89,14 +131,14 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::get('/{location_id}/orders?fulfillment_status=fulfilled', 'LocationController@getLocationOrders')->name('location-fulfilled-orders')->where('location_id', '[0-9]+');
         Route::get('/{location_id}/orders?fulfillment_status=unfulfilled', 'LocationController@getLocationOrders')->name('location-unfulfilled-orders')->where('location_id', '[0-9]+');
         Route::get('/{location_id}/orders?status=cancelled', 'LocationController@getLocationOrders')->name('location-cancelled-orders')->where('location_id', '[0-9]+');
-        
+
         Route::get('/{location_id}/orders?is_customer=1', 'LocationController@getLocationOrders')->name('location-my-orders')->where('location_id', '[0-9]+');
         Route::get('/{location_id}/orders?is_customer=1&fulfillment_status=fulfilled', 'LocationController@getLocationOrders')->name('location-my-fulfilled-orders')->where('location_id', '[0-9]+');
         Route::get('/{location_id}/orders?is_customer=1&fulfillment_status=unfulfilled', 'LocationController@getLocationOrders')->name('location-my-unfulfilled-orders')->where('location_id', '[0-9]+');
         Route::get('/{location_id}/orders?is_customer=1&status=cancelled', 'LocationController@getLocationOrders')->name('location-my-cancelled-orders')->where('location_id', '[0-9]+');
-        
+
         Route::get('/{location_id}/unrated-orders', 'LocationController@getLocationUnratedOrders')->name('location-unrated-orders')->where('location_id', '[0-9]+');
-        
+
         //  Single location instant carts: /locations/{location_id}/instant-carts
         Route::get('/{location_id}/instant-carts', 'LocationController@getLocationInstantCarts')->name('location-instant-carts')->where('location_id', '[0-9]+');
 
@@ -149,22 +191,8 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::put('/{instant_cart_id}', 'InstantCartController@updateInstantCart')->name('instant-cart-update')->where('instant_cart_id', '[0-9]+');
     });
 
-    //  Payment Method Resource Routes
-    Route::prefix('payment-methods')->group(function () {
-        Route::get('/', 'PaymentMethodController@getPaymentMethods')->name('payment-methods');
-    });
-
     //  Cart Resource Routes
     Route::prefix('cart')->group(function () {
         Route::post('/', 'CartController@calculateCart')->name('cart-calculator');
     });
-});
-
-Route::namespace('Api')->prefix('auth')->group(function () {
-    Route::post('login', 'AuthController@login')->name('login');
-    Route::post('register', 'AuthController@register')->name('register');
-    Route::post('send-password-reset-link', 'AuthController@sendPasswordResetLink')->name('send-password-reset-link');
-    Route::post('reset-password', 'AuthController@resetPassword')->name('reset-password');
-
-    Route::post('logout', 'AuthController@logout')->middleware('auth:api')->name('logout');
 });

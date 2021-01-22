@@ -69,7 +69,7 @@ class ProductController extends Controller
                 }
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
 
         } catch (\Exception $e) {
@@ -92,7 +92,7 @@ class ProductController extends Controller
                 return $product->convertToApiFormat();
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
 
         } catch (\Exception $e) {
@@ -149,7 +149,7 @@ class ProductController extends Controller
                 return ( new \App\Product() )->convertToApiFormat($variations);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
 
         } catch (\Exception $e) {
@@ -216,11 +216,11 @@ class ProductController extends Controller
                     return help_not_authorized();
 
                 }
-                
+
             } else {
 
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
 
             }
 

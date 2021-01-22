@@ -15,11 +15,12 @@ class CreateLocationUserTable extends Migration
             $table->increments('id');
             $table->unsignedInteger('user_id');
             $table->unsignedInteger('location_id');
+            $table->boolean('default_location')->default(false);
             $table->string('type')->default('viewer');
 
             /*  Timestamps  */
             $table->timestamps();
-            
+
         });
     }
 

@@ -1,28 +1,53 @@
 <template>
 
     <Row :gutter="12">
-        
+
         <Col :span="20" :offset="2">
 
             <Row :gutter="12">
 
                 <Col :span="24">
 
-                    <h1 class="text-center border-bottom-dashed py-3 mb-3">My Stores</h1>
+                    <!-- Heading -->
+                    <h1 :class="['text-center', 'border-bottom-dashed', 'py-3', 'mb-3']">My Stores</h1>
 
                 </Col>
 
-                <Col v-if="isLoading" :span="24">
+                <Col :span="24">
+
+                    <div :class="['clearfix', 'my-3']">
+
+                        <!-- Refresh Button -->
+                        <Button type="default" size="default" :class="['float-right']"
+                                @click.native="fetchStores()" :loading="isLoading"
+                                :disabled="isLoading">
+                            <Icon v-show="!isLoading" type="ios-refresh" :size="20" />
+                            <span>Refresh</span>
+                        </Button>
+
+                        <!-- Watch Video Button -->
+                        <Button type="primary" size="default" :class="['float-right', 'mr-2']"
+                                @click.native="fetchStores()">
+                            <Icon type="ios-play-outline" class="mr-1" :size="20" />
+                            <span>Watch Video</span>
+                        </Button>
+
+                    </div>
+
+                </Col>
+
+                <Col :span="24">
 
                     <!-- If we are loading, Show Loader -->
-                    <Loader class="mt-5">Loading stores...</Loader>
+                    <Loader v-show="isLoading" class="mt-5">Loading stores...</Loader>
 
                 </Col>
 
-                <template v-else>
-                    
+                <template v-if="!isLoading">
+
                     <Col :span="8">
 
+                        <!-- Add Store -->
                         <Card class="add-bos-mini-card-button mb-3"
                             @click.native="navigateToCreateStore()">
                             <div class="action-title">
@@ -31,26 +56,29 @@
                             </div>
                         </Card>
 
-                        <singleStoreCard v-for="(store, index) in firstColumnStores" 
-                            :key="index" :index="index" :store="store" :stores="stores" @deleted="fetchStores">
+                        <!-- Stores Column 1 -->
+                        <singleStoreCard v-for="(store, index) in firstColumnStores"
+                            :key="index" :store="store" :stores="stores" @deleted="fetchStores">
                         </singleStoreCard>
 
                     </Col>
 
                     <Col :span="8">
 
-                        <singleStoreCard v-for="(store, index) in secondColumnStores" 
-                            :key="index" :index="index" :store="store" :stores="stores" @deleted="fetchStores">
+                        <!-- Stores Column 2 -->
+                        <singleStoreCard v-for="(store, index) in secondColumnStores"
+                            :key="index" :store="store" :stores="stores" @deleted="fetchStores">
                         </singleStoreCard>
-                        
+
                     </Col>
 
                     <Col :span="8">
 
-                        <singleStoreCard v-for="(store, index) in thirdColumnStores" 
-                            :key="index" :index="index" :store="store" :stores="stores" @deleted="fetchStores">
+                        <!-- Stores Column 3 -->
+                        <singleStoreCard v-for="(store, index) in thirdColumnStores"
+                            :key="index" :store="store" :stores="stores" @deleted="fetchStores">
                         </singleStoreCard>
-                        
+
                     </Col>
 
                 </template>
@@ -64,9 +92,9 @@
 </template>
 
 <script>
-    
+
     import Loader from './../../../components/_common/loaders/default.vue';
-    import singleStoreCard from './components/singleStoreCard.vue'; 
+    import singleStoreCard from './components/singleStoreCard.vue';
 
     export default {
         components: { Loader, singleStoreCard },
@@ -109,10 +137,10 @@
         },
         methods: {
             navigateToCreateStore(){
-                
+
                 //  Navigate to create new store
                 this.$router.push({ name: 'create-store' });
-                
+
             },
             fetchStores() {
 
@@ -135,8 +163,8 @@
                             //  Stop loader
                             self.isLoading = false;
 
-                        })         
-                        .catch(response => { 
+                        })
+                        .catch(response => {
 
                             //  Log the responce
                             console.error(response);
@@ -152,7 +180,10 @@
 
             //  Fetch the store
             this.fetchStores();
-            
+
+            //  Change dashboard heading
+            this.$emit('changeHeading', 'Bonako Online');
+
         }
     }
 </script>

@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\User as UserResource;
-use App\Mail\SendPasswordResetLink;
 use DB;
+use Twilio;
+use App\User;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Mail\SendPasswordResetLink;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use App\Http\Resources\User as UserResource;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -24,7 +27,7 @@ class AuthController extends Controller
             *
             *  If they are logging in using their web-based application
             *  then we need to authenticate the user using their email
-            *  and password.
+            *  or mobile number and password.
             *
             *  Login Via USSD:
             *
@@ -38,22 +41,30 @@ class AuthController extends Controller
             */
             $login_via_ussd = $request->input('login_via_ussd');
 
-            //  Validate "Login Via USSD"
+            //  Validate "Login Details"
             $validator = Validator::make($request->all(), [
                 /* Validation Rules
                  *
                  *  # If we want to login via USSD then make sure that the user provided their mobile number.
-                 *  # If we want to login via WEB then make sure that the user provided their email and password
-                 *
+                 *  # If we want to login via WEB then make sure that the user provided their mobile number/email and password
                  */
-                'login_via_ussd' => 'sometimes|required|accepted',
-                'mobile_number' => 'required_if:login_via_ussd,true|required_if:login_via_ussd,1|regex:/^[0-9]+$/i',
-                'password' => 'required_without:login_via_ussd|required_if:login_via_ussd,false|required_if:login_via_ussd,0',
-                'email' => 'required_without:login_via_ussd|required_if:login_via_ussd,false|required_if:login_via_ussd,0|email',
+
+                //  If we must login via USSD, it must be indicated as "true", where "false" has the opposite effect
+                'login_via_ussd' => 'sometimes|required|in:true,false',
+
+                //  If we must login via USSD, the mobile number is required and must be a valid mobile number
+                'mobile_number' => 'required_if:login_via_ussd,true|regex:/^[0-9]+$/i',
+
+                //  If the mobile number is not provided then a valid email is required by default
+                'email' => 'exclude_if:login_via_ussd,true|required_without:mobile_number|email',
+
+                //  If we must login using the mobile number or email then the password is required except on login via USSD
+                'password' => 'required_without:login_via_ussd|required_if:login_via_ussd,false',
+
             ], [
                 //  Login Via USSD Validation Error Messages
-                'login_via_ussd.required' => 'The login_via_ussd attribute must be set equal to "true" or "1" to implement login via USSD',
-                'login_via_ussd.accepted' => 'The login_via_ussd attribute must be set equal to "true" or "1" to implement login via USSD',
+                'login_via_ussd.required' => 'The login_via_ussd attribute must be set equal to "true" to implement login via USSD',
+                'login_via_ussd.in' => 'The login_via_ussd attribute must be set equal to "true" to implement login via USSD',
 
                 //  Mobile Number Validation Error Messages
                 'mobile_number.required_if' => 'The mobile_number attribute is required since you are logging in via USSD',
@@ -62,13 +73,10 @@ class AuthController extends Controller
                 //  Email Validation Error Messages
                 'email.email' => 'Enter a valid email address to login e.g email@example.com',
                 'email.required_without' => 'Enter your email to login e.g email@example.com',
-                'email.required_if' => 'Enter your email to login e.g email@example.com',
-                'email.required' => 'Enter your email to login e.g email@example.com',
 
                 //  Password Validation Error Messages
                 'password.required_without' => 'Enter your password to login',
                 'password.required_if' => 'Enter your password to login',
-                'password.required' => 'Enter your password to login',
             ]);
 
             //  If the validation failed
@@ -77,10 +85,20 @@ class AuthController extends Controller
                 throw ValidationException::withMessages(collect($validator->errors())->toArray());
             }
 
+            //  Get the Email (If provided)
+            $email = $request->input('email');
+
+            //  Get the Mobile Number (If provided)
+            $mobile_number = $request->input('mobile_number');
+
+            //  Get the Password (If provided)
+            $password = $request->input('password');
+
+            //  Get the Verification Code (If provided)
+            $verification_code = $request->input('verification_code');
+
             //  If we want to login via USSD
             if (in_array($login_via_ussd, [true, 1, 'true', '1'])) {
-                //  Get the Mobile Number
-                $mobile_number = $request->input('mobile_number');
 
                 /** IMPORTANT SECURITY NOTICE
                  *
@@ -96,6 +114,7 @@ class AuthController extends Controller
 
                 //  If the user was found
                 if ($user) {
+
                     //  Login using the given user
                     auth()->loginUsingId($user->id);
 
@@ -114,29 +133,295 @@ class AuthController extends Controller
 
                 //  If we want to login via WEB
             } else {
-                //  Get the login credentials
-                $credentials = $request->only('email', 'password');
 
-                //  Attempt to login
-                if (auth()->attempt($credentials)) {
-                    //  Create new access token
-                    return $this->createNewAccessToken();
+                //  If we must login using the email
+                if( !empty( $email ) ){
 
-                //  If our attempt to login failed
-                } else {
-                    //  Get the user's email address
-                    $email = $request->input('email');
+                    //  Get the login credentials (email and password)
+                    $credentials = $request->only('email', 'password');
 
-                    //  Check if a user with the given email address exists
-                    if (DB::table('users')->where('email', $email)->exists()) {
-                        //  Since the email exists, this means that the password is incorrent. Throw a validation error
-                        throw ValidationException::withMessages(['password' => 'Your password is incorrect']);
+                    //  Attempt to login
+                    if (auth()->attempt($credentials)) {
+
+                        //  Create new access token
+                        return $this->createNewAccessToken();
+
+                    //  If our attempt to login failed
                     } else {
-                        //  The account with the given email does not exist. Throw a validation error
-                        throw ValidationException::withMessages(['email' => 'The account using the email "'.$email.'" does not exist.']);
+
+                        //  Check if a user with the given email address exists
+                        if (DB::table('users')->where('email', $email)->exists()) {
+                            //  Since the email exists, this means that the password is incorrent. Throw a validation error
+                            throw ValidationException::withMessages(['password' => 'Your password is incorrect']);
+                        } else {
+                            //  The account with the given email does not exist. Throw a validation error
+                            throw ValidationException::withMessages(['email' => 'The account using the email "'.$email.'" does not exist.']);
+                        }
                     }
+
+                //  Otherwise if we must login using the mobile number
+                }elseif( !empty( $mobile_number ) ){
+
+                    /** If we have a verification code, then it means that we want to set a new password
+                     *  on the account that matches the mobile number and verification code.
+                     */
+                    if( $verification_code ){
+
+                        //  Get the first user that matches the given mobile number
+                        $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+
+                        //  If the verification codes match
+                        if( $user->mobile_number_verification_code === $verification_code ){
+
+                            //  Reset the mobile number verification code and set the new password
+                            DB::table('users')->where('mobile_number', $mobile_number)->update([
+                                'mobile_number_verification_code' => null,
+                                'password' => bcrypt($password)
+                            ]);
+
+                        }
+
+                    }
+
+                    //  Get the first user that matches the given mobile number
+                    $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+
+                    //  Verify if the provided password matches the user's password
+                    if( Hash::check($password, $user->password) ){
+
+                        //  Login using the given user
+                        auth()->loginUsingId($user->id);
+
+                        //  If we are logged in
+                        if (auth()->user()) {
+                            //  Create new access token
+                            return $this->createNewAccessToken();
+                        } else {
+                            //  Failed to login - Throw 401 error
+                            return help_login_failed();
+                        }
+
+                    }else{
+
+                        //  Check if a user with the given mobile number exists
+                        if (DB::table('users')->where('mobile_number', $mobile_number)->exists()) {
+                            //  Since the mobile number exists, this means that the password is incorrent. Throw a validation error
+                            throw ValidationException::withMessages(['password' => 'Your password is incorrect']);
+                        } else {
+                            //  The account with the given mobile number does not exist. Throw a validation error
+                            throw ValidationException::withMessages(['mobile_number' => 'The account using the mobile number "'.$mobile_number.'" does not exist.']);
+                        }
+                    }
+
                 }
             }
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    public function accountExists(Request $request)
+    {
+        try {
+
+            //  Validate
+            $validator = Validator::make($request->all(), [
+
+                /* Validation Rules
+                 *
+                 *  # Make sure that the user provided a valid mobile number or email
+                 */
+                'email' => 'required_without:mobile_number|email',
+                'mobile_number' => 'sometimes|required|regex:/^[0-9]+$/i'
+
+            ], [
+
+                //  Email Validation Error Messages
+                'email.required' => 'Enter a valid email address e.g email@example.com',
+                'email.email' => 'Enter a valid email address e.g email@example.com',
+
+                //  Mobile Number Validation Error Messages
+                'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567',
+                'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567'
+            ]);
+
+            //  If the validation failed
+            if ($validator->fails()) {
+
+                //  Throw Validation Exception with validation errors
+                throw ValidationException::withMessages(collect($validator->errors())->toArray());
+
+            }
+
+            //  Get the Email (If provided)
+            $email = $request->input('email');
+
+            //  Get the Mobile Number (If provided)
+            $mobile_number = $request->input('mobile_number');
+
+            //  If we must check if an account exists using the email
+            if( !empty( $email ) ){
+
+                //  Get the first user that matches the given email
+                $user = DB::table('users')->where('email', $email)->first();
+
+            //  Otherwise if we must check if an account exists using the mobile number
+            }elseif( !empty( $mobile_number ) ){
+
+                //  Get the first user that matches the given mobile number
+                $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+
+            }
+
+            return response()->json([
+                'user' => !empty($user) ? [
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'requires_password' => is_null($user->password),
+                ] : null,
+                'exists' => !empty($user) ? true : false
+            ], 200);
+
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    public function sendMobileAccountVerificationCode(Request $request)
+    {
+        try {
+
+            //  Validate
+            $validator = Validator::make($request->all(), [
+
+                /* Validation Rules
+                 *
+                 *  # Make sure that the user provided a valid mobile number
+                 */
+                'mobile_number' => 'required|regex:/^[0-9]+$/i'
+
+            ], [
+                //  Mobile Number Validation Error Messages
+                'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567',
+                'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567'
+            ]);
+
+            //  If the validation failed
+            if ($validator->fails()) {
+
+                //  Throw Validation Exception with validation errors
+                throw ValidationException::withMessages(collect($validator->errors())->toArray());
+
+            }
+
+            //  Get the Mobile Number
+            $mobile_number = $request->input('mobile_number');
+
+            //  Get the first user that matches the given mobile number
+            $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+
+            //  If we have a user that matches the given mobile number
+            if($user){
+
+                /**********************************
+                 * GENERATE THE VERIFICATION CODE *
+                 **********************************/
+
+                //  Generate 6 digit mobile number verification code
+                $six_digit_random_number = mt_rand(100000, 999999);
+
+                //  Update the mobile number verification code that matches the given mobile number
+                DB::table('users')->where('mobile_number', $mobile_number)->update([
+                    'mobile_number_verification_code' => $six_digit_random_number
+                ]);
+
+                /************************************************************************
+                 * SEND AN SMS TO THE MOBILE NUMBER WITH THE VERIFICATION CODE INCLUDED *
+                 ***********************************************************************/
+
+                //  Craft the verification code message
+                $message = 'Hi '.$user->first_name.', your verification code is '.$six_digit_random_number;
+
+                //  Send an SMS to the user
+                Twilio::message('+'.$mobile_number, $message);
+
+            } else {
+
+                //  The account with the given mobile number does not exist. Throw a validation error
+                throw ValidationException::withMessages(['mobile_number' => 'The account using the mobile number "'.$mobile_number.'" does not exist.']);
+
+            }
+
+            return response()->json(['message' => 'Verification code sent to '.$mobile_number], 200);
+
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    public function verifyMobileAccountVerificationCode(Request $request)
+    {
+        try {
+
+            //  Validate
+            $validator = Validator::make($request->all(), [
+
+                /* Validation Rules
+                 *
+                 *  # Make sure that the user provided a valid mobile number
+                 *  # Make sure that the user provided a valid verification code
+                 */
+                'mobile_number' => 'required|regex:/^[0-9]+$/i',
+                'code' => 'required|regex:/^[0-9]+$/i'
+
+            ], [
+                //  Mobile Number Validation Error Messages
+                'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567',
+                'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567',
+
+                //  Mobile Number Validation Error Messages
+                'code.required' => 'Enter a valid 6 digit verification code containing only digits e.g 123456',
+                'code.regex' => 'Enter a valid 6 digit verification code containing only digits e.g 123456'
+            ]);
+
+            //  If the validation failed
+            if ($validator->fails()) {
+
+                //  Throw Validation Exception with validation errors
+                throw ValidationException::withMessages(collect($validator->errors())->toArray());
+
+            }
+
+            //  Get the code
+            $code = $request->input('code');
+
+            //  Get the Mobile Number
+            $mobile_number = $request->input('mobile_number');
+
+            //  Get the first user that matches the given mobile number
+            $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+
+            //  If we have a user that matches the given mobile number
+            if($user){
+
+                $exactMatch = false;
+
+                //  If the verification codes match
+                if( $user->mobile_number_verification_code === $code ){
+
+                    $exactMatch = true;
+
+                }
+
+                return response()->json(['status' => $exactMatch], 200);
+
+            } else {
+
+                //  The account with the given mobile number does not exist. Throw a validation error
+                throw ValidationException::withMessages(['mobile_number' => 'The account using the mobile number "'.$mobile_number.'" does not exist.']);
+
+            }
+
         } catch (\Exception $e) {
             return help_handle_exception($e);
         }
@@ -220,7 +505,7 @@ class AuthController extends Controller
             }
 
             //  Create new user
-            $user = \App\User::create($registration_data);
+            $user = User::create($registration_data);
 
             //  Create new access token
             $accessToken = $user->createToken('authToken');
@@ -255,7 +540,7 @@ class AuthController extends Controller
             $password_reset_url = $userData['password_reset_url'];
 
             //  Get the user (If no result is found Laravel will return Null)
-            $user = \App\User::where('email', $email)->first();
+            $user = User::where('email', $email)->first();
 
             /** Check if a user with the given email address exists.
              *  If the $user is equal to NUll, then this will not
@@ -327,11 +612,11 @@ class AuthController extends Controller
             }
 
             //  Check if a user with the given email address exists
-            if (\App\User::where('email', $email)->exists()) {
+            if (User::where('email', $email)->exists()) {
                 //  Check if a user has a valid token
                 if (DB::table('password_resets')->where('email', $email)->where('token', $token)->exists()) {
                     //  Get the user
-                    $user = \App\User::where('email', $email)->first();
+                    $user = User::where('email', $email)->first();
 
                     //  Hash and update the new password
                     $user->password = bcrypt($password);

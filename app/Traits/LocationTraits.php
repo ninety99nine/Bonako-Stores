@@ -76,7 +76,7 @@ trait LocationTraits
                 'online_payment_methods' => $this->request->input('online_payment_methods'),
                 'offline_payment_methods' => $this->request->input('offline_payment_methods'),
             ];
-        
+
             /*
              *  Create new a location, then retrieve a fresh instance
              */
@@ -100,8 +100,8 @@ trait LocationTraits
 
     /**  initiateUpdateProductArrangement()
      *
-     *  This method updates the arrangement of products in the current location. 
-     *  The logic allows us to run a single query to update multiple products 
+     *  This method updates the arrangement of products in the current location.
+     *  The logic allows us to run a single query to update multiple products
      *  with different values of their arrangement for a given location.
      */
     public function initiateUpdateProductArrangement($request)
@@ -113,7 +113,7 @@ trait LocationTraits
 
             //  Get the request product arrangement
             $product_arrangements = $request->input('product_arrangements');
-            
+
             $ids = [];
             $cases = [];
             $params = [];
@@ -154,14 +154,14 @@ trait LocationTraits
             $cases = implode(' ', $cases);
 
             if (!empty($ids)) {
-                
+
                 DB::update("UPDATE products SET `arrangement` = CASE `id` {$cases} END WHERE `id` in ({$ids})", $params);
-            
+
             }
 
             //  Return the location products in their new order
             return $this->products()->paginate();
-    
+
         } catch (\Exception $e) {
 
             throw($e);
@@ -173,12 +173,27 @@ trait LocationTraits
     public function assignUserAsAdmin()
     {
         try {
+            //  Get the currently authenticated users id
+            $user_id = auth('api')->user()->id;
 
-            //  Associate the location with the current user as admin
-            auth('api')->user()->locations()->save($this->location,
-            //  Pivot table values
-            [
+            //  If the current authenticated user is a Super Admin
+            if (auth('api')->user()->isSuperAdmin()) {
+
+                //  If the Super Admin has provided a user responsible for this resource
+                if (!empty($this->request->input('user_id'))) {
+
+                    //  Set the provided user id as the user responsible for this resource
+                    $user_id = $this->request->input('user_id');
+
+                }
+
+            }
+
+            //  Add the user as an Admin to the current location
+            DB::table('location_user')->insert([
                 'type' => 'admin',
+                'user_id' => $user_id,
+                'location_id' => $this->location->id,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
@@ -188,8 +203,8 @@ trait LocationTraits
             throw($e);
 
         }
-    } 
-   
+    }
+
     /*
      *  Checks if a given user is the owner of the location
      */

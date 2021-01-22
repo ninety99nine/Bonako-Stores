@@ -57,7 +57,7 @@
     }
 
     //  Handle resource not found requests
-    function help_resource_not_fonud($e = null)
+    function help_resource_not_found($e = null)
     {
         return exception_response('Resource not found', 404, $e);
     }

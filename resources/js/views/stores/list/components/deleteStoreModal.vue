@@ -1,6 +1,6 @@
 <template>
     <div>
-        <!-- Modal 
+        <!-- Modal
 
              Note: modalVisible and detectClose() are imported from the modalMixin.
              They are used to allow for opening and closing the modal properly
@@ -32,12 +32,12 @@
 
                 <!-- Enter Name -->
                 <FormItem prop="name">
-                    <Input  type="text" v-model="storeForm.name" :placeholder="store.name" maxlength="50" 
+                    <Input  type="text" v-model="storeForm.name" :placeholder="store.name" maxlength="50"
                             show-word-limit @keyup.enter.native="handleSubmit()" v-focus="'input'">
                             <span slot="prepend">Name</span>
                     </Input>
                 </FormItem>
-                
+
             </Form>
 
             <!-- Footer -->
@@ -103,7 +103,7 @@
             getStoreForm(){
 
                 //  Set the default form details
-                return { 
+                return {
                     name: ''
                 }
 
@@ -111,8 +111,8 @@
             handleSubmit(){
 
                 //  Validate the store form
-                this.$refs['storeForm'].validate((valid) => 
-                {   
+                this.$refs['storeForm'].validate((valid) =>
+                {
                     //  If the validation passed
                     if (valid) {
 
@@ -127,7 +127,7 @@
                         });
                     }
                 })
-                
+
             },
             attemptStoreDeletion(){
 
@@ -147,15 +147,15 @@
 
                         //  Reset the store
                         self.removeStore();
-                        
+
                         /** Note the closeModal() method is imported from the
-                         *  modalMixin file. It handles the closing process 
+                         *  modalMixin file. It handles the closing process
                          *  of the modal
                          */
                         self.closeModal();
-                        
+
                     }).catch((response) => {
-                
+
                         console.log(response);
 
                         //  Stop loader

@@ -79,7 +79,7 @@ class OrderController extends Controller
             } else {
 
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
 
             }
 
@@ -88,7 +88,7 @@ class OrderController extends Controller
             return help_handle_exception($e);
 
         }
-        
+
     }
 
     public function cancelOrder( Request $request, $order_id )
@@ -122,7 +122,7 @@ class OrderController extends Controller
             } else {
 
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
 
             }
 
@@ -131,7 +131,7 @@ class OrderController extends Controller
             return help_handle_exception($e);
 
         }
-        
+
     }
 
     public function deleteOrder( Request $request, $order_id )
@@ -159,11 +159,11 @@ class OrderController extends Controller
                     return help_not_authorized();
 
                 }
-                
+
             } else {
 
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
 
             }
 

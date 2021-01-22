@@ -2,10 +2,11 @@
 
 namespace App;
 
+use DB;
 use App\Traits\CommonTraits;
 use App\Traits\LocationTraits;
-use DB;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Location extends Model
 {
@@ -35,6 +36,34 @@ class Location extends Model
         'delivery_destinations', 'pickup_destinations', 'delivery_days', 'pickup_note', 'pickup_days', 'delivery_times',
         'pickup_times', 'online', 'offline_message', 'user_id', 'store_id',
     ];
+
+    /*
+     *  Scope:
+     *  Returns locations that are being searched
+     */
+    public function scopeSearch($query, $searchTerm)
+    {
+        return $query->where('name', $searchTerm);
+    }
+
+    /*
+     *  Scope:
+     *  Returns locations marked as the user's favourite locations
+     */
+    public function scopeAsFavourite($query, $user_id)
+    {
+        return $query->whereHas('favourites', function (Builder $query) use ($user_id){
+            $query->where('user_id', $user_id);
+        });
+    }
+
+    /*
+     *  Returns the users that have been assigned to this location
+     */
+    public function favourites()
+    {
+        return $this->hasMany('App\Favourite');
+    }
 
     /*
      *  Returns the store of this location

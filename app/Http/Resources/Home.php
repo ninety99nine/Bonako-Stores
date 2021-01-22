@@ -41,6 +41,24 @@ class Home extends JsonResource
                     'title' => 'Register new user',
                 ],
 
+                //  Link to check if account exists
+                'bos:account_exists' => [
+                    'href' => route('account-exists'),
+                    'title' => 'Check if user account exists',
+                ],
+
+                //  Link to send mobile account verification code
+                'bos:send_mobile_account_verification_code' => [
+                    'href' => route('send-mobile-account-verification-code'),
+                    'title' => 'Send mobile account verification code via SMS to verify mobile number ownership',
+                ],
+
+                //  Link to check if account exists
+                'bos:verify_mobile_account_verification_code' => [
+                    'href' => route('verify-mobile-account-verification-code'),
+                    'title' => 'Verify mobile account verification code to confirm mobile number ownership',
+                ],
+
                 //  Link to send password reset link
                 'bos:send-password-reset-link' => [
                     'href' => route('send-password-reset-link'),
@@ -77,11 +95,19 @@ class Home extends JsonResource
                     'title' => 'Create locations',
                 ],
 
+                //  Link to subscription plans resources (Used to get subscription plans)
+                'bos:subscription_plans' => [
+                    'href' => route('subscription-plans'),
+                    'title' => 'Get subscription plans',
+                ],
+
                 //  Link to payment method resources (Used to get payment methods)
                 'bos:payment_methods' => [
                     'href' => route('payment-methods'),
                     'title' => 'Get payment methods',
                 ],
+
+
             ],
 
             /*  Embedded Resources */

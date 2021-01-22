@@ -3,7 +3,7 @@
     <Row>
         <Col span="8" :offset="8">
             <Card class="auth-form mt-5 pt-2">
-                
+
                 <!-- Heading -->
                 <Divider orientation="left" class="font-weight-bold">Sign Up</Divider>
 
@@ -11,23 +11,23 @@
                 <Alert v-if="serverErrorMessage && !isLoading" type="warning">{{ serverErrorMessage }}</Alert>
 
                 <Form ref="registerForm" :model="registerForm" :rules="registerFormRules">
-                    
-                    <!-- Enter First Name -->
-                    <FormItem prop="name" :error="serverNameError">
-                        <Input type="text" v-model="registerForm.first_name" placeholder="Name" :disabled="isLoading"
-                                @keyup.enter.native="handleSubmit()">
-                            <Icon type="ios-person-outline" slot="prepend"></Icon>
-                        </Input>
-                    </FormItem>    
 
-                    <!-- Enter Last Name -->
-                    <FormItem prop="name" :error="serverNameError">
-                        <Input type="text" v-model="registerForm.last_name" placeholder="Name" :disabled="isLoading"
+                    <!-- Enter First Name -->
+                    <FormItem prop="first_name" :error="serverFirstNameError">
+                        <Input type="text" v-model="registerForm.first_name" placeholder="First name" :disabled="isLoading"
                                 @keyup.enter.native="handleSubmit()">
                             <Icon type="ios-person-outline" slot="prepend"></Icon>
                         </Input>
                     </FormItem>
-                    
+
+                    <!-- Enter Last Name -->
+                    <FormItem prop="last_name" :error="serverLastNameError">
+                        <Input type="text" v-model="registerForm.last_name" placeholder="Last name" :disabled="isLoading"
+                                @keyup.enter.native="handleSubmit()">
+                            <Icon type="ios-person-outline" slot="prepend"></Icon>
+                        </Input>
+                    </FormItem>
+
                     <!-- Enter Email -->
                     <FormItem prop="email" :error="serverEmailError">
                         <Input type="email" v-model="registerForm.email" placeholder="Email" :disabled="isLoading"
@@ -35,7 +35,7 @@
                             <Icon type="ios-mail-outline" slot="prepend"></Icon>
                         </Input>
                     </FormItem>
-                    
+
                     <!-- Enter Password -->
                     <FormItem prop="password" :error="serverPasswordError">
                         <Input type="password" v-model="registerForm.password" placeholder="Password" :disabled="isLoading"
@@ -43,7 +43,7 @@
                             <Icon type="ios-lock-outline" slot="prepend"></Icon>
                         </Input>
                     </FormItem>
-                    
+
                     <!-- Confirm Password -->
                     <FormItem prop="password_confirmation">
                         <Input type="password" v-model="registerForm.password_confirmation" placeholder="Confirm Password" :disabled="isLoading"
@@ -54,7 +54,7 @@
 
                     <!-- Login Link -->
                     <router-link to="login">Login?</router-link>
-                    
+
                     <!-- Sign Up Button -->
                     <FormItem v-if="!isLoading">
                         <Button type="primary" class="float-right" :disabled="isLoading" @click="handleSubmit()">Sign Up</Button>
@@ -70,7 +70,7 @@
 
 </template>
 <script>
-    
+
     import Loader from './../../../components/_common/loaders/default.vue';
 
     export default {
@@ -90,16 +90,22 @@
             return {
                 isLoading: false,
                 registerForm: {
-                    name: '',
+                    first_name: '',
+                    last_name: '',
                     email: '',
                     password: '',
                     password_confirmation: ''
                 },
                 registerFormRules: {
-                    name: [
-                        { required: true, message: 'Please enter your name', trigger: 'blur' },
-                        { min: 3, message: 'Your name is too short', trigger: 'change' },
-                        { max: 20, message: 'Your name is too long', trigger: 'change' }
+                    first_name: [
+                        { required: true, message: 'Please enter your first name', trigger: 'blur' },
+                        { min: 3, message: 'Your first name is too short', trigger: 'change' },
+                        { max: 20, message: 'Your first name is too long', trigger: 'change' }
+                    ],
+                    last_name: [
+                        { required: true, message: 'Please enter your last name', trigger: 'blur' },
+                        { min: 3, message: 'Your last name is too short', trigger: 'change' },
+                        { max: 20, message: 'Your last name is too long', trigger: 'change' }
                     ],
                     email: [
                         { required: true, message: 'Please enter your email', trigger: 'blur' },
@@ -119,8 +125,11 @@
             }
         },
         computed: {
-            serverNameError(){
-                return (this.serverErrors || {}).name;
+            serverFirstNameError(){
+                return (this.serverErrors || {}).first_name;
+            },
+            serverLastNameError(){
+                return (this.serverErrors || {}).last_name;
             },
             serverEmailError(){
                 return (this.serverErrors || {}).email;
@@ -136,11 +145,11 @@
                 this.resetErrors();
 
                 //  Validate the register form
-                this.$refs['registerForm'].validate((valid) => 
-                {   
+                this.$refs['registerForm'].validate((valid) =>
+                {
                     //  If the validation passed
                     if (valid) {
-                        
+
                         //  Attempt to register
                         this.attemptRegistration();
 
@@ -164,7 +173,7 @@
                 //  Attempt to register using the auth register method found in the auth.js file
                 auth.register(
                     //  Pass registration details
-                    this.registerForm.first_name, this.registerForm.last_name, this.registerForm.email, 
+                    this.registerForm.first_name, this.registerForm.last_name, this.registerForm.email,
                     this.registerForm.password, this.registerForm.password_confirmation
                     ).then((data) => {
 
@@ -182,9 +191,9 @@
 
                         //  Redirect the user to the projects page
                         this.$router.push({ name: 'show-stores' });
-                        
+
                     }).catch((response) => {
-                
+
                         console.log(response);
 
                         //  Stop loader
@@ -192,7 +201,7 @@
 
                         //  Get the error response data
                         let data = (response || {}).data;
-                            
+
                         //  Get the response errors
                         var errors = (data || {}).errors;
 
@@ -206,7 +215,7 @@
 
                             //  If we have errors
                             if(_.size(errors)){
-                                
+
                                 //  Set the server errors
                                 self.serverErrors = errors;
 

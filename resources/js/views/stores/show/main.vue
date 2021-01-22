@@ -1,17 +1,18 @@
 <template>
+
     <Layout class="border-top" :style="{ minHeight:'100em' }">
 
-        <Header :style="{width: '100%'}" class="bg-white border-top border-bottom p-0">
+        <Header :style="{ width: '100%' }" :class="['bg-white', 'border-top', 'border-bottom', 'p-0']">
 
             <Row :gutter="12">
 
-                <Col :span="12" :offset="2">
+                <Col :span="8" :offset="2">
 
                     <!-- If we are loading, Show Loader -->
-                    <Loader v-if="isLoadingStore" :divStyles="{ textAlign: 'center' }"></Loader>
+                    <Loader v-show="isLoadingStore" :divStyles="{ textAlign: 'center' }"></Loader>
 
                     <!-- If we are not loading, Show the store breadcrumb -->
-                    <Breadcrumb v-else>
+                    <Breadcrumb v-if="!isLoadingStore">
 
                         <!-- Link to stores -->
                         <BreadcrumbItem @click.native="navigateToStoreLink('show-stores')" class="cursor-pointer">
@@ -23,171 +24,130 @@
                             {{ storeName }}
                         </BreadcrumbItem>
 
-                        <!-- Link to locations -->
-                        <template v-if="isViewingLocations">
-                            <BreadcrumbItem @click.native="navigateToStoreLink('show-locations')" class="cursor-pointer">Locations</BreadcrumbItem>
-                        </template>
+                        <BreadcrumbItem>
 
-                        <!-- Link to current location -->
-                        <template v-if="location">
-                            <BreadcrumbItem>{{ location.name }}</BreadcrumbItem>
-                        </template>
+                            <span class="clearfix">
+
+                                <!-- Select location -->
+                                <Poptip trigger="hover" content="Which location do you want to visit?" word-wrap>
+                                    <Select v-model="locationId" placeholder="Select location" :disabled="isLoading"
+                                            :style="{ fontWeight: 'normal !important' }"
+                                            @on-change="updateDefaultAssignedLocation()">
+                                        <Option v-for="(location, index) in assignedLocations"
+                                                :value="location.id" :key="index">{{ location.name }}</Option>
+                                    </Select>
+                                </Poptip>
+
+                                <!-- Refresh Locations Button -->
+                                <Poptip trigger="hover" content="Refresh locations" word-wrap>
+                                    <Button @click.native="fetchAssignedLocations()"
+                                            :class="isLoadingLocations ? ['pr-2'] : ['px-2']"
+                                            :loading="isLoadingLocations" :disabled="isLoadingLocations">
+                                        <Icon v-show="!isLoadingLocations" type="ios-refresh" :size="20" class="mt-1"/>
+                                    </Button>
+                                </Poptip>
+
+                            </span>
+
+                        </BreadcrumbItem>
 
                     </Breadcrumb>
-                    
+
                 </Col>
 
-                <Col :span="4">
+                <Col :span="6">
 
-                    <!-- If the store exists -->
-                    <span v-if="store">
-                        
-                        <!-- Show the store details as a hoverable Poptip -->
-                        <Poptip trigger="hover" word-wrap width="300">
+                    <Input type="text" placeholder="Search order..." icon="ios-search-outline"></Input>
 
-                            <div slot="content" class="py-2" :style="{ lineHeight: 'normal' }">
-                                <p>
-                                    <span>Locations:</span> <span class="font-weight-bold">{{ totalLocations }}</span>
-                                </p>
-                            </div>
-
-                            <!-- Show the details text -->
-                            <span>Store Details: </span>
-
-                            <!-- Show the info icon -->
-                            <Icon type="ios-information-circle-outline" :size="16" />
-                        
-                        </Poptip>
-
-                    </span>
-                    
                 </Col>
 
                 <Col :span="4" class="clearfix">
 
-                    <!-- Save Changes Button
-                         If we have unsaved changes then show the green ripple effect and allow the button to be clickable
-                         otherwise turn off the ripple effect and disable the button
-                     -->
-                    <basicButton v-if="store" :disabled="(!hasUnsavedChanges || isSavingChanges)" :loading="isSavingChanges" :ripple="(hasUnsavedChanges && !isSavingChanges)" 
-                                  type="success" size="large" class="float-right" @click.native="handleSaveChanges">
-                        <span>{{ isSavingChanges ? 'Saving...' : 'Save Changes' }}</span>
-                    </basicButton>
-                    
+                    <!-- If the store exists -->
+                    <span v-if="store" :class="['float-right']">
+
+                        <!-- Show the store details as a hoverable Poptip -->
+                        <Poptip trigger="hover" word-wrap width="300">
+
+                            <div slot="content" class="py-2">
+                                <p>
+                                    <span>Dial <span class="font-weight-bold text-primary">{{ visitShortCodeDialingCode }}</span> to visit store</span>
+                                </p>
+                            </div>
+
+                            <!-- Show the info icon -->
+                            <Icon type="ios-information-circle-outline" :size="16" />
+
+                            <!-- Show the details text -->
+                            <span>Dial </span>
+                            <span class="font-weight-bold text-primary">{{ visitShortCodeDialingCode }}</span>
+
+                        </Poptip>
+
+                    </span>
+
+                </Col>
+
+                <Col :span="2" class="clearfix">
+
+                    <Button type="success" size="default" :class="['float-right', 'mt-3']"
+                            @click.native="fetchStores()" :loading="isLoadingStore"
+                            :disabled="isLoadingStore">
+                        <span>Subscribe</span>
+                    </Button>
+
                 </Col>
 
             </Row>
 
         </Header>
 
-        <!-- If we are loading -->
-        <template v-if="isLoadingStore">
-
-            <!-- Show Loader -->
-            <Loader class="mt-5"></Loader>
-
-        </template>
+        <!-- If we are loading, Show Loader -->
+        <Loader v-show="isLoading" class="bg-white"></Loader>
 
         <!-- If we are not loading and have the store -->
-        <Layout v-else-if="store">
+        <Layout v-if="!isLoading">
 
             <!-- Side Menu -->
             <Sider hide-trigger>
 
-                <template v-if="!isLoadingStore && !isLoadingLocation">
+                <div class="w-100 bg-primary text-white bg-success font-weight-bold mt-3 mb-3 p-2">
+                    <Icon type="ios-pin" class="mr-1" :size="20" />
+                    <span>{{ store.name }}</span>
+                </div>
 
-                    <!-- If we are viewing a specific location -->
-                    <template v-if="location">
+                <!-- Show Store Menu Links -->
+                <Menu :active-name="activeLink" theme="light" width="auto" key="store-menu">
+                    <MenuItem v-for="(menuLink, index) in menuLinks" :key="index"
+                        :name="menuLink.name" class="" @click.native="navigateToStoreLink(menuLink.linkName)">
+                        <!-- Menu Icon -->
+                        <Icon :type="menuLink.icon" :size="20" />
+                        <!-- Menu Name -->
+                        <span class="text-capitalize">{{ menuLink.name }}</span>
 
-                        <div class="w-100 bg-primary text-white bg-success font-weight-bold mt-3 mb-3 p-2">
-                            <Icon type="ios-pin" class="mr-1" :size="20" />
-                            <span>{{ location.name }}</span>
-                        </div>
+                        <badge v-if="menuLink.total" :count="menuLink.total" type="success" class="float-right"></badge>
 
-                        <!-- Show Location Menu Links -->
-                        <Menu :active-name="activeLink" theme="light" width="auto" key="location-menu">
-                            <MenuItem v-for="(menuLink, index) in locationMenuLinks" :key="index"
-                                :name="menuLink.name" class="" @click.native="navigateToLocationLink(menuLink.linkName)">
-                                <!-- Menu Icon -->
-                                <Icon :type="menuLink.icon" :size="20" />
-                                <!-- Menu Name -->
-                                <span class="text-capitalize">{{ menuLink.name }}</span>
-                            </MenuItem>
-                        </Menu>
-                        
-                    </template>
-
-                    <!-- If we are not viewing a specific location -->
-                    <template v-else>
-
-                        <div class="w-100 bg-primary text-white bg-success font-weight-bold mt-3 mb-3 p-2">
-                            <Icon type="ios-pin" class="mr-1" :size="20" />
-                            <span>{{ store.name }}</span>
-                        </div>
-
-                        <!-- Show Store Menu Links -->
-                        <Menu :active-name="activeLink" theme="light" width="auto" key="store-menu">
-                            <MenuItem v-for="(menuLink, index) in storeMenuLinks" :key="index"
-                                :name="menuLink.name" class="" @click.native="navigateToStoreLink(menuLink.linkName)">
-                                <!-- Menu Icon -->
-                                <Icon :type="menuLink.icon" :size="20" />
-                                <!-- Menu Name -->
-                                <span class="text-capitalize">{{ menuLink.name }}</span>
-                            </MenuItem>
-                        </Menu>
-                        
-                    </template>
-
-                </template>
+                    </MenuItem>
+                </Menu>
 
             </Sider>
 
             <!-- Content -->
-            <Content>
-        
-                <!-- Place the custom route content here 
-                    We place the store views here. This includes views to show the store overview,
-                    products, orders, locations, settings, and any more future views we may include.
+            <Content :style="{ overflow: 'visible' }">
 
-                    Explanation:
-
-                    :requestToSaveChanges: This is a property that the the nested child component must watch
-                        in order to know when it can save changes detected/communicated by this component.
-                        This can be used to let the nested child component to know when it can commit to
-                        save changes.
-
-                    @unsavedChanges: This is an event from the nested child component that informs this component
-                        that we have unsaved changes that must be saved. This can be used to disable/enable the
-                        "Save Changes" button
-
-                    @isSaving: This is an event from the nested child component that informs this component that
-                        the child component is saving the changes. It returns a true or false status so that this
-                        component is aware of whether we are still saving or not. This can be used to disable the
-                        "Save Changes" button
+                <!-- Place the custom route content here
+                     We place the store views here. This includes views to show the store overview,
+                     products, orders, locations, settings, and any more future views we may include.
                 -->
-                <template v-if="!isLoadingStore && !isLoadingLocation">
+                <template v-if="store && location">
 
-                    <router-view :store="store" :location="location" :requestToSaveChanges="requestToSaveChanges" 
-                                @updatedStore="handleUpdatedStore" @unsavedChanges="handleUnsavedChanges" 
-                                @isSaving="handlesIsSaving"/>
+                    <router-view :store="store" :location="location" @refetchLocation="fetchAssignedLocations" />
 
                 </template>
-                    
+
             </Content>
 
         </Layout>
-                    
-        <!-- If we are not loading and don't have the store -->
-        <template v-else-if="!store">
-
-            <Alert type="warning" class="m-5" show-icon>
-                Store Not Found
-                <template slot="desc">
-                We could not get your store, try refreshing your browser. It's also possible that this store has been deleted.
-                </template>
-            </Alert>
-
-        </template>
 
     </Layout>
 
@@ -204,201 +164,93 @@
             return {
                 store: null,
                 location: null,
+                locationId: null,
                 isLoadingStore: false,
-                isSavingChanges: false,
-                requestToSaveChanges: 0,
-                isLoadingLocation: false,
-                hasUnsavedChanges: false,
-                storeMenuLinks: [
+                isLoadingLocations: false,
+                assignedLocations: [],
+                menuLinks: [
                     {
                         name: 'overview',
                         linkName: 'show-store-overview',
                         icon: 'ios-analytics-outline'
                     },
                     {
-                        name: 'locations',
-                        linkName: 'show-locations',
-                        icon: 'ios-git-branch'
+                        name: 'orders',
+                        linkName: 'show-store-orders',
+                        icon: 'ios-cube-outline'
                     },
                     {
                         name: 'products',
                         linkName: '',
-                        icon: 'ios-basket-outline'
+                        icon: 'ios-pricetags-outline'
                     },
                     {
-                        name: 'Instant Carts',
-                        linkName: 'show-store-instant-carts',
-                        icon: 'ios-basket-outline'
-                    },
-                    {
-                        name: 'orders',
-                        linkName: '',
-                        icon: 'ios-stats-outline'
-                    },
-                    {
-                        name: 'users',
+                        name: 'customers',
                         linkName: '',
                         icon: 'ios-person-outline'
                     },
                     {
-                        name: 'analytics',
+                        name: 'reports',
                         linkName: '',
-                        icon: 'ios-trending-up'
+                        icon: 'ios-pie-outline'
+                    },
+                    {
+                        name: 'settings',
+                        linkName: '',
+                        icon: 'ios-settings-outline'
                     }
                 ],
-                locationMenuLinks: [
-                    {
-                        name: 'overview',
-                        linkName: 'show-location',
-                        icon: 'ios-analytics-outline'
-                    },
-                    {
-                        name: 'products',
-                        linkName: 'show-location-products',
-                        icon: 'ios-basket-outline'
-                    },
-                    {
-                        name: 'Instant Carts',
-                        linkName: 'show-location-instant-carts',
-                        icon: 'ios-basket-outline'
-                    },
-                    {
-                        name: 'orders',
-                        linkName: '',
-                        icon: 'ios-stats-outline'
-                    },
-                    {
-                        name: 'users',
-                        linkName: '',
-                        icon: 'ios-person-outline'
-                    },
-                    {
-                        name: 'analytics',
-                        linkName: '',
-                        icon: 'ios-trending-up'
-                    }
-                ]
             }
         },
         watch: {
-            //  If the route changes
-            $route (newVal, oldVal) {
 
-                //  If we have the location url
-                if( newVal.params.location_url ){
+            //  Watch for changes on the location
+            location: {
+                handler: function (val, oldVal) {
 
-                    //  Fetch the location
-                    this.fetchLocation();
+                    this.updateMenuLinks();
 
                 }
-
-            }
+            },
         },
         computed: {
-            isViewingLocations(){
-                //  Check if we are viewing the store locations
-                if( ['show-locations', 'show-location'].includes(this.$route.name) ){
-                    return true;
-                }
-                return false
-            },
-            activeLink(){
-                //  Get the active menu link otherwise default to the overview page
-                if( ['show-store-overview', 'show-location'].includes(this.$route.name) ){
-                    return 'overview';
-                }else if( ['show-locations', 'show-location'].includes(this.$route.name) ){
-                    return 'locations';
-                }
-            },
-            locationUrl(){
-                return decodeURIComponent(this.$route.params.location_url);
-            },
-            storeUrl(){
-                return decodeURIComponent(this.$route.params.store_url);
+            isLoading(){
+                return (this.isLoadingStore || this.isLoadingLocations);
             },
             storeName(){
                 return (this.store || {}).name;
             },
-            totalLocations(){
-                return this.store['_links']['bos:locations'].total;
+            locationUnfulfilledOrdersTotal(){
+                return (this.location || {})['_links']['bos:unfulfilled-orders'].total;
+            },
+            storeUrl(){
+                return decodeURIComponent(this.$route.params.store_url);
+            },
+            assignedLocationsUrl(){
+                return (this.store || {})['_links']['bos:my-store-locations'].href;
+            },
+            defaultAssignedLocationsUrl(){
+                return (this.store || {})['_links']['bos:my-store-default-location'].href;
+            },
+            hasVisitShortCode(){
+                return this.store['_attributes']['has_visit_short_code'];
+            },
+            visitShortCode(){
+                return (this.store['_attributes']['visit_short_code'] || {});
+            },
+            visitShortCodeDialingCode(){
+                return this.visitShortCode.dialing_code;
+            },
+            activeLink(){
+                //  Get the active menu link otherwise default to the overview page
+                if( ['show-store-overview'].includes(this.$route.name) ){
+                    return 'overview';
+                }else if( ['show-store-orders'].includes(this.$route.name) ){
+                    return 'orders';
+                }
             },
         },
         methods: {
-            handleUnsavedChanges(status){
-                //  status is true/false
-                this.hasUnsavedChanges = status;
-            },
-            handleSaveChanges(){
-                //  If we have unsaved changes
-                if( this.hasUnsavedChanges ){
-                    ++this.requestToSaveChanges;
-                }
-            },
-            handlesIsSaving(status){
-                this.isSavingChanges = status;
-            },
-            handleSelectedLocation(location){
-                alert('handleSelectedLocation');
-                this.location = Object.assign({}, location);
-            },
-            handleUpdatedStore(store){
-                this.store = Object.assign({}, store);
-
-                this.$emit('changeHeading', this.store.name)
-            },
-            navigateToStoreLink(linkName){
-
-                /** Note that using router.push() or router.replace() does not allow us to make a
-                 *  page refresh when visiting routes. This is undesirable at this moment since our 
-                 *  current component contains the <router-view />. When the page does not refresh, 
-                 *  the <router-view /> is not able to receice the nested components defined in the 
-                 *  route.js file. This means that we are then not able to render the nested 
-                 *  components and present them. To counter this issue we must construct the 
-                 *  href and use "window.location.href" to make a hard page refresh.
-                 */
-                var storeUrl = this.store['_links']['self'].href;
-
-                //  Add the "menu" query to our current store route
-                var route = { name: linkName, params: { 
-                    store_url: encodeURIComponent(storeUrl) } 
-                };
-
-                //  Contruct the full path url
-                var href = window.location.origin + "/" + VueInstance.$router.resolve(route).href
-
-                //  Visit the url
-                window.location.href = href;
-
-                this.location = null;
-
-            },
-            navigateToLocationLink(linkName){
-
-                /** Note that using router.push() or router.replace() does not allow us to make a
-                 *  page refresh when visiting routes. This is undesirable at this moment since our 
-                 *  current component contains the <router-view />. When the page does not refresh, 
-                 *  the <router-view /> is not able to receice the nested components defined in the 
-                 *  route.js file. This means that we are then not able to render the nested 
-                 *  components and present them. To counter this issue we must construct the 
-                 *  href and use "window.location.href" to make a hard page refresh.
-                 */
-                var storeUrl = this.store['_links']['self'].href;
-                var locationUrl = this.location['_links']['self'].href;
-
-                //  Add the "menu" query to our current store route
-                var route = { name: linkName, params: {
-                        store_url: encodeURIComponent(storeUrl),
-                        location_url: encodeURIComponent(locationUrl)
-                    }
-                };
-
-                //  Contruct the full path url
-                var href = window.location.origin + "/" + VueInstance.$router.resolve(route).href
-
-                //  Visit the url
-                window.location.href = href;
-
-            },
             fetchStore() {
 
                 //  If we have the store url
@@ -413,7 +265,7 @@
                     //  Use the api call() function, refer to api.js
                     api.call('get', this.storeUrl)
                         .then(({data}) => {
-                            
+
                             //  Console log the data returned
                             console.log(data);
 
@@ -423,10 +275,14 @@
                             //  Stop loader
                             self.isLoadingStore = false;
 
-                            self.$emit('changeHeading', self.store.name)
+                            //  Fetch the user's assigned locations
+                            self.fetchAssignedLocations();
 
-                        })         
-                        .catch(response => { 
+                            //  Change dashboard heading
+                            self.$emit('changeHeading', self.store.name);
+
+                        })
+                        .catch(response => {
 
                             //  Log the responce
                             console.error(response);
@@ -437,56 +293,173 @@
                         });
                 }
             },
-            fetchLocation() {
+            fetchAssignedLocations() {
 
-                //  If we have the location url
-                if( this.locationUrl ){
+                //  If we have assigned locations url
+                if( this.assignedLocationsUrl ){
 
                     //  Hold constant reference to the current Vue instance
                     const self = this;
 
                     //  Start loader
-                    self.isLoadingLocation = true;
+                    self.isLoadingLocations = true;
 
                     //  Use the api call() function, refer to api.js
-                    api.call('get', this.locationUrl)
+                    api.call('get', this.assignedLocationsUrl)
                         .then(({data}) => {
-                            
+
                             //  Console log the data returned
                             console.log(data);
 
-                            //  Get the location
-                            self.location = data || null;
+                            //  Get my store locations
+                            self.assignedLocations = (((data || {})._embedded || {}).locations || []);
 
-                            //  Stop loader
-                            self.isLoadingLocation = false;
+                            //  Fetch the user's default assigned location
+                            self.fetchDefaultAssignedLocation();
 
-                        })         
-                        .catch(response => { 
+                        })
+                        .catch(response => {
 
                             //  Log the responce
                             console.error(response);
 
                             //  Stop loader
-                            self.isLoadingLocation = false;
+                            self.isLoadingLocations = false;
 
                         });
                 }
-            }
+            },
+            fetchDefaultAssignedLocation() {
+
+                //  If we have the default assigned location url
+                if( this.defaultAssignedLocationsUrl ){
+
+                    //  Hold constant reference to the current Vue instance
+                    const self = this;
+
+                    //  Use the api call() function, refer to api.js
+                    api.call('get', this.defaultAssignedLocationsUrl)
+                        .then(({data}) => {
+
+                            //  Console log the data returned
+                            console.log(data);
+
+                            //  Select the default location
+                            self.location = (data || {});
+
+                            //  Set the selected location id
+                            self.locationId = self.location.id;
+
+                            //  Stop loader
+                            self.isLoadingLocations = false;
+
+                        })
+                        .catch(response => {
+
+                            //  Log the responce
+                            console.error(response);
+
+                            //  Stop loader
+                            self.isLoadingLocations = false;
+
+                        });
+                }
+            },
+            updateDefaultAssignedLocation() {
+
+                //  If we have the default assigned location url
+                if( this.defaultAssignedLocationsUrl ){
+
+                    //  Hold constant reference to the current Vue instance
+                    const self = this;
+
+                    //  Start loader
+                    this.isLoadingLocations = true;
+
+                    this.updateData = {
+                        location_id: this.locationId
+                    };
+
+                    for (let x = 0; x < this.assignedLocations.length; x++) {
+
+                        //  Find the matching location
+                        if( this.assignedLocations[x].id == this.locationId ){
+
+                            //  Set the location
+                            this.location = this.assignedLocations[x];
+
+                        }
+
+                    }
+
+                    //  Use the api call() function, refer to api.js
+                    api.call('put', this.defaultAssignedLocationsUrl, this.updateData)
+                        .then(({data}) => {
+
+                            //  Console log the data returned
+                            console.log(data);
+
+                            //  Stop loader
+                            self.isLoadingLocations = false;
+
+                        })
+                        .catch(response => {
+
+                            //  Log the responce
+                            console.error(response);
+
+                            //  Stop loader
+                            self.isLoadingLocations = false;
+
+                        });
+                }
+            },
+            updateMenuLinks(){
+
+                for (let x = 0; x < this.menuLinks.length; x++) {
+
+                    //  If this is the orders menu
+                    if( this.menuLinks[x].name == 'orders'){
+
+                        //  Update total unfulfilled orders
+                        this.menuLinks[x]['total'] = this.locationUnfulfilledOrdersTotal;
+
+                    }
+
+                }
+            },
+            navigateToStoreLink(linkName){
+
+                console.log(linkName);
+
+                /** Note that using router.push() or router.replace() does not allow us to make a
+                 *  page refresh when visiting routes. This is undesirable at this moment since our
+                 *  current component contains the <router-view />. When the page does not refresh,
+                 *  the <router-view /> is not able to receice the nested components defined in the
+                 *  route.js file. This means that we are then not able to render the nested
+                 *  components and present them. To counter this issue we must construct the
+                 *  href and use "window.location.href" to make a hard page refresh.
+                 */
+                var storeUrl = this.store['_links']['self'].href;
+
+                //  Add the "menu" query to our current store route
+                var route = { name: linkName, params: {
+                    store_url: encodeURIComponent(storeUrl) }
+                };
+
+                //  Contruct the full path url
+                var href = window.location.origin + "/" + VueInstance.$router.resolve(route).href
+
+                //  Visit the url
+                window.location.href = href;
+
+            },
         },
         created(){
 
             //  Fetch the store
             this.fetchStore();
 
-            //  If we have the location url
-            if( this.$route.params.location_url ){
-
-                //  Fetch the location
-                this.fetchLocation();
-
-            }
-            
         }
     }
 </script>

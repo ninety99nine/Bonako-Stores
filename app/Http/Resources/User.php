@@ -51,7 +51,7 @@ class user extends JsonResource
                     'title' => 'The stores that are created by this user',
                     'total' => $this->stores()->asOwner($this->id)->count(),
                 ],
-                
+
                 //  Link to the user's shared stores
                 'bos:shared-stores' => [
                     'href' => route('my-shared-stores'),

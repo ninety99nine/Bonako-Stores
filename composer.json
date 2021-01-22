@@ -9,13 +9,15 @@
     "license": "MIT",
     "require": {
         "php": "^7.2.5",
+        "aloha/twilio": "^4.0",
         "fideloper/proxy": "^4.2",
         "fruitcake/laravel-cors": "^1.0",
         "guzzlehttp/guzzle": "^6.5",
         "laravel/framework": "^7.0",
         "laravel/passport": "^9.2",
         "laravel/tinker": "^2.0",
-        "laravel/ui": "^2.0"
+        "laravel/ui": "^2.0",
+        "staudenmeir/eloquent-has-many-deep": "1.12"
     },
     "require-dev": {
         "facade/ignition": "^2.0",

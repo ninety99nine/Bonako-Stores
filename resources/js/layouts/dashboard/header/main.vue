@@ -10,7 +10,7 @@
 
             <Dropdown trigger="click" @on-click="handleSelection" class="float-right">
                 <span>
-                    <span class="font-weight-bold mr-1">{{ user.name }}</span>
+                    <span class="font-weight-bold mr-1">{{ user.first_name }} {{ user.last_name }}</span>
                     <Icon class="font-weight-bold mr-1" type="ios-arrow-down"></Icon>
                     <Avatar icon="ios-person" />
                 </span>
@@ -71,16 +71,16 @@
 
                 /** Attempt to logout using the auth logout method found in the auth.js file.
                  *  Note that on a successful logout, this method will automatically handle
-                 *  the process of redirecting the user to the login page. 
+                 *  the process of redirecting the user to the login page.
                  */
                 auth.logout()
                     .then((data) => {
 
                         //  Stop loader
                         self.isLoading = false;
-                        
+
                     }).catch((error) => {
-                
+
                         console.log(error);
 
                 });

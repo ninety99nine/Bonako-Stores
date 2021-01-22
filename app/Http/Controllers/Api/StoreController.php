@@ -18,129 +18,142 @@ class StoreController extends Controller
         $this->user = auth('api')->user();
     }
 
-    public function getStores(Request $request)
-    {
-        try {
-            $limit = $request->input('limit');
-
-            $validator = Validator::make($request->all(), [
-                /* Validation Rules
-                 *
-                 *  If we must limit the results then make sure that the user provided the
-                 *  limit value. This value must be a number with a value between 1 and 100.
-                 *
-                 */
-                'limit' => 'sometimes|required|numeric|min:1|max:100',
-            ], [
-                //  Limit Validation Error Messages
-                'limit.required' => 'Enter a valid limit containing only digits e.g 50',
-                'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
-                'limit.min' => 'The limit attribute must be a value between 1 and 100',
-                'limit.max' => 'The limit attribute must be a value between 1 and 100',
-            ]);
-
-            //  If the validation failed
-            if ($validator->fails()) {
-                //  Throw Validation Exception with validation errors
-                throw ValidationException::withMessages(collect($validator->errors())->toArray());
-            }
-
-            //  Get the stores
-            $stores = \App\Store::latest()->paginate($limit) ?? [];
-
-            //  Return an API Readable Format of the Store Instance
-            return ( new \App\Store() )->convertToApiFormat($stores);
-        } catch (\Exception $e) {
-            return help_handle_exception($e);
-        }
-    }
-
     public function createStore(Request $request)
     {
         try {
-            //  Check if the user is authourized to create the store
-            if ($this->user && $this->user->can('create', Store::class)) {
-                //  Create the store
-                return (new Store())->initiateCreate($request);
 
-                //  If the created successfully
-                if ($store) {
-                    //  Return an API Readable Format of the Store Instance
-                    return $store->convertToApiFormat();
-                }
-            } else {
-                //  Not Authourized
-                return help_not_authorized();
-            }
+            //  Return a new store
+            $store = (new Store())->createResource($request, $this->user);
+
         } catch (\Exception $e) {
-            return help_handle_exception($e);
-        }
-    }
 
-    public function getStore($store_id)
-    {
-        try {
-            //  Get the store
-            $store = Store::where('id', $store_id)->first() ?? null;
-
-            //  Check if the store exists
-            if ($store) {
-                //  Return an API Readable Format of the Store Instance
-                return $store->convertToApiFormat();
-            } else {
-                //  Not Found
-                return help_resource_not_fonud();
-            }
-        } catch (\Exception $e) {
             return help_handle_exception($e);
+
         }
     }
 
     public function updateStore(Request $request, $store_id)
     {
         try {
+
             //  Get the store
             $store = \App\Store::where('id', $store_id)->first() ?? null;
 
             //  Check if the store exists
             if ($store) {
-                //  Check if the user is authourized to update the store
-                if ($this->user && $this->user->can('update', $store)) {
-                    //  Update the store
-                    $store = (new Store())->initiateUpdate($store, $request);
 
-                    //  If the created successfully
-                    if ($store) {
-                        //  Return an API Readable Format of the Store Instance
-                        return $store->convertToApiFormat();
-                    }
-                } else {
-                    //  Not Authourized
-                    return help_not_authorized();
-                }
+                //  Return the updated store
+                return $store->updateResource($request, $this->user);
+
             } else {
+
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
+
             }
+
         } catch (\Exception $e) {
+
             return help_handle_exception($e);
+
         }
     }
 
+    public function getStores(Request $request)
+    {
+        try {
+
+            //  Return a list of stores
+            return (new Store())->getResourses($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getStore($store_id)
+    {
+        try {
+
+            //  Return a single store
+            return (new Store())->getResourse($store_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function generatePaymentShortCode($store_id)
+    {
+        try {
+
+            //  Get the store
+            $store = \App\Store::where('id', $store_id)->first() ?? null;
+
+            //  Check if the store exists
+            if ($store) {
+
+                //  Return the generated payment short code
+                return $store->generatePaymentShortCode();
+
+            } else {
+
+                //  Not Found
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function generateSubscription(Request $request, $store_id)
+    {
+        try {
+
+            //  Get the store
+            $store = \App\Store::where('id', $store_id)->first() ?? null;
+
+            //  Check if the store exists
+            if ($store) {
+
+                //  Return the generated subscription
+                return $store->generateSubscription($request);
+
+            } else {
+
+                //  Not Found
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
 
     public function addOrRemoveStoreAsFavourite(Request $request, $store_id)
     {
         try {
-            
+
             //  Get the store
             $store = \App\Store::where('id', $store_id)->first() ?? null;
-    
+
             //  Check if the store exists
             if ($store) {
 
                 //  Add or remove store as favourite
                 $success = $store->addOrRemoveStoreAsFavourite($store_id);
-                
+
                 //  If successful
                 if($success){
 
@@ -148,20 +161,20 @@ class StoreController extends Controller
                     return response()->json(null, 200);
 
                 }
-    
+
             } else {
-                
+
                 //  Not Found
-                return help_resource_not_fonud();
-    
+                return help_resource_not_found();
+
             }
 
         } catch (\Exception $e) {
             return help_handle_exception($e);
         }
-        
+
     }
-    
+
     public function getStoreRatingStatistics(Request $request, $store_id)
     {
         try {
@@ -201,7 +214,7 @@ class StoreController extends Controller
                 ], 200);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -211,24 +224,36 @@ class StoreController extends Controller
     public function getStoreLocations(Request $request, $store_id)
     {
         try {
+
+            $type = $request->input('type');
             $limit = $request->input('limit');
 
             //  Get the store
             $store = \App\Store::where('id', $store_id)->first() ?? null;
 
-            //  Get the store locations
-            $locations = $store->locations()->paginate($limit) ?? null;
+            $locations = $store->locations();
 
-            //  Check if the store locations exist
-            if ($locations) {
-                //  Return an API Readable Format of the Location Instance
-                return ( new \App\Location() )->convertToApiFormat($locations);
-            } else {
-                //  Not Found
-                return help_resource_not_fonud();
+            if( $type == 'favourite' ){
+                //  Filter favourite locations
+                $locations = $locations->asFavourite($this->user->id);
             }
+
+            //  If we need to search for specific locations
+            if (!empty($search_term)) {
+                //  Filter by search term
+                $locations = $locations->search($search_term);
+            }
+
+            //  Get the store locations
+            $locations = $locations->paginate($limit) ?? null;
+
+            //  Return an API Readable Format of the Location Instance
+            return ( new \App\Location() )->convertToApiFormat($locations);
+
         } catch (\Exception $e) {
+
             return help_handle_exception($e);
+
         }
     }
 
@@ -249,7 +274,7 @@ class StoreController extends Controller
                 return ( new \App\Product() )->convertToApiFormat($products);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -273,7 +298,7 @@ class StoreController extends Controller
                 return ( new \App\User() )->convertToApiFormat($users);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -297,7 +322,7 @@ class StoreController extends Controller
                 return ( new \App\Coupon() )->convertToApiFormat($coupons);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -321,7 +346,7 @@ class StoreController extends Controller
                 return ( new \App\InstantCart() )->convertToApiFormat($instant_carts);
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -351,7 +376,7 @@ class StoreController extends Controller
                 }
             } else {
                 //  Not Found
-                return help_resource_not_fonud();
+                return help_resource_not_found();
             }
         } catch (\Exception $e) {
             return help_handle_exception($e);

@@ -7,9 +7,9 @@
                 <Icon type="md-arrow-back" class="mr-1" :size="20" />
                 <span>Stores</span>
             </Button>
-            
+
             <Card class="pt-2">
-                
+
                 <!-- Heading -->
                 <Divider orientation="left" class="font-weight-bold">Create Store</Divider>
 
@@ -19,7 +19,7 @@
                     <Alert type="info" show-icon>Cloning "{{ cloneStore.name }}"</Alert>
 
                     <div>
-                        
+
                         <span class="font-weight-bold d-block mb-2">What would you like to clone?</span>
 
                         <!-- Clone Locations Checkbox -->
@@ -41,61 +41,67 @@
                 <template v-else>
 
                     <!-- If we are loading, Show Loader -->
-                    <Loader v-if="isSearching && !isLoading" class="mt-2 mb-2">Searching for store to clone...</Loader>
+                    <Loader v-if="isSearching && !isCreating" class="mt-2 mb-2">Searching for store to clone...</Loader>
 
                 </template>
 
                 <!-- Error Message Alert -->
-                <Alert v-if="serverErrorMessage  && !isLoading" type="warning">{{ serverErrorMessage }}</Alert>
-                <Alert v-if="serverGeneralError  && !isLoading" type="warning">{{ serverGeneralError }}</Alert>
+                <Alert v-if="serverErrorMessage  && !isCreating" type="warning">{{ serverErrorMessage }}</Alert>
 
                 <Form ref="storeForm" :model="storeForm" :rules="storeFormRules">
-                    
+
                     <!-- Enter Name -->
                     <FormItem prop="name" :error="serverNameError">
-                        <Input type="text" v-model="storeForm.name" placeholder="Name" :disabled="isLoading" 
+                        <Input type="text" v-model="storeForm.name" placeholder="Name" :disabled="isCreating"
                                 maxlength="50" show-word-limit @keyup.enter.native="handleSubmit()">
                         </Input>
                     </FormItem>
-                    
+
+                    <!-- Call To Action -->
+                    <FormItem prop="call_to_action" :error="serverCallToActionError">
+                        <Input type="text" v-model="storeForm.call_to_action" placeholder="Call to action e.g Buy Grocery" :disabled="isCreating"
+                                maxlength="50" show-word-limit @keyup.enter.native="handleSubmit()">
+                        </Input>
+                    </FormItem>
+
                     <!-- Set Online Status -->
                     <FormItem prop="online" :error="serverOnlineError">
                         <div>
                             <span :style="{ width: '200px' }" class="font-weight-bold">{{ statusText }}: </span>
-                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300" 
+                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
                                     content="Turn on to allow subscribers to access this store">
                                 <i-Switch v-model="storeForm.online" />
                             </Poptip>
                         </div>
                     </FormItem>
-                    
+
                     <!-- Set Offline Status Message -->
                     <FormItem v-if="!storeForm.online" prop="offline_message" :error="serverOfflineMessageError">
                         <div class="d-flex">
                             <span :style="{ width: '200px' }" class="font-weight-bold">Offline Message: </span>
-                            <Input type="textarea" v-model="storeForm.offline_message" placeholder="Enter offline message" :disabled="isSavingChanges" 
+                            <Input type="textarea" v-model="storeForm.offline_message" placeholder="Enter offline message" :disabled="isSavingChanges"
                                     maxlength="160" show-word-limit @keyup.enter.native="handleSubmit()">
                             </Input>
                         </div>
                     </FormItem>
 
                     <!-- Create Button -->
-                    <FormItem v-if="!isLoading">
-                        <Button type="primary" class="float-right" :disabled="isSearching || isLoading" @click="handleSubmit()">Create Store</Button>
+                    <FormItem v-if="!isCreating">
+                        <Button type="primary" class="float-right" :disabled="isSearching || isCreating" @click="handleSubmit()">Create Store</Button>
                     </FormItem>
 
                     <!-- If we are loading, Show Loader -->
-                    <Loader v-show="isLoading" class="mt-2">Creating store...</Loader>
+                    <Loader v-show="isCreating" class="mt-2">Creating store...</Loader>
 
                 </Form>
-                
+
             </Card>
         </Col>
     </Row>
 
 </template>
 <script>
-    
+
     import Loader from './../../../components/_common/loaders/default.vue';
 
     export default {
@@ -105,10 +111,12 @@
             return {
                 cloneStore: null,
                 isSearching: false,
-                isLoading: false,
+                isCreating: false,
+                isLoadingSubscriptionPlans: false,
                 storeForm: {
                     name: '',
                     online: true,
+                    call_to_action: '',
                     offline_message: 'Sorry, we are currently offline',
 
                     clone_locations: true,
@@ -122,6 +130,11 @@
                         { min: 3, message: 'Store name is too short', trigger: 'change' },
                         { max: 50, message: 'Store name is too long', trigger: 'change' }
                     ],
+                    call_to_action: [
+                        { required: true, message: 'Please enter your call to action e.g Buy Grocery', trigger: 'blur' },
+                        { min: 3, message: 'Call to action is too short', trigger: 'change' },
+                        { max: 140, message: 'Call to action is too long', trigger: 'change' }
+                    ],
                     offline_message: [
                         { min: 3, message: 'Offline message is too short', trigger: 'change' },
                         { max: 160, message: 'Offline message is too long', trigger: 'change' }
@@ -133,17 +146,14 @@
             }
         },
         computed: {
-            serverGeneralError(){
-                return (this.serverErrors || {}).general;
-            },
             serverNameError(){
                 return (this.serverErrors || {}).name;
             },
+            serverCallToActionError(){
+                return (this.serverErrors || {}).call_to_action;
+            },
             serverOnlineError(){
                 return (this.serverErrors || {}).online;
-            },
-            serverSharedShortCodeError(){
-                return (this.serverErrors || {}).shared_short_code;
             },
             cloneStoreUrl(){
                 if( this.$route.query.store_url ){
@@ -159,7 +169,7 @@
 
                 //  Redirect the user to the stores page
                 this.$router.push({ name: 'show-stores' });
-                
+
             },
             handleSubmit(){
 
@@ -167,11 +177,11 @@
                 this.resetErrors();
 
                 //  Validate the form
-                this.$refs['storeForm'].validate((valid) => 
-                {   
+                this.$refs['storeForm'].validate((valid) =>
+                {
                     //  If the validation passed
                     if (valid) {
-                        
+
                         //  Attempt to create the store
                         this.attemptStoreCreation();
 
@@ -198,7 +208,7 @@
                     //  Use the api call() function, refer to api.js
                     api.call('get', this.cloneStoreUrl)
                         .then(({data}) => {
-                            
+
                             //  Console log the data returned
                             console.log(data);
 
@@ -211,8 +221,8 @@
                             //  Stop loader
                             self.isSearching = false;
 
-                        })         
-                        .catch(response => { 
+                        })
+                        .catch(response => {
 
                             //  Log the responce
                             console.error(response);
@@ -229,13 +239,13 @@
                 const self = this;
 
                 //  Start loader
-                self.isLoading = true;
+                self.isCreating = true;
 
                 /**  Make an Api call to create the store. We include the
                  *   store details required for a new store creation.
                  */
                 let storeData = this.storeForm;
-                
+
                 /**  Note "api_home" is defined within the auth.js file.
                  *   It holds reference to common links for ease of
                  *   access.
@@ -246,7 +256,7 @@
                     .then(({data}) => {
 
                         //  Stop loader
-                        self.isLoading = false;
+                        self.isCreating = false;
 
                         //  Reset the form
                         self.resetStoreForm();
@@ -259,17 +269,17 @@
 
                         //  Redirect the user to the stores page
                         this.$router.push({ name: 'show-stores' });
-                        
+
                     }).catch((response) => {
-                
+
                         console.log(response);
 
                         //  Stop loader
-                        self.isLoading = false;
+                        self.isCreating = false;
 
                         //  Get the error response data
                         let data = (response || {}).data;
-                            
+
                         //  Get the response errors
                         var errors = (data || {}).errors;
 
@@ -282,7 +292,7 @@
 
                             //  If we have errors
                             if(_.size(errors)){
-                                
+
                                 //  Set the server errors
                                 self.serverErrors = errors;
 
@@ -313,7 +323,7 @@
             }
         },
         created() {
-            this.fetchStoreToClone();   
+            this.fetchStoreToClone();
         }
     }
 </script>

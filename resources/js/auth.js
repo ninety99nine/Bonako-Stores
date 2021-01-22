@@ -6,7 +6,7 @@ class Auth {
 
         /** The constructor method is called each time the class object is initialized.
          *  When this class object is initialized we need to instantiate properties
-         *  for use in the object methods.  
+         *  for use in the object methods.
          */
 
         //  Initialize the user to nothing
@@ -17,6 +17,15 @@ class Auth {
 
         //  Initialize the register url to nothing
         this.registerUrl = null;
+
+        //  Initialize the account exists url to nothing
+        this.accountExistsUrl = null;
+
+        //  Initialize the send mobile account verification code url to nothing
+        this.sendMobileAccountVerificationCodeUrl = null;
+
+        //  Initialize the verify mobile account verification code url to nothing
+        this.verifyMobileAccountVerificationCodeUrl = null;
 
         //  Initialize the send password reset link url to nothing
         this.sendPasswordResetLinkUrl = null;
@@ -41,7 +50,7 @@ class Auth {
         /** Make an API Call to the API Home endpoint. This endpoint will provide us with the
          *  essential routes to execute Login, Registation and Logout calls. We only need to
          *  check for authorization on routes that only allow authenticated users.
-         * 
+         *
          *  Note the use of "async" and "await". This helps us to perform the api call and wait
          *  for the response before we continue any futher
          */
@@ -59,8 +68,19 @@ class Auth {
                     //  Update the register url
                     this.registerUrl = data['_links']['bos:register']['href'];
 
+                    //  Update the account exists url
+                    this.accountExistsUrl = data['_links']['bos:account_exists']['href'];
+
+                    //  Update the send mobile account verification code url
+                    this.sendMobileAccountVerificationCodeUrl = data['_links']['bos:send_mobile_account_verification_code']['href'];
+
+                    //  Update the verify mobile account verification code url
+                    this.verifyMobileAccountVerificationCodeUrl = data['_links']['bos:verify_mobile_account_verification_code']['href'];
+
+                    //  Update the send password reset link url
                     this.sendPasswordResetLinkUrl = data['_links']['bos:send-password-reset-link']['href'];
 
+                    //  Update the reset password url
                     this.resetPasswordUrl = data['_links']['bos:reset-password']['href'];
 
                     //  Update the logout url
@@ -102,7 +122,7 @@ class Auth {
 
                 console.log('We don\'t have a locally stored token');
 
-                /** Logout to return to the login screen. We need to use the "async" and "await" to 
+                /** Logout to return to the login screen. We need to use the "async" and "await" to
                  *  perform the api call and wait for a response.
                  */
                 await this.logout();
@@ -110,7 +130,7 @@ class Auth {
             }
 
         }else{
-            
+
             console.log('This route does not require an authenticated user');
         }
 
@@ -147,9 +167,58 @@ class Auth {
             });
     }
 
-    login (email, password)
-    {   
-        /**  Make an Api call to get the API Login endpoint. We include the user's 
+    checkIfEmailAccountExists (email)
+    {
+        /**  Make an Api call to verify if we have an account
+         *   that matches the given email address.
+         */
+        let accountData = {
+            email: email
+        };
+
+        return api.call('post', this.accountExistsUrl, accountData);
+    }
+
+    checkIfMobileAccountExists (mobile_number)
+    {
+        /**  Make an Api call to verify if we have an account
+         *   that matches the given mobile number.
+         */
+        let accountData = {
+            mobile_number: mobile_number
+        };
+
+        return api.call('post', this.accountExistsUrl, accountData);
+    }
+
+    sendMobileAccountVerificationCode (mobile_number)
+    {
+        /**  Make an Api call to send the mobile account 6 digit verification
+         *   code to the given mobile number.
+         */
+        let accountData = {
+            mobile_number: mobile_number
+        };
+
+        return api.call('post', this.sendMobileAccountVerificationCodeUrl, accountData);
+    }
+
+    verifyMobileAccountVerificationCode (mobile_number, code)
+    {
+        /**  Make an Api call to send the mobile account 6 digit verification
+         *   code to the given mobile number.
+         */
+        let accountData = {
+            mobile_number: mobile_number,
+            code: code
+        };
+
+        return api.call('post', this.verifyMobileAccountVerificationCodeUrl, accountData);
+    }
+
+    loginWithEmail (email, password)
+    {
+        /**  Make an Api call to get the API Login endpoint. We include the user's
          *   email and password required for validation and authentication.
          */
         let loginData = {
@@ -175,9 +244,54 @@ class Auth {
             });
     }
 
+    loginWithMobile (mobile_number, password, password_confirmation = null, verification_code = null)
+    {
+        /**  Make an Api call to get the API Login endpoint. We include the user's
+         *   email and password required for validation and authentication.
+         */
+        let loginData = {
+            mobile_number: mobile_number,
+            password: password
+        };
+
+        console.log('loginData 1');
+        console.log(loginData);
+
+        //  If the password confirmation and the verification code has been provided
+        if( password_confirmation ){
+
+            //  Set the password confirmation on the login data
+            loginData.password_confirmation = password_confirmation;
+
+            //  Set the verification code on the login data
+            loginData.verification_code = verification_code;
+
+        }
+
+        console.log('loginData 2');
+        console.log(loginData);
+
+        return api.call('post', this.loginUrl, loginData)
+            .then(({data}) => {
+
+                //  Get the access token
+                this.token = data['access_token']['accessToken'];
+
+                //  Set bearer token
+                this.setBearerToken();
+
+                //  Store the token in the local storage
+                this.storeToken();
+
+                //  Get the authenticated user details
+                return this.getAuth();
+
+            });
+    }
+
     register (first_name, last_name, email, password, password_confirmation)
-    {   
-        /**  Make an Api call to get the API Register endpoint. We include the user's 
+    {
+        /**  Make an Api call to get the API Register endpoint. We include the user's
          *   registration details required for account creation.
          */
         let registrationData = {
@@ -207,7 +321,7 @@ class Auth {
     }
 
     sendPasswordResetLink (email)
-    {   
+    {
         /**  Make an Api call to send the password reset link. We include the
          *    user's details required to send the password reset link.
          */
@@ -219,11 +333,11 @@ class Auth {
              *  on the password reset button from their email. The password reset
              *  token and user email will also be attached to this provided url
              *  as query parameters e.g:
-             * 
+             *
              *  "https://{password_reset_url}?token=...&email=..."
-             *  
-             * This is the link that we want the endpoint to attach the token 
-             * 
+             *
+             * This is the link that we want the endpoint to attach the token
+             *
              */
 
              // This will generate "https://www.app-domain.com/#/reset-password"
@@ -234,7 +348,7 @@ class Auth {
     }
 
     resetPassword (email, token, password, password_confirmation )
-    {   
+    {
         /**  Make an Api call to reset the user's password. We include the
          *   user's details required to reset the password
          */
@@ -264,7 +378,7 @@ class Auth {
     }
 
     logout(logoutEveryone = false)
-    {  
+    {
         console.log('Start logging out process');
 
         //  Determine the type of logout to use
@@ -275,7 +389,7 @@ class Auth {
          *  logout from the client side
          */
         return this.logoutServerSide(url).then(() => {
-    
+
             //  Logout the client side
             this.logoutClientSide();
 
@@ -294,18 +408,18 @@ class Auth {
 
         //  Use the api call() function located in resources/js/api.js
         return api.call('post', url).then(() => {
-            
+
             //  Stop the signing out loader
             setTimeout(signoutLoader, 0);
 
             //  After one second
             setTimeout(function(){
-                
+
                 //  Sho the signed out success message
                 VueInstance.$Message.success('You are signed out!');
 
             }, 1000);
-            
+
 
         });
     }

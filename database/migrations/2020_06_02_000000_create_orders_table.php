@@ -17,10 +17,10 @@ class CreateOrdersTable extends Migration
             /*  Basic Info  */
             $table->string('number')->nullable();
             $table->json('currency')->nullable();
-            $table->timestampTz('created_date')->nullable();
+            $table->timestamp('created_date')->nullable();
 
             /*  Rating Info  */
-            $table->timestampTz('request_customer_rating_at')->nullable();
+            $table->timestamp('request_customer_rating_at')->nullable();
 
             /*  Status  */
             $table->string('status')->default('draft');

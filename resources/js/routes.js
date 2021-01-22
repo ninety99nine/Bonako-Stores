@@ -60,6 +60,11 @@ let routes = [
                 component: require('./views/stores/show/overview/main.vue').default
             },
             {
+                path: 'orders', name: 'show-store-orders',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/orders/main.vue').default
+            },
+            {
                 path: 'instant-carts', name: 'show-store-instant-carts',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
                 component: require('./views/stores/show/instant-carts/main.vue').default
@@ -122,18 +127,18 @@ router.beforeEach((to, from, next) => {
     /** Retrieve the matched route and check if it has meta.middlewareAuth set to true or set at all.
      *  If it's set to true it means we require the user to be authenticated to access the route and
      *  if they're not we're redirecting them to the login page.
-     */      
-    if (to.matched.some(record => record.meta.middlewareAuth)) {     
+     */
+    if (to.matched.some(record => record.meta.middlewareAuth)) {
         //  Check if user is authenticated
         if (!auth.isAuthenticated()) {
-            
+
             console.log('The user is not authenticated');
-            
+
             console.log('We must go to the login page');
 
-            /** Redirect to the login page. Save the current url so that 
+            /** Redirect to the login page. Save the current url so that
              *  we can redirect back after we login
-             */ 
+             */
             next({
                 name: 'login',
                 query: { redirect: to.fullPath }
@@ -150,18 +155,18 @@ router.beforeEach((to, from, next) => {
     /** Retrieve the matched route and check if it has meta.middlewareGuest set to true or set at all.
      *  If it's set to true it means the authenticated user cannot access the route and
      *  if they are we're redirecting them to the dashboard overview page
-     */     
-    if (to.matched.some(record => record.meta.middlewareGuest)) {     
+     */
+    if (to.matched.some(record => record.meta.middlewareGuest)) {
         //  Check if user is authenticated
         if (auth.isAuthenticated()) {
 
-            
+
             console.log('The user is authenticated');
-            
+
             console.log('We must go to the stores page');
 
             /** Redirect to the stores page
-             */ 
+             */
             next({
                 name: 'show-stores',
             });
