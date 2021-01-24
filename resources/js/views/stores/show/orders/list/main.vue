@@ -4,11 +4,22 @@
 
         <Col :span="24">
 
-            <Row class="mb-4">
+            <Row :gutter="12" class="mb-4">
 
-                <Col :span="16">
+                <Col :span="8">
 
                     <Input type="text" size="large" placeholder="Search order..." icon="ios-search-outline"></Input>
+
+                </Col>
+
+                <Col :span="8">
+
+                    <Poptip trigger="hover" content="Add filters for specific orders" word-wrap class="poptip-w-100">
+                        <Select v-model="selectedStatuses" size="large" multiple class="w-100"
+                                placeholder="Add filters" @on-change="fetchOrders()">
+                            <Option v-for="(status, index) in statuses" :value="status" :key="index">{{ status }}</Option>
+                        </Select>
+                    </Poptip>
 
                 </Col>
 
@@ -31,9 +42,38 @@
 
             <Table class="order-table" :columns="dynamicColumns" :data="orders" :loading="isLoading"
                     no-data-text="No orders found" :style="{ overflow: 'visible' }">
+
+                <template slot-scope="{ row, index }" slot="action">
+
+                    <div class="order-table-actions">
+                        <Dropdown trigger="click" placement="bottom-end">
+                            <Icon type="md-more" size="20" :class="['border', 'rounded-circle', 'border-secondary', 'text-secondary']" />
+                            <DropdownMenu slot="list">
+                                <DropdownItem name="View">View</DropdownItem>
+                                <DropdownItem name="Fulfil" @click.native="handleOpenVerifyOrderDeliveryModal(row)">Fulfil</DropdownItem>
+                                <DropdownItem name="Delete" class="text-danger">Delete</DropdownItem>
+                            </DropdownMenu>
+                        </Dropdown>
+                    </div>
+
+                </template>
+
             </Table>
 
         </Col>
+
+        <!--
+            MODAL TO VERIFY ORDER DELIVERY
+        -->
+        <template v-if="isOpenVerifyOrderDeliveryModal">
+
+            <verifyOrderDeliveryModal
+                :order="order"
+                @verified="handleVerifiedOrder"
+                @visibility="isOpenVerifyOrderDeliveryModal = $event">
+            </verifyOrderDeliveryModal>
+
+        </template>
 
     </Row>
 
@@ -41,6 +81,7 @@
 
 <script>
 
+    import verifyOrderDeliveryModal from './verifyOrderDeliveryModal.vue';
     import statusTag from './../components/statusTag.vue';
     import moment from 'moment';
 
@@ -51,15 +92,21 @@
                 default: null
             },
         },
-        components: { statusTag },
+        components: { verifyOrderDeliveryModal, statusTag },
         data () {
             return {
                 orders: [],
+                order: null,
                 isLoading: false,
+                statuses: [
+                    'Paid', 'Unpaid', 'Fulfilled', 'UnFulfilled', 'Cancelled'
+                ],
+                selectedStatuses: [],
                 tableColumnsToShowByDefault: [
                     'Selector', 'Order #', 'Customer', 'Mobile', 'Items', 'Payment Status',
                     'Fulfillment Status', 'Created Date', 'Total'
-                ]
+                ],
+                isOpenVerifyOrderDeliveryModal: false
             }
         },
         computed: {
@@ -125,8 +172,9 @@
                                     wordWrap: true,
                                     trigger:'hover',
                                     placement: 'top',
-                                    content: 'Customer: '+((params.row.customer_info || {}).first_name  || '...')+' '
-                                                         +((params.row.customer_info || {}).last_name  || '')
+                                    title: 'Customer',
+                                    content: ((params.row.customer_info || {}).first_name  || '...')+' '
+                                             +((params.row.customer_info || {}).last_name  || '')
                                 }
                             }, [
                                 h('span', {
@@ -153,7 +201,8 @@
                                     wordWrap: true,
                                     trigger:'hover',
                                     placement: 'top',
-                                    content: 'Mobile: '+((params.row.customer_info || {}).mobile_number  || '...')
+                                    title: 'Mobile',
+                                    content: ((params.row.customer_info || {}).mobile_number  || '...')
                                 }
                             }, [
                                 h('span', {
@@ -205,7 +254,7 @@
                                     width: '100%'
                                 },
                                 props: {
-                                    width: 280,
+                                    width: 350,
                                     wordWrap: true,
                                     trigger:'hover',
                                     placement: 'top',
@@ -276,7 +325,7 @@
                                     width: 280,
                                     wordWrap: true,
                                     trigger:'hover',
-                                    placement: 'top-start',
+                                    placement: 'top',
                                     content: 'Date: '+ this.formatDateTime(params.row.created_at.date, true)
                                 }
                             }, [
@@ -342,41 +391,8 @@
                 allowedColumns.push(
                     {
                         title: 'Action',
-                        key: 'action',
-                        width: 150,
-                        render: (h, params) => {
-                            return h('div', {
-                                    class: ['order-table-actions']
-                                }, [
-                                h('Button', {
-                                    props: {
-                                        type: 'primary',
-                                        size: 'small',
-                                        ghost: true
-                                    },
-                                    style: {
-                                        marginRight: '5px'
-                                    },
-                                    on: {
-                                        click: () => {
-                                            this.show(params.index)
-                                        }
-                                    }
-                                }, 'View'),
-                                (params.row.status.name == 'Cancelled' ? null : h('Button', {
-                                    props: {
-                                        type: 'error',
-                                        size: 'small',
-                                        ghost: true
-                                    },
-                                    on: {
-                                        click: () => {
-                                            this.remove(params.index)
-                                        }
-                                    }
-                                }, 'Cancel'))
-                            ]);
-                        }
+                        slot: 'action',
+                        width: 80,
                     }
                 );
 
@@ -387,6 +403,13 @@
             }
         },
         methods: {
+            handleOpenVerifyOrderDeliveryModal(order){
+                this.order = order;
+                this.isOpenVerifyOrderDeliveryModal = true;
+            },
+            handleVerifiedOrder(){
+
+            },
             formatDateTime(date, withTime = false) {
                 if( withTime ){
                     return moment(date).format('MMM DD YYYY @H:mmA');

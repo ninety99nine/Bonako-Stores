@@ -1,7 +1,7 @@
 <template>
 
-    <Poptip word-wrap width="350" trigger="hover" placement="top-start"
-             :content="status.description">
+    <Poptip word-wrap width="350" trigger="hover" placement="top"
+             :title="'Status: '+status.name" :content="status.description">
         <Tag :color="color">
             <span class="cut-text text-capitalize">{{ status.name }}</span>
         </Tag>
