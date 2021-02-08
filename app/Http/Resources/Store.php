@@ -18,20 +18,15 @@ class Store extends JsonResource
     public function toArray($request)
     {
         return [
+
             'id' => $this->id,
             'name' => $this->name,
             'online' => $this->online,
-            'user_id' => $this->user_id,
-            'currency' => $this->currency,
             'offline_message' => $this->offline_message,
-            'minimum_stock_quantity' => $this->minimum_stock_quantity,
+            'allow_sending_merchant_sms' => $this->allow_sending_merchant_sms,
 
             'is_favourite' => $this->total_favourite_locations ? true : false,
             'total_favourite_locations' => $this->total_favourite_locations,
-
-            'has_subscribed' => count($this->myActiveSubscriptions) ? true: false,
-            'has_visit_short_codes' => count($this->visitShortCodes) ? true: false,
-            'has_payment_short_codes' => count($this->paymentShortCodes) ? true: false,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
@@ -45,7 +40,7 @@ class Store extends JsonResource
 
                 //  Link to current resource
                 'self' => [
-                    'href' => route('store', ['store_id' => $this->id]),
+                    'href' => route('store-show', ['store_id' => $this->id]),
                     'title' => 'This store',
                 ],
 
@@ -65,40 +60,11 @@ class Store extends JsonResource
                 'bos:locations' => [
                     'href' => route('store-locations', ['store_id' => $this->id]),
                     'title' => 'The store locations',
-                    'total' => $this->locations()->count(),
-                ],
-
-                //  Link to the store favourite locations
-                'bos:favourite_locations' => [
-                    'href' => route('store-favourite-locations', ['store_id' => $this->id]),
-                    'title' => 'The store favourite locations',
-                    'total' => $this->locations()->asFavourite(auth()->user()->id)->count(),
-                ],
-
-                //  Link to the instant carts
-                'bos:products' => [
-                    'href' => route('store-products', ['store_id' => $this->id]),
-                    'title' => 'The store products',
-                    'total' => $this->products()->count(),
-                ],
-
-                //  Link to the instant carts
-                'bos:coupons' => [
-                    'href' => route('store-coupons', ['store_id' => $this->id]),
-                    'title' => 'The store coupons',
-                    'total' => $this->coupons()->count(),
-                ],
-
-                //  Link to the instant carts
-                'bos:instant_carts' => [
-                    'href' => route('store-instant-carts', ['store_id' => $this->id]),
-                    'title' => 'The store instant carts',
-                    'total' => $this->instantCarts()->count(),
                 ],
 
                 //  Link to subscribe to store
                 'bos:subscribe' => [
-                    'href' => route('store-favourite', ['store_id' => $this->id]),
+                    'href' => route('store-subscribe', ['store_id' => $this->id]),
                     'title' => 'The POST route to create a store subscription'
                 ],
 
@@ -108,30 +74,21 @@ class Store extends JsonResource
                     'title' => 'The POST route to create a store payment shortcode'
                 ],
 
-                //  Link to add or remove a favourite store
-                'bos:add_or_remove_favourite_store' => [
-                    'href' => route('store-favourite', ['store_id' => $this->id]),
-                    'title' => 'The POST route to mark or unmark a favourite store'
-                ],
-
             ],
 
             '_attributes' => [
                 'subscription' => $this->subscription,
                 'visit_short_code' => $this->visit_short_code,
-                'visit_short_code' => $this->visit_short_code,
-                'payment_short_code' => $this->visit_short_code,
+                'payment_short_code' => $this->payment_short_code,
+
                 'has_subscribed' => $this->has_subscribed,
-                'has_visit_short_code' => $this->has_payment_short_code,
+                'has_visit_short_code' => $this->has_visit_short_code,
                 'has_payment_short_code' => $this->has_payment_short_code,
             ],
 
             /*  Embedded Resources */
             '_embedded' => [
-                'coupons' => $this->coupons,
-                'visit_short_codes' => new ShortCodesResource( $this->visitShortCodes ),
-                'payment_short_codes' => new ShortCodesResource( $this->paymentShortCodes ),
-                'my_active_subscriptions' => new SubscriptionsResource( $this->myActiveSubscriptions ),
+
             ],
         ];
     }

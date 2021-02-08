@@ -13,18 +13,36 @@ trait ProductTraits
     public $product = null;
     public $request = null;
 
-    /** convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format.
+    /**
+     *  This method transforms a collection or single model instance
      */
-    public function convertToApiFormat($products = null)
+    public function convertToApiFormat($collection = null)
     {
-        if ($products) {
-            //  Transform the multiple instances
-            return new ProductsResource($products);
-        } else {
-            //  Transform the single instance
-            return new ProductResource($this);
+        try {
+
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
+
+                //  Transform the multiple instances
+                return new ProductsResource($collection);
+
+            // If this instance is not a collection
+            }elseif($this instanceof \App\Product){
+
+                //  Transform the single instance
+                return new ProductResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
         }
     }
 

@@ -2,16 +2,15 @@
 
 namespace App;
 
-use App\Traits\CommonTraits;
 use App\Traits\OrderTraits;
+use App\Traits\CommonTraits;
 use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    use CommonTraits;
-    use OrderTraits;
+    use CommonTraits, OrderTraits;
 
-    protected $with = ['fulfillments'];
+    protected $with = ['status', 'paymentStatus', 'fulfillmentStatus', 'activeCart', 'deliveryLine'];
 
     /**
      * The table associated with the model.
@@ -19,11 +18,7 @@ class Order extends Model
      * @var string
      */
     protected $casts = [
-        'currency' => 'array',
-        'item_lines' => 'array',
-        'coupon_lines' => 'array',
-        'customer_info' => 'array',
-        'delivery_info' => 'array',
+        'delivery_verified' => 'boolean',  //  Return the following 1/0 as true/false
     ];
 
     /**
@@ -32,7 +27,7 @@ class Order extends Model
      * @var array
      */
     protected $dates = [
-        'created_date',
+        'delivery_verified_at',
         'request_customer_rating_at',
     ];
 
@@ -43,45 +38,32 @@ class Order extends Model
      */
     protected $fillable = [
         /*  Basic Info  */
-        'number', 'currency', 'created_date',
+        'number',
 
         /*  Rating Info  */
         'request_customer_rating_at',
 
-        /*  Status  */
-        'status', 'payment_status', 'fulfillment_status',
+        /*  Status Info  */
+        'status_id', 'payment_status_id', 'fulfillment_status_id',
 
+        /*  Cancellation Info  */
         'cancellation_reason',
 
-        /*  Item Info  */
-        'item_lines',
-
-        /*  Coupon Info  */
-        'coupon_lines',
-
-        /*  Cart Info  */
-        'sub_total', 'coupon_total', 'discount_total',  'coupon_and_discount_total',
-        'delivery_fee', 'grand_total',
-
         /*  Customer Info  */
-        'customer_id', 'customer_info',
+        'customer_id',
 
         /*  Delivery Info  */
-        'delivery_info',
-
-        /*  Checkout Info  */
-        'checkout_method',
-
-        /*  Store Info  */
-        'store_id',
-
-        /*  Location Info  */
-        'location_id',
+        'delivery_confirmation_code', 'delivery_verified', 'delivery_verified_at',
     ];
 
-    protected $allowedFilters = [];
-
-    protected $allowedOrderableColumns = [];
+    /**
+     * The attributes that should be hidden for arrays.
+     *
+     * @var array
+     */
+    protected $hidden = [
+        'delivery_confirmation_code',
+    ];
 
     /*
      *  Scope:
@@ -141,43 +123,105 @@ class Order extends Model
      *  Scope:
      *  Returns orders that are placed by the current user
      */
-    public function scopeUserIsCustomer($query)
+    public function scopeUserIsCustomer($query, $user = null)
     {
-        return $query->where('customer_id', auth()->user()->id);
+        $user = $user ?? auth()->user();
+
+        return $query->where('customer_id', $user->id);
     }
 
     /*
      *  Scope:
      *  Returns orders that require a rating
      */
-    public function scopeRequireRating($query)
+    public function scopeRequireRating($query, $user = null)
     {
-        return $query->where('customer_id', auth('api')->user()->id)
+        $user = $user ?? auth()->user();
+
+        return $query->where('customer_id', $user->id)
                      ->where('request_customer_rating_at', '<=', \Carbon\Carbon::now());
     }
 
     /**
-     *  Returns the owning store.
+     *  Returns the associated locations
      */
-    public function store()
+    public function locations()
     {
-        return $this->belongsTo('App\Store');
+        return $this->belongsToMany(Location::class, 'location_order')->latest();
     }
 
     /**
-     *  Returns the the owning location.
+     *  Returns the received location. This is the original
+     *  location that the order was first placed
      */
-    public function location()
+    public function receivedLocations()
     {
-        return $this->belongsTo('App\Location');
+        return $this->locations()->wherePivot('is_shared', 0);
     }
 
-    /*
-     *  Returns the order fulfillments
+    /**
+     *  Returns the shared locations. These are
+     *  locations that the order was shared
      */
-    public function fulfillments()
+    public function sharedLocations()
     {
-        return $this->hasMany('App\Fulfillment')->latest();
+        return $this->locations()->wherePivot('is_shared', 1);
+    }
+
+    /**
+     *  Returns the carts owned by this order
+     */
+    public function carts()
+    {
+        return $this->morphMany(Cart::class, 'owner');
+    }
+
+    /**
+     *  Returns the active cart owned by this order
+     */
+    public function activeCart()
+    {
+        return $this->morphOne(Cart::class, 'owner')->active();
+    }
+
+    /**
+     *  Returns the order status
+     */
+    public function status()
+    {
+        return $this->belongsTo('App\Status');
+    }
+
+    /**
+     *  Returns the order payment status
+     */
+    public function paymentStatus()
+    {
+        return $this->belongsTo('App\Status');
+    }
+
+    /**
+     *  Returns the order fulfillment status
+     */
+    public function fulfillmentStatus()
+    {
+        return $this->belongsTo('App\Status');
+    }
+
+    /**
+     *  Returns the order customer
+     */
+    public function customer()
+    {
+        return $this->belongsTo('App\User', 'customer_id');
+    }
+
+    /**
+     *  Returns the order delivery line
+     */
+    public function deliveryLine()
+    {
+        return $this->hasOne('App\DeliveryLine');
     }
 
     /** ATTRIBUTES
@@ -185,203 +229,12 @@ class Order extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'status', 'payment_status', 'fulfillment_status', 'unfulfilled_item_lines',
-        'quantity_of_unfulfilled_item_lines', 'quantity_of_fulfilled_item_lines',
+        'resource_type'
     ];
 
-    /*
-     *  Returns the order unfulfilled item lines
-     */
-    public function getUnfulfilledItemLinesAttribute()
+    public function setDeliveryVerifiedAttribute($value)
     {
-        try {
-            $item_lines = $this->item_lines;
-
-            $fulfillments = $this->fulfillments;
-
-            $unfulfilled_item_lines = [];
-
-            if ($item_lines) {
-                //  Foreach order item line
-                foreach ($item_lines as $item_line) {
-                    //  Lets get the current order item line quantity value
-                    $item_quantity = intval($item_line['quantity']);
-
-                    //  Foreach fulfillment instance [Since we can have multiple fulfillment instances]
-                    foreach ($fulfillments as $fulfillment) {
-                        //  Foreach item line of the current fulfillment instance
-                        foreach ($fulfillment->item_lines as $fulfillment_item_line) {
-                            //  Lets check if the current fulfillment item line matches the current order item line
-                            if ($fulfillment_item_line['id'] == $item_line['id']) {
-                                //  Lets get the current fulfillment item line quantity value
-                                $fulfillment_item_quantity = intval($fulfillment_item_line['quantity']);
-
-                                /** Calculate if we have any remaining quantities of the matching item that are not yet fulfilled.
-                                 *  Assumiing that:.
-                                 *
-                                 *  $item_quantity = 5 and
-                                 *  $fulfillment_item_quantity = 2
-                                 *
-                                 *  This means that if we subtract $fulfillment_item_quantity (2) from $item_quantity (5) we
-                                 *  will get the number of remaining unfulfilled items (3) for the same matching item.
-                                 *
-                                 *  $item_quantity (3) = $item_quantity (5) - $fulfillment_item_quantity (2)
-                                 */
-                                $item_quantity = $item_quantity - $fulfillment_item_quantity;
-                            }
-                        }
-                    }
-
-                    //  If we have any remaining quantities that haven't yet been fulfilled for this item line
-                    if ($item_quantity > 0) {
-                        //  Get the unfulfilled/partially fulfilled item line
-                        $unfulfilled_item_line = $item_line;
-
-                        //  Update the remaining quantities that require fulfillment for this item line
-                        $unfulfilled_item_line['quantity'] = $item_quantity;
-
-                        //  Push the unfulfilled item
-                        array_push($unfulfilled_item_lines, $unfulfilled_item_line);
-                    }
-                }
-            }
-
-            return $unfulfilled_item_lines;
-        } catch (\Exception $e) {
-            throw($e);
-        }
+        $this->attributes['delivery_verified'] = (($value == 'true' || $value === '1') ? 1 : 0);
     }
 
-    /*
-     *  Returns the quantity unfulfilled item lines
-     */
-    public function getQuantityOfUnfulfilledItemLinesAttribute()
-    {
-        try {
-            $quantity = 0;
-
-            $unfulfilled_item_lines = $this->unfulfilled_item_lines;
-
-            if ($unfulfilled_item_lines) {
-                //  Foreach item line
-                foreach ($unfulfilled_item_lines as $unfulfilled_item_line) {
-                    //  Lets get the current fulfillment item line quantity value
-                    $quantity = $quantity + intval($unfulfilled_item_line['quantity']);
-                }
-            }
-
-            return $quantity;
-        } catch (\Exception $e) {
-            throw($e);
-        }
-    }
-
-    /*
-     *  Returns the quantity fulfilled item lines
-     */
-    public function getQuantityOfFulfilledItemLinesAttribute()
-    {
-        try {
-            $quantity = 0;
-
-            $fulfillments = $this->fulfillments;
-
-            //  Foreach item line
-            foreach ($fulfillments as $fulfillment) {
-                //  Foreach item line of the current fulfillment instance
-                foreach ($fulfillment->item_lines as $fulfillment_item_line) {
-                    //  Lets get the current fulfillment item line quantity value
-                    $quantity = $quantity + intval($fulfillment_item_line['quantity']);
-                }
-            }
-
-            return $quantity;
-        } catch (\Exception $e) {
-            throw($e);
-        }
-    }
-
-    /*
-     *  Returns the current status name and description of the order
-     */
-    public function getStatusAttribute($value)
-    {
-        switch (ucwords($value)) {
-            case 'Open':
-                $status_description = 'The order is open for processing';
-                break;
-            case 'Archieved':
-                $status_description = 'The order has been archieved';
-                break;
-            case 'Cancelled':
-                $status_description = 'The order has been cancelled and no longer available for processing';
-                break;
-            case 'Draft':
-                $status_description = 'The order is currently a draft and not yet available for processing.';
-                break;
-            default:
-                $status_description = 'Status is unknown.';
-        }
-
-        return [
-            'name' => ucwords($value),
-            'description' => $status_description,
-        ];
-    }
-
-    /*
-     *  Returns the current payment status name and description of the order
-     */
-    public function getPaymentStatusAttribute($value)
-    {
-        switch (ucwords($value)) {
-            case 'Paid':
-                $status_description = 'The order has been paid';
-                break;
-            case 'Partially Paid':
-                $status_description = 'The order has been partially paid';
-                break;
-            case 'Unpaid':
-                $status_description = 'The order has not been paid';
-                break;
-            case 'Refunded':
-                $status_description = 'The order has been refunded';
-                break;
-            case 'Failed Payment':
-                $status_description = 'The order payment failed or was declined (unpaid)';
-                break;
-            default:
-                $status_description = 'Status is unknown';
-        }
-
-        return [
-            'name' => ucwords($value),
-            'description' => $status_description,
-        ];
-    }
-
-    /*
-     *  Returns the current fulfillmnt status name and description of the order
-     */
-    public function getFulfillmentStatusAttribute($value)
-    {
-        switch (ucwords($value)) {
-            case 'Unfulfilled':
-                $status_description = 'The order is still awaiting fulfillment';
-                break;
-            case 'Partially Fulfilled':
-                $status_description = 'The order has been partially fulfilled';
-                break;
-            case 'Fulfilled':
-                $status_description = 'The order has been fulfilled';
-                break;
-            default:
-                $status_description = 'Status is unknown';
-        }
-
-        return [
-            'name' => ucwords($value),
-            'description' => $status_description,
-        ];
-    }
 }

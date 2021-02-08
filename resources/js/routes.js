@@ -62,7 +62,7 @@ let routes = [
             {
                 path: 'orders', name: 'show-store-orders',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
-                component: require('./views/stores/show/orders/main.vue').default
+                component: require('./views/stores/show/orders/list/main.vue').default
             },
             {
                 path: 'instant-carts', name: 'show-store-instant-carts',

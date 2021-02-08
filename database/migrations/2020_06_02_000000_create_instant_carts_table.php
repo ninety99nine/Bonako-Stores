@@ -23,15 +23,12 @@ class CreateInstantCartsTable extends Migration
             /*  Status  */
             $table->boolean('active')->nullable()->default(false);
 
-            /*  Store Info  */
-            $table->unsignedInteger('store_id')->nullable();
-
             /*  Location Info  */
             $table->unsignedInteger('location_id')->nullable();
 
             /*  Timestamps  */
             $table->timestamps();
-            
+
         });
     }
 

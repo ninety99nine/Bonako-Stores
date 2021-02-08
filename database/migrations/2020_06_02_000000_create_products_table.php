@@ -35,7 +35,6 @@ class CreateProductsTable extends Migration
             $table->boolean('is_new')->default(0);
             $table->boolean('is_featured')->default(0);
             $table->unsignedInteger('parent_product_id')->nullable();
-            $table->unsignedInteger('store_id')->nullable();
             $table->unsignedInteger('location_id')->nullable();
             $table->unsignedInteger('user_id')->nullable();
 

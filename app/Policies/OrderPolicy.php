@@ -19,9 +19,9 @@ class OrderPolicy
         try {
 
             /** Note that this will run before any other checks. This means is we return true we will be authorized
-             *  for every action. However be aware that if we return false here, then we are also not authorizing 
-             *  all other methods. We must be careful here, we only return true if the user is a "Super Admin" 
-             *  but nothing is they are not, since we want other methods to run their own local checks. 
+             *  for every action. However be aware that if we return false here, then we are also not authorizing
+             *  all other methods. We must be careful here, we only return true if the user is a "Super Admin"
+             *  but nothing is they are not, since we want other methods to run their own local checks.
              */
             if($user->isSuperAdmin()) return true;
 
@@ -31,7 +31,7 @@ class OrderPolicy
 
         }
     }
-    
+
     /**
      * Determine whether the user can view all orders.
      *
@@ -84,8 +84,8 @@ class OrderPolicy
     {
         try {
 
-            //  Any Authenticated user can create a instant carts
-            return auth('api')->user() ? true : false;
+            //  Any Authenticated user can create a order
+            return ($user instanceof \App\User) ? true : false;
 
         } catch (\Exception $e) {
 
@@ -95,16 +95,16 @@ class OrderPolicy
     }
 
     /**
-     * Determine whether the user can fulfill the order.
+     * Determine whether the user can fulfil the order.
      *
      * @param  \App\User  $user
      * @param  \App\Order  $order
      * @return mixed
      */
-    public function fulfill(User $user, Order $order)
+    public function fulfil(User $user, Order $order)
     {
         try {
-            
+
             //  Only an Admin can fulfil this order
             return $order->location->isAdmin($user->id);
 

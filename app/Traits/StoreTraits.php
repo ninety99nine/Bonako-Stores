@@ -3,58 +3,39 @@
 namespace App\Traits;
 
 use DB;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 use App\Http\Resources\Store as StoreResource;
 use App\Http\Resources\Stores as StoresResource;
 
 trait StoreTraits
 {
     public $store = null;
-    public $request = null;
-    public $default_offline_message = 'Sorry, we are currently offline';
-
-    /*  convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format
-     *
-     */
-    public function convertToApiFormat($stores = null)
-    {
-        if ($stores) {
-
-            //  Transform the multiple instances
-            return new StoresResource($stores);
-
-        } else {
-
-            //  Transform the single instance
-            return new StoreResource($this);
-
-        }
-    }
 
     /**
-     *   This method returns a list of stores
+     *  This method transforms a collection or single model instance
      */
-    public function getResourses($request)
+    public function convertToApiFormat($collection = null)
     {
         try {
 
-            //  Set the request variable
-            $this->request = $request;
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
 
-            //  Set the pagination limit
-            $limit = $request->input('limit');
+                //  Transform the multiple instances
+                return new StoresResource($collection);
 
-            //  Validate the request
-            $this->handleValidation('GET');
+            // If this instance is not a collection
+            }elseif($this instanceof \App\Store){
 
-            //  Return the stores
-            $stores = \App\Store::latest()->paginate($limit) ?? [];
+                //  Transform the single instance
+                return new StoreResource($this);
 
-            //  Return an API Readable Format
-            return $this->convertToApiFormat( $stores );
+            }else{
+
+                return $collection ?? $this;
+
+            }
 
         } catch (\Exception $e) {
 
@@ -64,20 +45,194 @@ trait StoreTraits
     }
 
     /**
-     *   This method returns a single store
+     *  This method creates a new store
      */
-    public function getResourse($store_id)
+    public function createResource($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Verify permissions
+            $this->createResourcePermission($user);
+
+            //  Validate the data
+            $this->createResourceValidation($data);
+
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
+
+            //  If the current authenticated user is a Super Admin and the "user_id" is provided
+            if( auth('api')->user()->isSuperAdmin() && isset($data['user_id']) ){
+
+                //  Set the "user_id" provided as the user responsible for owning this resource
+                $template['user_id'] = $data['user_id'];
+
+            }else{
+
+                //  Set the current authenticated user as the user responsible for owning this resource
+                $template['user_id'] = auth('api')->user()->id;
+
+            }
+
+            /**
+             *  Create a new resource
+             */
+            $this->store = $this->create($template);
+
+            //  If created successfully
+            if ( $this->store ) {
+
+                //  Generate a payment shortcode (So that we can subscribe to the store via USSD)
+                $this->store->generateResourcePaymentShortCode($user);
+
+                //  If we have the store id representing the store with resources to clone
+                if ( isset($data['clone_store_id']) ) {
+
+                    //  Set the store id for cloning
+                    $store_id = $data['clone_store_id'];
+
+                    //  Clone the store resources
+                    $this->cloneExternalResources($data, $store_id);
+
+                }else{
+
+                    //  Create a new location resource
+                    $this->store->createResourceLocation($data, $user);
+
+                }
+
+                //  Return the store
+                return $this->store;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method updates an existing store
+     */
+    public function updateResource($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Merge the existing data with the new data
+            $data = array_merge(collect($this)->only($this->getFillable())->toArray(), $data);
+
+            //  Verify permissions
+            $this->updateResourcePermission($user);
+
+            //  Validate the data
+            $this->updateResourceValidation($data);
+
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
+
+            //  Set the original user as the primary user responsible for creating this resource
+            $template['user_id'] = $this->user_id;
+
+            /**
+             *  Update the resource details
+             */
+            $updated = $this->update($template);
+
+            //  If updated successfully
+            if ($updated) {
+
+                //  Return a fresh instance
+                return $this->fresh();
+
+            }else{
+
+                //  Return original instance
+                return $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of stores
+     */
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data
+            $this->getResourcesValidation($data);
+
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
+
+                //  Set the stores to this eloquent builder
+                $stores = $builder;
+
+            }else{
+
+                //  Get the stores
+                $stores = \App\Store::latest();
+
+            }
+
+            //  Filter the stores by search
+            $stores = $this->filterResourcesBySearch($data, $stores);
+
+            //  Return orders
+            return $this->collectionResponse($data, $stores, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the stores by search
+     */
+    public function filterResourcesBySearch($data = [], $stores)
+    {
+        //  Set the search term e.g "Store 1"
+        $search_term = $data['search'] ?? null;
+        
+        //  Return searched stores otherwise original stores
+        return empty($search_term) ? $stores : $stores->search($search_term);
+        
+    }
+
+    /**
+     *  This method returns a single store
+     */
+    public function getResource($id)
     {
         try {
 
             //  Get the resource
-            $store = \App\Store::where('id', $store_id)->first() ?? null;
+            $store = \App\Store::where('id', $id)->first() ?? null;
 
             //  If exists
             if ($store) {
 
-                //  Return an API Readable Format
-                return $store->convertToApiFormat();
+                //  Return store
+                return $store;
 
             } else {
 
@@ -94,305 +249,245 @@ trait StoreTraits
     }
 
     /**
-     *  This method creates a new store
+     *  This method generates a store subscription
      */
-    public function createResource($request, $user = null)
+    public function generateResourceSubscription($data = [])
     {
         try {
 
-            //  Set the request variable
-            $this->request = $request;
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-            //  Verify permissions
-            $this->handlePermissions('CREATE', $user);
+            //  Merge the data with additional fields
+            $data = array_merge($data, [
 
-            //  Validate the request
-            $this->handleValidation('CREATE');
+                //  Set the store id on the data
+                'store_id' => $this->id
 
-            //  Capture the resource fields allowed
-            $template = $request->only($this->getFillable());
-
-            //  Set the current authenticated user as the user responsible for creating this resource
-            $template['user_id'] = auth('api')->user()->id;
-
-            /**
-             *  Create new a resource, then retrieve a fresh instance
-             */
-            $this->store = $this->create($template)->fresh();
-
-            //  If created successfully
-            if ($this->store) {
-
-                //  Generate a payment shortcode (So that we can subscribe via USSD)
-                $this->generatePaymentShortCode();
-
-                //  If we have the store id representing the store with resources to clone
-                if ($request->input('clone_store_id')) {
-
-                    //  Get the store id
-                    $store_id = $request->input('clone_store_id');
-
-                    //  Clone the store resources
-                    $this->cloneStoreResources($store_id);
-
-                }else{
-
-                    //  Create a new location resource
-                    $this->createLocation();
-
-                }
-
-                //  Get a fresh instance
-                $store = $this->store->fresh();
-
-                //  Return an API Readable Format
-                return $store->convertToApiFormat();
-
-            }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-
-    }
-
-    /*  This method updates an existing store
-     */
-    public function updateResource($request, $user = null)
-    {
-        try {
-
-            //  Set the request variable
-            $this->request = $request;
-
-            //  Verify permissions
-            $this->handlePermissions('UPDATE', $user);
-
-            //  Validate the request
-            $this->handleValidation('UPDATE');
-
-            //  Capture the resource fields allowed
-            $template = $request->only($this->getFillable());
-
-            //  Set the original user as the primary user responsible for creating this resource
-            $template['user_id'] = $this->user_id;
-
-            /**
-             *  Update the resource details
-             */
-            $updated = $this->update($template);
-
-            //  If updated successfully
-            if ($updated) {
-
-                //  Get a fresh instance
-                $store = $this->fresh();
-
-                //  Return an API Readable Format
-                return $store->convertToApiFormat();
-
-            }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    public function handlePermissions($type, $user = null)
-    {
-        //  By default the user is allowed
-        $hasPermission = true;
-
-        //  If creating a resource
-        if( $type == 'CREATE' ) {
-
-            //  Check if the user is authourized to create the resource
-            if (!$user || !$user->can('create', Store::class)) {
-
-                $hasPermission = false;
-
-            }
-
-        //  If updating a resource
-        }elseif( $type == 'UPDATE' ) {
-
-            //  Check if the user is authourized to update the resource
-            if (!$user || !$user->can('update', $this)) {
-
-                $hasPermission = false;
-
-            }
-
-        }
-
-        //  If does not have permission
-        if( $hasPermission == false ){
-
-            //  Return "Not Authourized" Error
-            return help_not_authorized();
-
-        }
-    }
-
-    public function handleValidation($type)
-    {
-        try {
-
-            //  If reading resources
-            if( $type == 'GET' ){
-
-                $rules = [
-                    'limit' => 'sometimes|required|numeric|min:1|max:100',
-                ];
-
-                $messages = [
-                    'limit.required' => 'Enter a valid limit containing only digits e.g 50',
-                    'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
-                    'limit.min' => 'The limit attribute must be a value between 1 and 100',
-                    'limit.max' => 'The limit attribute must be a value between 1 and 100',
-                ];
-
-            //  If creating or updating a resource
-            }elseif( $type == 'CREATE' || $type == 'UPDATE' ){
-
-                $rules = [
-                    'name' => 'required|string|min:3|max:50|regex:/^[a-zA-Z0-9\s]+$/i',
-                    'online' => 'sometimes|required|boolean',
-                    'offline_message' => 'sometimes|nullable|string|max:255',
-                    'currency' => 'sometimes|required|string|regex:/^[a-zA-Z]+$/i',
-                    'minimum_stock_quantity' => 'sometimes|required|numeric|min:1',
-                    'clone_store_id' => 'sometimes|required|numeric',
-                    'user_id' => 'sometimes|required|numeric',
-                ];
-
-                $messages = [
-                    'name.required' => 'The store name is required e.g Heavenly Fruits',
-                    'name.string' => 'The store name must be a valid string e.g Heavenly Fruits',
-                    'name.regex' => 'The store name must contain only letters, numbers and spaces e.g Heavenly Fruits',
-                    'name.min' => 'The store name must be atleast 3 characters long',
-                    'name.max' => 'The store name must not be more than 50 characters long',
-
-                    'online.boolean' => 'The store online attribute must be a boolean e.g true, false, 1 or 0',
-
-                    'offline_message.string' => 'The store offline message must be a string e.g We are currently offline',
-                    'offline_message.max' => 'The store offline message must not be more than 255 characters long',
-
-                    'currency.required' => 'Enter a valid store currency e.g BWP, ZAR, USD',
-                    'currency.string' => 'Enter a valid store currency e.g BWP, ZAR, USD',
-                    'currency.regex' => 'The store currency must be a valid ISO 4217 standard e.g BWP, ZAR, USD',
-
-                    'minimum_stock_quantity' => 'The store minimum stock quantity must be a valid number greater than 1',
-
-                    'clone_store_id.required' => 'Provide a valid store id for the store to clone e.g 123',
-                    'clone_store_id.numeric' => 'The store id for the store to clone must be a valid number e.g 123',
-
-                    'user_id.required' => 'Provide a valid user id to link to this store e.g 123',
-                    'user_id.numeric' => 'The user id must be a valid number e.g 123',
-                ];
-
-            }
-
-            //  Validate request
-            $validator = Validator::make($this->request->all(), $rules, $messages);
-
-            //  If the validation failed
-            if ($validator->fails()) {
-
-                //  Throw Validation Exception with validation errors
-                throw ValidationException::withMessages(collect($validator->errors())->toArray());
-
-            }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    public function generatePaymentShortCode()
-    {
-        try {
-
-            //  Set the short code action
-            $action = 'payment';
-
-            //  Set the short code owning model
-            $model = $this->store ?? $this;
-
-            //  Create a new payment short code
-            return ( new \App\ShortCode() )->createResource($action, $model);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    public function generateSubscription($request)
-    {
-        try {
-
-            //  Set the store id on the request
-            $request->merge(['store_id' => $this->id]);
-
-            //  Create a new subscription
-            return ( new \App\Subscription() )->createResource($request, $this);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    public function addOrRemoveStoreAsFavourite()
-    {
-        //  Get the current authenticated user ID
-        $user_id = auth()->user()->id;
-
-        //  Check if the user already marked this store as a favourite
-        $exists = DB::table('favourites')->where(['store_id' => $this->id, 'user_id' => $user_id])->exists();
-
-        //  If we already have this store marked as a favourite
-        if ($exists) {
-
-            //  Unmark store as favourite
-            DB::table('favourites')->where(['store_id' => $this->id, 'user_id' => $user_id])->delete();
-
-        //  If we don't already have this store marked as a favourite
-        } else {
-
-            //  Mark store as favourite
-            DB::table('favourites')->insert([
-                'user_id' => $user_id,
-                'store_id' => $this->id,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
+            //  Create a new subscription
+            $subscription = ( new \App\Subscription() )->createResource($data);
+
+            //  Generate visit short code
+            $this->generateResourceVisitShortCode();
+
+            //  Expire payment short codes
+            $this->expirePaymentShortCodes();
+
+            //  Return the new subscription
+            return $subscription;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
         }
-
     }
 
-    public function createLocation()
+    /**
+     *  This method generates a store payment short code
+     */
+    public function generateResourcePaymentShortCode($user = null)
     {
-        //  Set the location name on the request
-        $this->request->merge(['name' => 'Main Branch']);
+        try {
 
-        //  Set the store id on the request
-        $this->request->merge(['store_id' => $this->store->id]);
+            //  Verify permissions
+            $this->subscribeResourcePermission($user);
 
-        //  Create a new location
-        $location = ( new \App\Location() )->initiateCreate($this->request);
+            $data = [
+
+                //  Set the action on the data
+                'action' => 'payment'
+
+            ];
+
+            //  Set the short code owning model
+            $model = $this;
+
+            /**
+             *  Create new a short code resource
+             */
+            return ( new \App\ShortCode() )->createResource($data, $model, $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
-    public function cloneStoreResources($store_id)
+    /**
+     *  This method generates a store visit short code
+     */
+    public function generateResourceVisitShortCode($user = null)
+    {
+        try {
+
+            $data = [
+
+                //  Set the action on the data
+                'action' => 'visit'
+
+            ];
+
+            //  Set the short code owning model
+            $model = $this;
+
+            /**
+             *  Create new a short code resource
+             */
+            return ( new \App\ShortCode() )->createResource($data, $model, $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method expires the store payment short codes
+     */
+    public function expirePaymentShortCodes()
+    {
+        try {
+
+            //  Expire payment short codes
+            $this->paymentShortCodes()->update([
+                'expires_at' => Carbon::now()
+            ]);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method expires the store short codes
+     */
+    public function expireShortCodes()
+    {
+        try {
+
+            //  Expire short codes
+            $this->shortCodes()->update([
+                'expires_at' => Carbon::now()
+            ]);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method creates a new store location
+     */
+    public function createResourceLocation($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the location (Optional field)
+            $location = $data['location'] ?? [];
+
+            //  Set the user id (Optional field)
+            $user_id = $data['user_id'] ?? null;
+
+            //  Overide data with location data
+            $data = $location;
+
+            //  Count the total number of store locations
+            $total = $this->locations()->count();
+
+            //  Set the location name
+            $name = $data['name'] ?? (($total == 0) ? 'Main Branch' : 'Location ' . (++$total));
+
+            //  Merge the data with additional fields
+            $data = array_merge($data, [
+
+                //  Set the location name on the data
+                'name' => $name,
+
+                //  Set the store id on the data
+                'store_id' => $this->id
+
+            ]);
+
+            if( $user_id ){
+
+                //  Merge the data with additional fields
+                $data = array_merge($data, [
+
+                    //  Set the user id on the data
+                    'user_id' => $user_id,
+    
+                ]);
+
+            }
+
+            /**
+             *  Create new a location resource
+             */
+            return ( new \App\Location() )->createResource($data, $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of store locations
+     */
+    public function getResourceLocations($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Return a list of store locations
+            return (new \App\Location())->getResources($data, $this->locations()->latest(), $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method deletes a store
+     */
+    public function deleteResource($user = null)
+    {
+        try {
+
+            //  Verify permissions
+            $this->forceDeleteResourcePermission($user);
+
+            /**
+             *  Delete the resource
+             */
+            return $this->delete();
+
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method clones the store related resources
+     */
+    public function cloneExternalResources($data = [], $store_id)
     {
         try {
 
@@ -404,7 +499,7 @@ trait StoreTraits
              **************************/
 
             // Check if we should clone the store locations
-            if ($this->request->input('clone_locations')) {
+            if ( $data['clone_locations'] ) {
 
                 //  Load the locations to clone
                 $store_to_clone->load(['locations' => function ($query) {
@@ -464,7 +559,8 @@ trait StoreTraits
              **************************/
 
             // Check if we should clone the store products
-            if ($this->request->input('clone_products')) {
+            if ($data['clone_products']) {
+
                 //  Load the products to clone (order by id)
                 $store_to_clone->load(['products' => function ($query) {
                     $query->orderBy('id', 'asc');
@@ -607,7 +703,7 @@ trait StoreTraits
                      *********************************/
 
                     // If we cloned the store locations
-                    if ($this->request->input('clone_locations')) {
+                    if ( $data['clone_locations'] ) {
                         //  Get the old and new cloned product ids according to how they are in sync with regards to position
                         $matching_product_ids = collect($cloned_products)->map(function ($cloned_product, $key) use ($products_to_clone) {
                             return [
@@ -668,15 +764,247 @@ trait StoreTraits
         }
     }
 
-    /*
-     *  Checks if a given user is the owner of the store
+    /**
+     *  This method checks permissions for creating a new resource
      */
-    public function isOwner($user_id)
+    public function createResourcePermission($user = null)
     {
         try {
-            return $this->whereUserId($user_id)->exists();
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to create the resource
+                if ($user->can('create', Store::class) === false) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
         } catch (\Exception $e) {
+
             throw($e);
+
+        }
+    }
+
+    /**
+     *  This method checks permissions for updating an existing resource
+     */
+    public function updateResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to update the resource
+                if ($user->can('update', $this)) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method checks permissions for subscribing to an existing resource
+     */
+    public function subscribeResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to subscribe the resource
+                if ($user->can('subscribe', $this)) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method checks permissions for deleting an existing resource
+     */
+    public function forceDeleteResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to delete the resource
+                if ($user->can('forceDelete', $this)) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates fetching multiple resources
+     */
+    public function getResourcesValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+                'limit' => 'sometimes|required|numeric|min:1|max:100',
+            ];
+
+            //  Set validation messages
+            $messages = [
+                'limit.required' => 'Enter a valid limit containing only digits e.g 50',
+                'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
+                'limit.min' => 'The limit attribute must be a value between 1 and 100',
+                'limit.max' => 'The limit attribute must be a value between 1 and 100',
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates creating a new resource
+     */
+    public function createResourceValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+                'name' => 'required|string|min:3|max:50|regex:/^[a-zA-Z0-9\s]+$/i',
+                'offline_message' => 'sometimes|nullable|string|max:255',
+                'clone_store_id' => 'sometimes|required|numeric',
+                'user_id' => 'sometimes|required|numeric',
+                'online' => 'sometimes|required|boolean',
+            ];
+
+            //  Set validation messages
+            $messages = [
+
+                'name.required' => 'The store name is required e.g Heavenly Fruits',
+                'name.string' => 'The store name must be a valid string e.g Heavenly Fruits',
+                'name.min' => 'The store name must be atleast 3 characters long',
+                'name.max' => 'The store name must not be more than 50 characters long',
+                'name.regex' => 'The store name must contain only letters, numbers and spaces e.g Heavenly Fruits',
+
+                'offline_message.string' => 'The store offline message must be a valid string e.g We are currently offline',
+                'offline_message.max' => 'The store offline message must not be more than 255 characters long',
+
+                'clone_store_id.required' => 'Provide a valid store id to clone e.g 123',
+                'clone_store_id.numeric' => 'The store id to clone must be a valid number e.g 123',
+
+                'user_id.required' => 'Provide a valid user id to assign to this store e.g 123',
+                'user_id.numeric' => 'The user id must be a valid number e.g 123',
+
+                'online.boolean' => 'The store online attribute must be a boolean e.g true, false, 1 or 0',
+
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates updating an existing resource
+     */
+    public function updateResourceValidation($data = [])
+    {
+        try {
+
+            //  Run the resource creation validation
+            $this->createResourceValidation($data);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method verifies if the user is the owner of the store
+     */
+    public function isOwner($resource = null)
+    {
+        try {
+
+            //  Retrieve the User ID
+            $user_id = ($resource instanceof \App\User) ? $resource->id : $resource;
+
+            //  Check if this is the owner
+            return ( !empty($user_id) ) ? $this->whereUserId($user_id)->exists() : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method verifies if the user is the owner of the store
+     */
+    public function isSubscribed($resource = null)
+    {
+        try {
+
+            //  Retrieve the User ID
+            $user_id = ($resource instanceof \App\User) ? $resource->id : $resource;
+
+            //  Check if this is the owner
+            return ( !empty($user_id) ) ? $this->subscriptions()->active()->asOwner($user_id) : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
         }
     }
 

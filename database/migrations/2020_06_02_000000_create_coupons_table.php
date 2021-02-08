@@ -27,7 +27,7 @@ class CreateCouponsTable extends Migration
             $table->tinyInteger('percentage_rate');
 
             /*  Ownership Information  */
-            $table->unsignedInteger('store_id')->nullable();
+            $table->unsignedInteger('location_id')->nullable();
 
             /*  Timestamps  */
             $table->timestamps();

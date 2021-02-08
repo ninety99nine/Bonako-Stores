@@ -12,23 +12,31 @@ class UserController extends Controller
     public function __construct(Request $request)
     {
         try {
+
             //  Get the specified user's id
             $user_id = $request->route('user_id');
 
             //  If we have a specified user id
             if ($user_id) {
+
                 //  Get the specified user using the provided user id
                 $this->user = \App\User::find($user_id) ?? null;
 
                 //  Check if the user exists
                 if (!$this->user) {
+
                     //  Not Found
                     return help_resource_not_found();
+
                 }
+
             } else {
+
                 //  Get the authenticated user
                 $this->user = auth('api')->user();
+
             }
+
         } catch (\Exception $e) {
             return help_handle_exception($e);
         }
@@ -44,21 +52,25 @@ class UserController extends Controller
                 return $this->user->convertToApiFormat();
 
             } else {
+
                 //  Not Authourized
                 return help_not_authorized();
+
             }
+
         } catch (\Exception $e) {
+
             return help_handle_exception($e);
+
         }
     }
 
     public function getUserStores(Request $request)
     {
-
         try {
 
             //  Return a list of stores
-            return $this->user->getStores($request);
+            return $this->user->getResourceStores($request);
 
 
         } catch (\Exception $e) {
@@ -66,7 +78,6 @@ class UserController extends Controller
             return help_handle_exception($e);
 
         }
-
     }
 
     public function getUserStore($store_id)
@@ -74,7 +85,7 @@ class UserController extends Controller
         try {
 
             //  Return a single store
-            return $this->user->getStore($store_id);
+            return $this->user->getResourceStore($store_id)->convertToApiFormat();
 
         } catch (\Exception $e) {
 
@@ -88,7 +99,7 @@ class UserController extends Controller
         try {
 
             //  Return a list of locations
-            return $this->user->getStoreLocations($request, $store_id);
+            return $this->user->getResourceStoreLocations($request, $store_id);
 
         } catch (\Exception $e) {
 
@@ -102,7 +113,7 @@ class UserController extends Controller
         try {
 
             //  Return a single location
-            return $this->user->getStoreLocation($store_id, $location_id);
+            return $this->user->getResourceStoreLocation($store_id, $location_id)->convertToApiFormat();
 
         } catch (\Exception $e) {
 
@@ -116,7 +127,7 @@ class UserController extends Controller
         try {
 
             //  Return a single location
-            return $this->user->getStoreDefaultLocation($store_id);
+            return $this->user->getResourceDefaultLocation($store_id)->convertToApiFormat();
 
         } catch (\Exception $e) {
 
@@ -130,7 +141,49 @@ class UserController extends Controller
         try {
 
             //  Update the default location
-            return $this->user->updateStoreDefaultLocation($request, $store_id);
+            return $this->user->updateResourceDefaultLocation($request, $store_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getUserStoreLocationOrders(Request $request, $store_id, $location_id)
+    {
+        try {
+
+            //  Return a list of orders
+            return $this->user->getResourceStoreLocationOrders($request, $store_id, $location_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getUserStoreLocationOrderTotals(Request $request, $store_id, $location_id)
+    {
+        try {
+
+            //  Return a list of orders
+            return $this->user->getResourceStoreLocationOrderTotals($request, $store_id, $location_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function userStoreLocationOrderFulfillment(Request $request, $store_id, $location_id, $order_id)
+    {
+        try {
+
+            //  Fulfil order
+            return $this->user->storeLocationOrderFulfillment($request, $store_id, $location_id, $order_id);
 
         } catch (\Exception $e) {
 

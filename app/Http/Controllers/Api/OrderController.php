@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Order;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Database\Eloquent\Builder;
 
 class OrderController extends Controller
 {
@@ -17,29 +16,12 @@ class OrderController extends Controller
         $this->user = auth('api')->user();
     }
 
-    public function createOrder( Request $request )
+    public function createOrder(Request $request)
     {
         try {
 
-            if ($this->user && $this->user->can('create', Order::class)) {
-
-                //  Create the Order
-                $order = (new Order)->initiateCreate( $request );
-
-                //  If the created successfully
-                if( $order ){
-
-                    //  Return an API Readable Format of the Order Instance
-                    return $order->convertToApiFormat();
-
-                }
-
-            } else {
-
-                //  Not Authourized
-                return help_not_authorized();
-
-            }
+            //  Return a new order
+            return (new Order())->createResource($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 
@@ -48,33 +30,18 @@ class OrderController extends Controller
         }
     }
 
-    public function fulfilOrder( Request $request, $order_id )
+    public function updateOrder(Request $request, $order_id)
     {
         try {
 
             //  Get the order
-            $order = order::where('id', $order_id)->first() ?? null;
+            $order = \App\Order::where('id', $order_id)->first() ?? null;
 
             //  Check if the order exists
             if ($order) {
 
-                //  Check if the user is authourized to fulfill the order
-                if ($this->user && $this->user->can('fulfill', $order)) {
-
-                    //  Fulfill the order
-                    if( $order->initiateFulfillment($request) ){
-
-                        //  Return success
-                        return response()->json(null, 200);
-
-                    }
-
-                } else {
-
-                    //  Not Authourized
-                    return help_not_authorized();
-
-                }
+                //  Return the updated order
+                return $order->updateResource($request, $this->user)->convertToApiFormat();
 
             } else {
 
@@ -88,7 +55,148 @@ class OrderController extends Controller
             return help_handle_exception($e);
 
         }
+    }
 
+    public function getOrders(Request $request)
+    {
+        try {
+
+            //  Return a list of orders
+            return (new Order())->getResources($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getOrder($order_id)
+    {
+        try {
+
+            //  Return a single order
+            return (new Order())->getResource($order_id)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getOrderReceivedLocation($order_id)
+    {
+        try {
+
+            //  Return the order received location
+            return (new Order())->getResource($order_id)->getResourceReceivedLocation();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getOrderSharedLocations(Request $request, $order_id)
+    {
+        try {
+
+            //  Return the order shared locations
+            return (new Order())->getResource($order_id)->getResourceSharedLocations($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function updateOrderSharedLocations(Request $request, $order_id)
+    {
+        try {
+
+            //  Return the order shared locations
+            return (new Order())->getResource($order_id)->updateResourceSharedLocations($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function fulfilOrder(Request $request, $order_id)
+    {
+        try {
+
+            //  Fulfill the order
+            return (new Order())->getResource($order_id)->fulfilResource($request, $this->user)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /*
+    public function createOrder( Request $request )
+    {
+        try {
+
+            //  Return a new order
+            return (new Order())->createResource($request, $this->user);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function fulfilOrder( Request $request, $order_id )
+    {
+        try {
+
+            //  Get the order
+            $order = \App\Order::find($order_id) ?? null;
+
+            //  Check if the order exists
+            if ($order) {
+
+                //  Fulfil the order
+                return $order->fulfilResource($request, $this->user);
+
+            } else {
+
+                //  Not Found
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
     }
 
     public function cancelOrder( Request $request, $order_id )
@@ -174,5 +282,7 @@ class OrderController extends Controller
         }
 
     }
+
+    */
 
 }

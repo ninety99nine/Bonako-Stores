@@ -18,7 +18,6 @@ class CreateSubscriptionsTable extends Migration
             $table->bigInteger('user_id')->unsigned();
             $table->bigInteger('subscription_plan_id')->unsigned();
             $table->bigInteger('store_id')->unsigned();
-            $table->bigInteger('transaction_id')->unsigned()->nullable();
             $table->timestamp('start_at')->nullable();
             $table->timestamp('end_at')->nullable();
             $table->boolean('active')->default(false);

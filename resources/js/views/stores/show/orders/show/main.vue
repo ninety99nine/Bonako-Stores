@@ -1,0 +1,643 @@
+<template>
+
+    <Row :gutter="12">
+
+        <Col :span="24" class="my-5">
+
+            <!-- Order #, Statuses & Watch Video -->
+            <Row :gutter="12">
+
+                <Col :span="12">
+
+                    <div class="d-flex" :style="{ alignItems: 'flex-end' }">
+
+                        <!-- Back Button -->
+                        <Button type="default" size="default" class="mr-4" @click.native="closeOrder()">
+                            <Icon type="md-arrow-back" class="mr-1" :size="20" />
+                            <span>Back</span>
+                        </Button>
+
+                        <span :style="{ fontSize: 'x-large', lineHeight: 'initial' }" :class="['font-weight-bold', 'mr-4']">
+                            Order #{{ order.number }}
+                        </span>
+
+                        <span :class="['text-muted']">{{ createdDateTime }}</span>
+
+                    </div>
+
+                </Col>
+
+                <Col :span="6">
+
+                    <div class="d-flex" :style="{ alignItems: 'flex-end' }">
+                        <statusTag :status="status"></statusTag>
+                        <statusTag :status="paymentStatus"></statusTag>
+                        <statusTag :status="fulfillmentStatus"></statusTag>
+                    </div>
+
+                </Col>
+
+                <Col :span="6" class="clearfix">
+
+                    <!-- Watch Video Button -->
+                    <Button type="primary" size="default" @click.native="fetchStores()" :class="['float-right']">
+                        <Icon type="ios-play-outline" class="mr-1" :size="20" />
+                        <span>Watch Video</span>
+                    </Button>
+
+                </Col>
+
+            </Row>
+
+        </Col>
+
+        <Col :span="16">
+
+            <Card class="mb-4">
+
+                <div class="clearfix">
+                    <span :class="['float-left', 'font-weight-bold', 'd-block', 'my-3']"
+                          :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                        Cart Items
+                    </span>
+
+                    <!-- Fulfill Button -->
+                    <Button v-if="itemLinesData.length && !isFulfilled" type="success" size="default" :class="['float-right']" @click.native="closeOrder()">
+                        <Icon type="md-checkbox-outline" class="mr-1" :size="20" />
+                        <span>Fulfil</span>
+                    </Button>
+
+                    <!-- Edit Button -->
+                    <Button v-if="itemLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
+                        <Icon type="ios-create-outline" class="mr-1" :size="20" />
+                        <span>Edit</span>
+                    </Button>
+
+                </div>
+
+                <Table :columns="itemLineColumns" :data="itemLinesData" :loading="isLoading"
+                        no-data-text="No items found" :style="{ overflow: 'visible' }">
+
+                    <span slot-scope="{ row, index }" slot="name">
+                        {{ row.name }}
+                    </span>
+
+                    <span slot-scope="{ row, index }" slot="price">
+                        {{ formatPrice(row.unit_regular_price) }}
+                    </span>
+
+                    <span slot-scope="{ row, index }" slot="quantity">
+                        {{ row.quantity }}
+                    </span>
+
+                    <span slot-scope="{ row, index }" slot="discount" :class="['text-danger']">
+                        {{ row.sale_discount_total > 0 ? '- ' : '' }}{{ formatPrice(row.sale_discount_total) }}
+                    </span>
+
+                    <span slot-scope="{ row, index }" slot="grand_total">
+                        {{ formatPrice(row.grand_total) }}
+                    </span>
+
+                </Table>
+
+                <Row>
+
+                    <Col :offset="14" :span="6" :class="['bg-light']">
+
+                        <ul :style="{ listStyle: 'none', lineHeight: '2em', textAlign: 'right' }">
+                            <li :class="['border-bottom', 'my-2']">
+                                <span :class="['font-weight-bold', 'mr-4']">Sub Total:</span>
+                            </li>
+                            <li>
+                                <span :class="['mr-4']">Coupon Discount:</span>
+                            </li>
+                            <li>
+                                <span :class="['mr-4']">Sale Discount:</span>
+                            </li>
+                            <li :class="['border-bottom']">
+                                <span :class="['mr-4']">Delivery Fee:</span>
+                            </li>
+                            <li :style="{ borderBottom: 'double' }" class="py-2">
+                                <span :class="['font-weight-bold', 'mr-4']">Grand Total:</span>
+                            </li>
+                        </ul>
+
+                    </Col>
+
+                    <Col :span="4" :class="['bg-light']">
+
+                        <ul :style="{ listStyle: 'none', lineHeight: '2em' }">
+                            <li :class="['border-bottom', 'my-2']">
+                                <span :class="['font-weight-bold']">{{ formatPrice(order._embedded.active_cart.sub_total) }}</span>
+                            </li>
+                            <li>
+                                <span :class="['text-danger']">
+                                    {{ order._embedded.active_cart.coupon_total > 0 ? '-' : '' }}
+                                    {{ formatPrice(order._embedded.active_cart.coupon_total) }}
+                                </span>
+                            </li>
+                            <li>
+                                <span :class="['text-danger']">
+                                    {{ order._embedded.active_cart.sale_discount_total > 0 ? '-' : '' }}
+                                    {{ formatPrice(order._embedded.active_cart.sale_discount_total) }}
+                                </span>
+                            </li>
+                            <li :class="['text-success', 'border-bottom']">
+                                    {{ order._embedded.active_cart.delivery_fee > 0 ? '+' : '' }}
+                                    {{ formatPrice(order._embedded.active_cart.delivery_fee) }}
+                            </li>
+                            <li :style="{ borderBottom: 'double' }" class="py-2">
+                                <span :class="['font-weight-bold']">{{ formatPrice(order._embedded.active_cart.grand_total) }}</span>
+                            </li>
+                        </ul>
+
+                    </Col>
+
+                </Row>
+
+            </Card>
+
+            <Card class="mb-4">
+
+                <div class="clearfix">
+                    <span :class="['float-left', 'font-weight-bold', 'd-block', 'my-3']"
+                          :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                        Coupons Applied
+                    </span>
+
+                    <!-- Edit Button -->
+                    <Button v-if="couponLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
+                        <Icon type="ios-create-outline" class="mr-1" :size="20" />
+                        <span>Edit</span>
+                    </Button>
+
+                </div>
+
+                <Table :columns="couponLineColumns" :data="couponLinesData" :loading="isLoading"
+                        no-data-text="No coupons found" :style="{ overflow: 'visible' }">
+
+                    <span slot-scope="{ row, index }" slot="name">
+                        {{ row.name }}
+                    </span>
+
+                    <span slot-scope="{ row, index }" slot="type">
+                        {{ row.is_fixed_rate ? 'Fixed' : row.is_percentage_rate ? 'Percentage' : '' }}
+                    </span>
+
+                    <span slot-scope="{ row, index }" slot="rate">
+                        {{ row.is_fixed_rate ? currenySymbol+row.fixed_rate : row.is_percentage_rate ? row.percentage_rate+'%' : '' }}
+                    </span>
+
+                </Table>
+
+            </Card>
+
+            <Card class="mb-4">
+
+                <div>
+                    <span :class="['font-weight-bold', 'd-block', 'my-3']"
+                          :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                        Transaction
+                    </span>
+
+                </div>
+
+            </Card>
+
+            <Card>
+
+                <div>
+                    <span :class="['font-weight-bold', 'd-block', 'my-3']"
+                          :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                        History
+                    </span>
+
+                </div>
+
+            </Card>
+
+        </Col>
+
+        <Col :span="8" class="clearfix">
+
+            <Card v-if="customer" class="cursor-pointer mb-2">
+
+                <span :class="['font-weight-bold', 'd-block', 'mb-3']"
+                        :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                    Customer
+                </span>
+
+                <div :class="['align-items-center', 'd-flex']">
+                    <Avatar icon="ios-person" :style="{ background: '#19be6b' }" class="mr-2" />
+                    <p class="mr-2">{{ customerName }}</p>
+                    <p>
+                        <Icon type="ios-call-outline" class="mr-1" :size="20" />
+                        <span>{{ customer.mobile_number }}</span>
+                    </p>
+                </div>
+
+                <div class="clearfix">
+
+                    <!-- View Button -->
+                    <Button type="default" size="default" :class="['float-right']" @click.native="closeOrder()">
+                        <Icon type="md-eye" class="mr-1" :size="20" />
+                        <span>View</span>
+                    </Button>
+
+                </div>
+
+            </Card>
+
+            <Card v-if="deliveryLine" class="cursor-pointer mb-2">
+
+                <span :class="['font-weight-bold', 'd-block', 'mb-3']"
+                        :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                    Delivery Information
+                </span>
+
+                <div class="d-flex">
+                    <Avatar icon="ios-pin" :style="{ background: '#19be6b' }" class="mr-2" />
+                    <div class="w-100">
+
+                        <p v-if="deliveryLine.name && (deliveryLine.name != customerName)">
+                            <span class="font-weight-bold">Name: </span><span>{{ deliveryLine.name }}</span>
+                        </p>
+
+                        <p v-if="deliveryLine.mobile_number && (deliveryLine.mobile_number != customer.mobile_number)">
+                            <span class="font-weight-bold">Mobile: </span>{{ deliveryLine.mobile_number }}<span></span>
+                        </p>
+
+                        <Divider class="my-2"></Divider>
+
+                        <p v-if="deliveryLine.physical_address && deliveryType == 'delivery'">
+                            <span class="font-weight-bold">Address: </span>{{ deliveryLine.physical_address }}<span></span>
+                        </p>
+
+                        <div class="d-flex">
+
+                            <p v-if="deliveryLine.day" class="mr-2">
+                                <span class="font-weight-bold">Day: </span>{{ deliveryLine.day }}<span></span>
+                            </p>
+
+                            <p v-if="deliveryLine.time">
+                                <span class="font-weight-bold">Time: </span>{{ deliveryLine.time }}<span></span>
+                            </p>
+
+                        </div>
+
+                        <Divider v-if="deliveryLine.destination" class="my-2"></Divider>
+
+                        <p v-if="deliveryLine.destination">
+                            <span class="font-weight-bold">Destination: </span>{{ deliveryLine.destination }}<span></span>
+                        </p>
+
+                    </div>
+                </div>
+
+            </Card>
+
+            <!-- If we are loading, Show Loader -->
+            <Loader v-if="isLoadingReceivedLocation" class="mb-2"></Loader>
+
+            <Card v-else class="cursor-pointer mb-2">
+
+                <Poptip v-if="receivedLocation" trigger="hover" :content="receivedLocationPoptipContent"
+                        word-wrap class="poptip-w-100">
+
+                    <div :class="['align-items-center', 'd-flex']">
+
+                        <span :class="['font-weight-bold', 'mr-2']"
+                              :style="{ fontSize: 'medium', lineHeight: 'initial' }">
+                            Received Location
+                        </span>
+
+                        <Tag color="success">{{ receivedLocation.name }}</Tag>
+
+                    </div>
+
+                </Poptip>
+
+            </Card>
+
+            <Card v-if="isReceivingLocation" class="cursor-pointer mb-2">
+
+                <span :class="['font-weight-bold', 'd-block', 'mb-3']"
+                        :style="{ fontSize: 'medium', lineHeight: 'initial' }">
+                    Shared Locations
+                </span>
+
+                <Poptip v-if="availableSharedLocations" trigger="hover" content="Share this order with other locations" word-wrap class="poptip-w-100">
+
+                    <!-- If we are loading, Show Loader -->
+                    <Loader v-if="isLoadingSharedLocations" class="mb-2"></Loader>
+
+                    <Select v-else v-model="selectedSharedLocationIds" :loading="isUpdatingSharedLocations" size="large" class="w-100"
+                            multiple clearable prefix="ios-pin" placeholder="Select locations" @on-select="updateSharedLocations">
+                        <Option v-for="(location, index) in availableSharedLocations"
+                                :value="location.id" :key="index">{{ location.name }}</Option>
+                    </Select>
+
+                </Poptip>
+
+                <!-- Error Message Alert -->
+                <Alert v-else type="info" class="p-2">
+                    No locations found
+                </Alert>
+
+            </Card>
+
+        </Col>
+
+    </Row>
+
+</template>
+
+<script>
+
+    import Loader from './../../../../../components/_common/loaders/default.vue';
+    import statusTag from './../components/statusTag.vue';
+    import moment from 'moment';
+
+    export default {
+        props: {
+            store: {
+                type: Object,
+                default: null
+            },
+            location: {
+                type: Object,
+                default: null
+            },
+            assignedLocations: {
+                type: Array,
+                default: []
+            },
+            order: {
+                type: Object,
+                default: null
+            },
+        },
+        components: { Loader, statusTag },
+        data () {
+            return {
+                isLoading: false,
+                itemLineColumns: [
+                    {
+                        title: 'Name',
+                        slot: 'name'
+                    },
+                    {
+                        title: 'Price',
+                        slot: 'price'
+                    },
+                    {
+                        title: 'Quantity',
+                        slot: 'quantity',
+                        align: 'center'
+                    },
+                    {
+                        title: 'Sale Discount',
+                        slot: 'discount'
+                    },
+                    {
+                        title: 'Total',
+                        slot: 'grand_total'
+                    },
+                ],
+                couponLineColumns: [
+                    {
+                        title: 'Name',
+                        slot: 'name'
+                    },
+                    {
+                        title: 'Type',
+                        slot: 'type',
+                    },
+                    {
+                        title: 'Rate',
+                        slot: 'rate'
+                    }
+                ],
+                itemLinesData: this.order._embedded.active_cart._embedded.item_lines,
+                couponLinesData: this.order._embedded.active_cart._embedded.coupon_lines,
+                isLoadingReceivedLocation: false,
+                isUpdatingSharedLocations: false,
+                isLoadingSharedLocations: false,
+                selectedSharedLocationIds: [],
+                receivedLocation: null,
+                sharedLocations: [],
+            }
+        },
+        computed: {
+            status(){
+                return this.order._embedded.status
+            },
+            paymentStatus(){
+                return this.order._embedded.payment_status
+            },
+            fulfillmentStatus(){
+                return this.order._embedded.fulfillment_status
+            },
+            isPaid(){
+                return this.order._attributes.is_paid
+            },
+            isFulfilled(){
+                return this.order._attributes.is_fulfilled
+            },
+            moment: function () {
+                return moment();
+            },
+            createdDateTime(){
+                return moment(this.order.created_at).format('MMM DD, YYYY')
+                       +' at '+moment(this.order.created_at).format('h:mma');
+            },
+            currenySymbol(){
+                return this.order._embedded.active_cart._embedded.currency.symbol;
+            },
+            customer(){
+                return (this.order._embedded.customer || {});
+            },
+            customerName(){
+                return this.customer._attributes.name;
+            },
+            deliveryLine(){
+                return (this.order._embedded.delivery_line || {});
+            },
+            deliveryType(){
+                return this.deliveryLine.delivery_type;
+            },
+            receivedLocationUrl(){
+                return this.order['_links']['bos:received-location'].href;
+            },
+            sharedLocationsUrl(){
+                return this.order['_links']['bos:shared-locations'].href;
+            },
+            availableSharedLocations(){
+                return this.assignedLocations.filter((location) => {
+                    return (location.id !== this.location.id);
+                });
+            },
+            isReceivingLocation(){
+                return (this.location.id === (this.receivedLocation || {}).id);
+            },
+            receivedLocationPoptipContent(){
+                return (this.isReceivingLocation)
+                    ? 'This order was received on this location ('+this.receivedLocation.name+')'
+                        : 'This order was shared from '.this.receivedLocation.name;
+            },
+        },
+        methods: {
+            closeOrder(){
+                this.$emit('close');
+            },
+            formatPrice(money, symbol) {
+                let val = (money/1).toFixed(2).replace(',', '.');
+                return this.currenySymbol + val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            },
+            fetchReceivedLocation() {
+
+                //  If we have the order received location url
+                if( this.receivedLocationUrl ){
+
+                    //  Hold constant reference to the current Vue instance
+                    const self = this;
+
+                    //  Start loader
+                    self.isLoadingReceivedLocation = true;
+
+                    //  Use the api call() function, refer to api.js
+                    api.call('get', this.receivedLocationUrl)
+                        .then(({data}) => {
+
+                            //  Console log the data returned
+                            console.log(data);
+
+                            //  Get the received location
+                            self.receivedLocation = data;
+
+                            //  Stop loader
+                            self.isLoadingReceivedLocation = false;
+
+                        })
+                        .catch(response => {
+
+                            //  Log the responce
+                            console.error(response);
+
+                            //  Stop loader
+                            self.isLoadingReceivedLocation = false;
+
+                        });
+                }
+            },
+            fetchSharedLocations() {
+
+                //  If we have the order shared locations url
+                if( this.sharedLocationsUrl ){
+
+                    //  Hold constant reference to the current Vue instance
+                    const self = this;
+
+                    //  Start loader
+                    self.isLoadingSharedLocations = true;
+
+                    //  Use the api call() function, refer to api.js
+                    api.call('get', this.sharedLocationsUrl)
+                        .then(({data}) => {
+
+                            //  Console log the data returned
+                            console.log(data);
+
+                            //  Get the shared locations
+                            self.sharedLocations = (((data || {})._embedded || {}).locations || []);
+
+                            //  Set the selected shared locations
+                            self.setSelectedSharedLocationIds(self.sharedLocations);
+
+                            //  Stop loader
+                            self.isLoadingSharedLocations = false;
+
+                        })
+                        .catch(response => {
+
+                            //  Log the responce
+                            console.error(response);
+
+                            //  Stop loader
+                            self.isLoadingSharedLocations = false;
+
+                        });
+                }
+            },
+            setSelectedSharedLocationIds(locations){
+                this.selectedSharedLocationIds = locations.map((location) => {
+                    return location.id
+                });
+            },
+            updateSharedLocations() {
+
+                /**
+                 *  Note that we need to use the $nextTick() method to get the latest data of the
+                 *  "selectedSharedLocationIds". This is because everytime we trigger the select
+                 *  option "on-select" event, it always brings the "selectedSharedLocationIds"
+                 *  before its updated with the latest selected/unselected option data. This
+                 *  is not desired, so the $nextTick() method helps us get the latest
+                 *  updates.
+                 */
+                this.$nextTick(() => {
+
+                    //  If we have the order shared locations url
+                    if( this.sharedLocationsUrl ){
+
+                        //  Hold constant reference to the current Vue instance
+                        const self = this;
+
+                        //  Start loader
+                        self.isUpdatingSharedLocations = true;
+
+                        this.updateData = {
+                            location_ids: this.selectedSharedLocationIds
+                        };
+
+                        //  Use the api call() function, refer to api.js
+                        api.call('post', this.sharedLocationsUrl, this.updateData)
+                            .then(({data}) => {
+
+                                //  Console log the data returned
+                                console.log(data);
+
+                                //  Get the shared locations
+                                self.sharedLocations = (((data || {})._embedded || {}).locations || []);
+
+                                //  Set the selected shared locations
+                                self.setSelectedSharedLocationIds(self.sharedLocations);
+
+                                //  Stop loader
+                                self.isUpdatingSharedLocations = false;
+
+                            })
+                            .catch(response => {
+
+                                //  Log the responce
+                                console.error(response);
+
+                                //  Stop loader
+                                self.isUpdatingSharedLocations = false;
+
+                            });
+                    }
+
+                });
+            },
+        },
+        created(){
+
+            //  Fetch the received location
+            this.fetchReceivedLocation();
+
+            //  Fetch the shared locations
+            this.fetchSharedLocations();
+
+        }
+    }
+</script>

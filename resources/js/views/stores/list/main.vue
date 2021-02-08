@@ -13,7 +13,23 @@
 
                 </Col>
 
-                <Col :span="24">
+                <Col :span="8" class="d-flex">
+
+                    <div :class="['clearfix', 'my-3']">
+
+                        <!-- Refresh Button -->
+                        <Button type="success" size="default" :class="['float-left']"
+                                @click.native="fetchStores()" :loading="isLoading"
+                                :disabled="isLoading">
+                            <Icon type="ios-clipboard-outline" :size="20" />
+                            <span>Fulfil Orders</span>
+                        </Button>
+
+                    </div>
+
+                </Col>
+
+                <Col :span="16">
 
                     <div :class="['clearfix', 'my-3']">
 

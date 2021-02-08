@@ -34,9 +34,6 @@ class InstantCart extends Model
         /*  Status  */
         'active',
 
-        /*  Store Info  */
-        'store_id',
-
         /*  Location Info  */
         'location_id'
 
@@ -55,7 +52,7 @@ class InstantCart extends Model
     }
 
     /**
-     *  Returns the the owning location
+     *  Returns the owning location
      */
     public function location()
     {
@@ -63,7 +60,7 @@ class InstantCart extends Model
     }
 
     /**
-     *  Returns the the coupons assigned to this instant cart
+     *  Returns the coupons assigned to this instant cart
      */
     public function coupons()
     {
@@ -71,7 +68,7 @@ class InstantCart extends Model
     }
 
     /**
-     *  Returns the the products assigned to this instant cart
+     *  Returns the products assigned to this instant cart
      */
     public function products()
     {
@@ -80,9 +77,9 @@ class InstantCart extends Model
     }
 
     /** ATTRIBUTES
-     * 
+     *
      *  Note that the "resource_type" is defined within CommonTraits
-     * 
+     *
      */
     protected $appends = [
         'resource_type', 'short_code', 'cart'
@@ -102,7 +99,7 @@ class InstantCart extends Model
     public function getCartAttribute()
     {
         try {
-            
+
             //  Retrieve the product ids and quantity
             $items = collect($this->products)->map(function($product){
                 return [
@@ -127,7 +124,7 @@ class InstantCart extends Model
             ];
 
             //  Build and return the cart details
-            $cart = (new MyCart)->getCartDetails($info);
+            $cart = (new Cart)->getCartDetails($info);
 
             return $cart;
 

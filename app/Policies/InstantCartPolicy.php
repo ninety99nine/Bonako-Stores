@@ -19,9 +19,9 @@ class InstantCartPolicy
         try {
 
             /** Note that this will run before any other checks. This means is we return true we will be authorized
-             *  for every action. However be aware that if we return false here, then we are also not authorizing 
-             *  all other methods. We must be careful here, we only return true if the user is a "Super Admin" 
-             *  but nothing is they are not, since we want other methods to run their own local checks.  
+             *  for every action. However be aware that if we return false here, then we are also not authorizing
+             *  all other methods. We must be careful here, we only return true if the user is a "Super Admin"
+             *  but nothing is they are not, since we want other methods to run their own local checks.
              */
             if($user->isSuperAdmin()) return true;
 
@@ -31,7 +31,7 @@ class InstantCartPolicy
 
         }
     }
-    
+
     /**
      * Determine whether the user can view all instant carts.
      *
@@ -83,8 +83,8 @@ class InstantCartPolicy
     {
         try {
 
-            //  Any Authenticated user can create a instant carts
-            return auth('api')->user() ? true : false;
+            //  Any Authenticated user can create a instant cart
+            return ($user instanceof \App\User) ? true : false;
 
         } catch (\Exception $e) {
 

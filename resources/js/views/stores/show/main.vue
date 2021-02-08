@@ -15,12 +15,12 @@
                     <Breadcrumb v-if="!isLoadingStore">
 
                         <!-- Link to stores -->
-                        <BreadcrumbItem @click.native="navigateToStoreLink('show-stores')" class="cursor-pointer">
+                        <BreadcrumbItem @click.native="navigateToMenuLink('show-stores')" class="cursor-pointer">
                             Stores
                         </BreadcrumbItem>
 
                         <!-- Link to current store -->
-                        <BreadcrumbItem @click.native="navigateToStoreLink('show-store-overview')" class="cursor-pointer">
+                        <BreadcrumbItem @click.native="navigateToMenuLink('show-store-overview')" class="cursor-pointer">
                             {{ storeName }}
                         </BreadcrumbItem>
 
@@ -113,13 +113,13 @@
 
                 <div class="w-100 bg-primary text-white bg-success font-weight-bold mt-3 mb-3 p-2">
                     <Icon type="ios-pin" class="mr-1" :size="20" />
-                    <span>{{ store.name }}</span>
+                    <span>{{ location.name }}</span>
                 </div>
 
                 <!-- Show Store Menu Links -->
                 <Menu :active-name="activeLink" theme="light" width="auto" key="store-menu">
                     <MenuItem v-for="(menuLink, index) in menuLinks" :key="index"
-                        :name="menuLink.name" class="" @click.native="navigateToStoreLink(menuLink.linkName)">
+                        :name="menuLink.name" class="" @click.native="navigateToMenuLink(menuLink.linkName)">
                         <!-- Menu Icon -->
                         <Icon :type="menuLink.icon" :size="20" />
                         <!-- Menu Name -->
@@ -141,7 +141,8 @@
                 -->
                 <template v-if="store && location">
 
-                    <router-view :store="store" :location="location" @refetchLocation="fetchAssignedLocations" />
+                    <router-view :store="store" :location="location" :assignedLocations="assignedLocations"
+                                @refetchLocation="fetchAssignedLocations" @navigateToMenuLink="navigateToMenuLink" />
 
                 </template>
 
@@ -221,7 +222,8 @@
                 return (this.store || {}).name;
             },
             locationUnfulfilledOrdersTotal(){
-                return (this.location || {})['_links']['bos:unfulfilled-orders'].total;
+                return 50;
+                //  return (this.location || {})['_links']['bos:received-unfulfilled-orders'].total;
             },
             storeUrl(){
                 return decodeURIComponent(this.$route.params.store_url);
@@ -428,9 +430,7 @@
 
                 }
             },
-            navigateToStoreLink(linkName){
-
-                console.log(linkName);
+            navigateToMenuLink(linkName){
 
                 /** Note that using router.push() or router.replace() does not allow us to make a
                  *  page refresh when visiting routes. This is undesirable at this moment since our

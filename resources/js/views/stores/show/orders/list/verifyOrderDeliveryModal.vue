@@ -14,28 +14,40 @@
             title="Verify Order Delivery"
             @on-visible-change="detectClose">
 
-            <!-- If we are loading, Show Loader -->
-            <Loader v-if="isResending || isVerifying" class="mt-2">
-                {{ isResending ? 'Sending...' : 'Verifying...' }}
-            </Loader>
-
             <!-- Error Message Alert -->
             <Alert v-if="serverErrorMessage && !isResending && !isVerifying" type="warning">{{ serverErrorMessage }}</Alert>
 
-            <template v-if="!isResending && !serverErrorMessage">
+            <template>
+
+                <h1 :class="['mb-2', 'text-secondary']" :style="{ fontSize: '20px' }">Order #{{ order.number }}</h1>
 
                 <!-- Instructions Alert -->
-                <Alert type="info" :style="{ lineHeight: '1.5em' }" class="p-2">
-                    Hi {{ user.first_name }}, we sent a <span class="text-primary">6 digit order confirmation code</span>
-                    to your customer <span class="text-primary">{{ customerName }}</span> on their mobile number
-                    <span class="text-primary">{{ customerMobileNumber }}</span>. Please enter the code to verify
-                    that you delivered the order to your customer.
+                <Alert type="warning" :style="{ lineHeight: '1.5em' }" class="p-2">
+                    <span :style="{ display: 'block', textAlign: 'justify' }">Please enter the order <span class="text-primary">delivery confirmation code</span> to verify that the order has been delivered to the customer. By entering the delivery confirmation code, you are verifying that the customer order has been paid and delivered to the customer successfully.</span>
+                    <Poptip trigger="hover" width="400" class="mt-2" word-wrap>
+                        <span slot="content">Hi {{ user.first_name }}, we sent a <span class="text-primary">6 digit delivery confirmation code</span> to your customer <span class="text-primary">{{ deliveryLineName }}</span> on their mobile number <span class="text-primary">{{ deliveryLineMobileNumber }}</span>. Please ask your customer to provide you with the code then enter the code to verify that you delivered the order to your customer.</span>
+                        <Icon type="ios-information-circle-outline" :size="20" />
+                        <span :class="['text-primary', 'border-primary', 'border-bottom-dashed']">How to get code?</span>
+                    </Poptip>
                 </Alert>
 
                 <div class="my-4">
 
-                    <!-- 6 Digit Verification Input -->
-                    <CodeInput :loading="isVerifying" class="input m-auto" v-on:change="onChange" :key="renderKey"/>
+                    <!-- If we are loading, Show Loader -->
+                    <Loader v-if="isResending || isVerifying" class="mt-2">
+                        {{ isResending ? 'Sending...' : 'Verifying...' }}
+                    </Loader>
+
+                    <Form v-else ref="loginForm">
+
+                        <FormItem prop="delivery_confirmation_code" :error="serverDeliveryConfirmationCodeError" class="text-center">
+
+                            <!-- 6 Digit Verification Input -->
+                            <CodeInput :loading="isVerifying" class="input m-auto" v-on:change="onChange" :key="renderKey"/>
+
+                        </FormItem>
+
+                    </Form>
 
                 </div>
 
@@ -44,13 +56,13 @@
             <!-- Footer -->
             <template v-slot:footer>
                 <div v-if="!isResending" class="clearfix">
+                    <Button type="default" class="float-left" :disabled="isVerifying"
+                            @click.native="resendDeliveryConfirmationCode()">
+                        Resend Confirmation Code
+                    </Button>
                     <Button type="success" class="float-right" :disabled="isVerifying || !canVerify"
                             @click.native="verifyDeliveryConfirmationCode()">
                         Verify
-                    </Button>
-                    <Button type="default" class="float-right" :disabled="isVerifying || !canVerify"
-                            @click.native="resendDeliveryConfirmationCode()">
-                        Resend Confirmation Code
                     </Button>
                     <Button @click.native="closeModal()" class="float-right mr-2" :disabled="isVerifying">Cancel</Button>
                 </div>
@@ -78,28 +90,41 @@
         data(){
             return {
                 user: auth.getUser(),
-                serverErrorMessage: null,
                 isVerifying: false,
                 isResending: false,
                 renderKey: 1,
-                code: null
+                code: null,
+                serverErrors: [],
+                serverErrorMessage: null,
             }
         },
         computed: {
-            customerName(){
-                return ((this.order || {}).customer_info || {}).first_name+' '+
-                       ((this.order || {}).customer_info || {}).last_name
+            deliveryLine(){
+                return (((this.order || {})._embedded || {}).delivery_line || {});
             },
-            customerMobileNumber(){
-                return ((this.order || {}).customer_info || {}).mobile_number
+            deliveryLineName(){
+                return this.deliveryLine.name
+            },
+            deliveryLineMobileNumber(){
+                return this.deliveryLine.mobile_number
+            },
+            fulfilOrderUrl(){
+                return (this.order || {})['_links']['bos:fulfil'].href;
             },
             canVerify(){
                 return ((this.code || {}).length == 6);
-            }
+            },
+            serverDeliveryConfirmationCodeError(){
+                return (this.serverErrors || {}).delivery_confirmation_code;
+            },
         },
         methods: {
             onChange(code) {
+
                 this.code = code;
+
+                //  Reset the server errors
+                this.resetErrors();
             },
             resendDeliveryConfirmationCode(){
 
@@ -134,53 +159,36 @@
                 //  Start loader
                 self.isVerifying = true;
 
-                /** Attempt to send the mobile account verification code using the auth
-                 *  verifyMobileAccountVerificationCode method found in the auth.js file
-                 */
-                auth.verifyMobileAccountVerificationCode(this.mobileNumber, this.code)
+                var fulfilData = {
+                    delivery_confirmation_code: this.code
+                }
+
+                //  Use the api call() function, refer to api.js
+                api.call('put', this.fulfilOrderUrl, fulfilData)
                     .then(({data}) => {
 
-                        //  Stop loader
-                        self.isVerifying = false;
+                    //  Stop loader
+                    self.isVerifying = false;
 
-                        //  If we have a matching verification code
-                        if( (data || {}).status === true ){
-
-                            this.$Message.success({
-                                content: 'Order completed!',
-                                duration: 6
-                            });
-
-                            self.$emit('verified', self.code);
-
-                            /** Note the closeModal() method is imported from the
-                             *  modalMixin file. It handles the closing process
-                             *  of the modal
-                             */
-                            self.closeModal();
-
-                        }else{
-
-                            this.$Message.warning({
-                                content: 'Incorrect code provided, try again',
-                                duration: 6
-                            });
-
-                            //  Reset the code
-                            self.code = null;
-
-                            //  Reset the input field
-                            ++self.renderKey;
-
-                        }
-
-
-                    }).catch((response) => {
-
-                        //  Stop loader
-                        self.handleApiFail(response);
-
+                    self.$Message.success({
+                        content: 'Order Fulfilled!',
+                        duration: 6
                     });
+
+                    self.$emit('verified', data);
+
+                    /** Note the closeModal() method is imported from the
+                     *  modalMixin file. It handles the closing process
+                     *  of the modal
+                     */
+                    self.closeModal();
+
+                }).catch((response) => {
+
+                    //  Stop loader
+                    self.handleApiFail(response);
+
+                });
             },
             handleApiFail(response){
 
@@ -198,9 +206,41 @@
                 //  Get the response errors
                 var errors = (data || {}).errors;
 
-                //  Set the general error message
-                this.serverErrorMessage = (data || {}).message;
+                /**
+                 *  422: Validation failed. Incorrect credentials
+                 */
+                if((response || {}).status === 422){
 
+                    //  If we have errors
+                    if(_.size(errors)){
+
+                        //  Set the server errors
+                        this.serverErrors = errors;
+
+                        //  Foreach error
+                        for (var i = 0; i < _.size(errors); i++) {
+                            //  Get the error key e.g 'email', 'password'
+                            var prop = Object.keys(errors)[i];
+                            //  Get the error value e.g 'These credentials do not match our records.'
+                            var value = Object.values(errors)[i][0];
+
+                            //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
+                            this.serverErrors[prop] = value;
+                        }
+
+                    }
+
+                }else{
+
+                    //  Set the general error message
+                    this.serverErrorMessage = (data || {}).message;
+
+                }
+
+            },
+            resetErrors(){
+                this.serverErrorMessage = '';
+                this.serverErrors = [];
             }
         }
     }

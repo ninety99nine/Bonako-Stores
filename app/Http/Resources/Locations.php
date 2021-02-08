@@ -26,7 +26,7 @@ class Locations extends ResourceCollection
         $data = [];
 
         //  If we are paginating
-        if($this instanceof LengthAwarePaginator ) {
+        if( $this->resource instanceof LengthAwarePaginator ) {
 
             //  Provide pagination links
             $data['_links'] = [

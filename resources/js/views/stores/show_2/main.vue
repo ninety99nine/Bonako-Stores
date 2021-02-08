@@ -151,7 +151,7 @@
 
                     Explanation:
 
-                    :requestToSaveChanges: This is a property that the the nested child component must watch
+                    :requestToSaveChanges: This is a property that the nested child component must watch
                         in order to know when it can save changes detected/communicated by this component.
                         This can be used to let the nested child component to know when it can commit to
                         save changes.

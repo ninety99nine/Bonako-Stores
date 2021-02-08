@@ -40,7 +40,7 @@ class Product extends JsonResource
             /*  Attributes  */
             'on_sale' => $this->on_sale,
             'unit_price' => $this->unit_price,
-            'sale_discount' => $this->sale_discount,
+            'unit_sale_discount' => $this->unit_sale_discount,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
@@ -52,6 +52,7 @@ class Product extends JsonResource
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
 
+                /*
                 //  Link to current resource
                 'self' => [
                     'href' => route('product', ['product_id' => $this->id]),
@@ -64,6 +65,7 @@ class Product extends JsonResource
                     'title' => 'The product variations',
                     'total' => $this->variations()->count(),
                 ],
+                */
             ],
 
             '_embedded' => [

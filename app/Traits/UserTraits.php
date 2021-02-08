@@ -5,63 +5,88 @@ namespace App\Traits;
 //  Resources
 use DB;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\User as UserResource;
 use App\Http\Resources\Users as UsersResource;
-use Illuminate\Validation\ValidationException;
 
 trait UserTraits
 {
-    /*  convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format
-     *
+    /**
+     *  This method transforms a collection or single model instance
      */
-    public function convertToApiFormat($users = null)
+    public function convertToApiFormat($collection = null)
     {
-        if( $users ){
+        try {
 
-            //  Transform the multiple instances
-            return new UsersResource($users);
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
 
-        }else{
+                //  Transform the multiple instances
+                return new UsersResource($collection);
 
-            //  Transform the single instance
-            return new UserResource($this);
+            // If this instance is not a collection
+            }elseif($this instanceof \App\User){
+
+                //  Transform the single instance
+                return new UserResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
     }
 
     /**
-     *   This method returns a list of stores
+     *  This method returns a list of user stores
      */
-    public function getStores($request)
+    public function getResourceStores($data = [], $paginate = true, $convert_to_api_format = true)
     {
-        //  Set the request variable
-        $this->request = $request;
+        try {
+
+            //  Filter the user stores
+            $stores = $this->filterResourceStoresByType($data);
+
+            //  Return a list of user stores
+            return (new \App\Store())->getResources($data, $stores, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the user stores by type
+     */
+    public function filterResourceStoresByType($data = [])
+    {
+        //  Extract the Request Object data (CommanTraits)
+        $data = $this->extractRequestData($data);
 
         //  Set the type e.g "created", "shared" or "favourite"
-        $type = $request->input('type');
+        $type = $data['type'] ?? null;
 
-        //  Set the pagination limit e.g 15
-        $limit = $request->input('limit');
-
-        //  Set the search term e.g "Heavenly Fruits"
-        $search_term = $request->input('search');
-
-        //  Validate the request
-        $this->handleValidation('GET');
-
+        //  If we want created stores
         if ($type === 'created') {
 
             //  Scope stores created by the user
             $stores = $this->stores()->asOwner($this->id);
 
+        //  If we want shared stores
         } elseif ($type === 'shared') {
 
             //  Scope stores shared with the user
             $stores = $this->stores()->asNonOwner($this->id);
 
+        //  If we want favourite stores
         } elseif ($type === 'favourite') {
 
             //  Scope stores favourated by the user
@@ -74,25 +99,14 @@ trait UserTraits
 
         }
 
-        //  If we need to search for specific stores
-        if (!empty($search_term)) {
-
-            $stores = $stores->search($search_term);
-
-        }
-
-        //  Paginate the stores
-        $stores = $stores->paginate($limit) ?? [];
-
-        //  Return an API Readable Format
-        return ( new \App\Store() )->convertToApiFormat( $stores );
-
+        //  Return the orders
+        return $stores;
     }
 
     /**
-     *   This method returns a single store
+     *  This method returns a single user store
      */
-    public function getStore($store_id)
+    public function getResourceStore($store_id)
     {
         try {
 
@@ -102,8 +116,8 @@ trait UserTraits
             //  If exists
             if ($store) {
 
-                //  Return an API Readable Format
-                return $store->convertToApiFormat();
+                //  Return store
+                return $store;
 
             } else {
 
@@ -120,9 +134,9 @@ trait UserTraits
     }
 
     /**
-     *   This method returns a list of store locations
+     *  This method returns a list of user store locations
      */
-    public function getStoreLocations($request, $store_id)
+    public function getResourceStoreLocations($data = [], $store_id, $paginate = true, $convert_to_api_format = true)
     {
         try {
 
@@ -132,33 +146,8 @@ trait UserTraits
             //  If exists
             if ($store) {
 
-                //  Set the request variable
-                $this->request = $request;
-
-                //  Set the pagination limit e.g 15
-                $limit = $request->input('limit');
-
-                //  Set the search term e.g "Main Branch"
-                $search_term = $request->input('search');
-
-                //  Validate the request
-                $this->handleValidation('GET');
-
-                //  Get the locations
-                $locations = $store->locations();
-
-                //  If we need to search for specific locations
-                if (!empty($search_term)) {
-
-                    $locations = $locations->search($search_term);
-
-                }
-
-                //  Paginate the locations
-                $locations = $locations->paginate($limit) ?? [];
-
-                //  Return an API Readable Format
-                return ( new \App\Location() )->convertToApiFormat( $locations );
+                //  Return a list of user store locations
+                return (new \App\Location())->getResources($data, $store->locations()->latest(), $paginate, $convert_to_api_format);
 
             } else {
 
@@ -175,9 +164,9 @@ trait UserTraits
     }
 
     /**
-     *   This method returns a single store location
+     *  This method returns a single user store location
      */
-    public function getStoreLocation($store_id, $location_id, $convetFormat = true)
+    public function getResourceStoreLocation($store_id, $location_id)
     {
         try {
 
@@ -190,13 +179,15 @@ trait UserTraits
             //  If exists
             if ($location) {
 
-                //  Return an API Readable Format
-                return $location->convertToApiFormat();
+                //  Return location
+                return $location;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
 
             }
-
-            //  Return "Not Found" Error
-            return help_resource_not_found();
 
         } catch (\Exception $e) {
 
@@ -206,9 +197,9 @@ trait UserTraits
     }
 
     /**
-     *   This method returns user's store default location
+     *  This method returns user's default location
      */
-    public function getStoreDefaultLocation($store_id)
+    public function getResourceDefaultLocation($store_id)
     {
         try {
 
@@ -221,13 +212,15 @@ trait UserTraits
             //  If exists
             if ($location) {
 
-                //  Return an API Readable Format
-                return $location->convertToApiFormat();
+                //  Return location
+                return $location;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
 
             }
-
-            //  Return "Not Found" Error
-            return help_resource_not_found();
 
         } catch (\Exception $e) {
 
@@ -237,20 +230,20 @@ trait UserTraits
     }
 
     /**
-     *   This method updates user's store default location
+     *  This method updates user's default location
      */
-    public function updateStoreDefaultLocation($request, $store_id)
+    public function updateResourceDefaultLocation($data = [], $store_id)
     {
         try {
 
-            //  Set the request variable
-            $this->request = $request;
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
             //  Set the location id
-            $location_id = $request->input('location_id');
+            $location_id = $data['location_id'];
 
-            //  Validate the request
-            $this->handleValidation('UPDATE DEFAULT LOCATION');
+            //  Validate the data
+            $this->updateResourceDefaultLocationValidation($data);
 
             //  Get the location
             $location = $this->locations()->whereHas('store', function (Builder $query) use ($store_id){
@@ -292,48 +285,148 @@ trait UserTraits
         }
     }
 
-    public function handleValidation($type)
+    /**
+     *  This method returns a list of store location orders
+     */
+    public function getResourceStoreLocationOrders($data = [], $store_id, $location_id)
     {
         try {
 
-            //  If reading resources
-            if( $type == 'GET' ){
+            //  Get the location
+            $location = $this->getResourceStoreLocation($store_id, $location_id);
 
-                $rules = [
-                    'limit' => 'sometimes|required|numeric|min:1|max:100',
-                ];
+            //  If exists
+            if ($location) {
 
-                $messages = [
-                    'limit.required' => 'Enter a valid limit containing only digits e.g 50',
-                    'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
-                    'limit.min' => 'The limit attribute must be a value between 1 and 100',
-                    'limit.max' => 'The limit attribute must be a value between 1 and 100',
-                ];
+                //  Return a list of store location orders
+                return $location->getResourceOrders($data, $this);
 
-            //  If creating or updating a resource
-            }elseif( $type == 'UPDATE DEFAULT LOCATION' ){
+            } else {
 
-                $rules = [
-                    'location_id' => 'required|numeric',
-                ];
-
-                $messages = [
-                    'location_id.required' => 'The location_id attribute is required to set a default location',
-                    'location_id.numeric' => 'The location_id must be a valid number e.g 123',
-                ];
+                //  Return "Not Found" Error
+                return help_resource_not_found();
 
             }
 
-            //  Validate request
-            $validator = Validator::make($this->request->all(), $rules, $messages);
+        } catch (\Exception $e) {
 
-            //  If the validation failed
-            if ($validator->fails()) {
+            throw($e);
 
-                //  Throw Validation Exception with validation errors
-                throw ValidationException::withMessages(collect($validator->errors())->toArray());
+        }
+    }
+
+    /**
+     *  This method returns store location order totals
+     */
+    public function getResourceStoreLocationOrderTotals($data = [], $store_id, $location_id)
+    {
+        try {
+
+            //  Get the location
+            $location = $this->getResourceStoreLocation($store_id, $location_id);
+
+            //  If exists
+            if ($location) {
+
+                //  Return store location order totals
+                return $location->getResourceOrderTotals($data, $this);
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
 
             }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method fulfils the store location order
+     */
+    public function userStoreLocationOrderFulfillment($data = [], $store_id, $location_id, $order_id)
+    {
+        try {
+
+            //  Get the order
+            $order = $this->orders()->where('orders.id', $order_id)
+                        ->whereHas('location', function (Builder $query) use ($store_id, $location_id){
+                            $query->whereHas('location', function (Builder $query) use ($store_id){
+                                $query->where('stores.id', $store_id);
+                            })->where('locations.id', $location_id);
+                        })->first();
+
+            //  If exists
+            if ($order) {
+
+                //  Extract the Request Object data (CommanTraits)
+                $data = $this->extractRequestData($data);
+
+                //  Fulfil order
+                $order->initiateFulfillment($data);
+
+                //  Return a fresh instance
+                return $order->fresh();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method creates a new user address
+     */
+    public function createResourceAddress($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the address owning model
+            $model = $this;
+
+            /**
+             *  Create new user address resource
+             */
+            return ( new \App\Address() )->createResource($data, $model);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates updating an existing resource default locatino
+     */
+    public function updateResourceDefaultLocationValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+                'location_id' => 'required|numeric',
+            ];
+
+            //  Set validation messages
+            $messages = [
+                'location_id.required' => 'The location_id attribute is required to set a default location',
+                'location_id.numeric' => 'The location_id must be a valid number e.g 123',
+
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
 
         } catch (\Exception $e) {
 

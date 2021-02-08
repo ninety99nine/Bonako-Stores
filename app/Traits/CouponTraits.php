@@ -11,21 +11,35 @@ trait CouponTraits
     public $coupon = null;
     public $request = null;
 
-    /** convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format.
+    /**
+     *  This method transforms a collection or single model instance
      */
-    public function convertToApiFormat($coupons = null)
+    public function convertToApiFormat($collection = null)
     {
-        if ($coupons) {
+        try {
 
-            //  Transform the multiple instances
-            return new CouponsResource($coupons);
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
 
-        } else {
+                //  Transform the multiple instances
+                return new CouponsResource($collection);
 
-            //  Transform the single instance
-            return new CouponResource($this);
+            // If this instance is not a collection
+            }elseif($this instanceof \App\Coupon){
+
+                //  Transform the single instance
+                return new CouponResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
     }

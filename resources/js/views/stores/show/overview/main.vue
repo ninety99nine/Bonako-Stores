@@ -75,7 +75,7 @@
 
                 <Col :span="8">
 
-                    <Card :class="clickableCardClasses" :style="generalCardStyles">
+                    <Card :class="clickableCardClasses" :style="generalCardStyles" @click.native="navigateToMenuLink('show-store-orders')">
 
                         <h1 :style="{ fontSize: '20px' }" :class="['text-center', 'mb-2']">
                             <span>Orders</span>
@@ -84,7 +84,7 @@
                         <h2 :style="{ fontSize: '20px' }" :class="['text-center']">
                             <span :class="['font-weight-bold', 'text-center', 'border-bottom-dashed']"
                                 :style="{ fontSize: '1.5em' }">
-                                {{ locationUnfulfilledOrdersTotal }}
+                                {{ locationReceivedOrdersTotal }}
                             </span>
                         </h2>
 
@@ -181,8 +181,9 @@
             locationProductsTotal(){
                 return this.location['_links']['bos:products'].total;
             },
-            locationUnfulfilledOrdersTotal(){
-                return (this.location || {})['_links']['bos:unfulfilled-orders'].total;
+            locationReceivedOrdersTotal(){
+                return 50;
+                //return (this.location || {})['_links']['bos:received-orders'].total;
             },
             visitShortCodes(){
                 return (((this.store['_embedded']['visit_short_codes'] || [])['_embedded'] || [])['short_codes'] || []);
@@ -214,6 +215,10 @@
             },
         },
         methods: {
+            navigateToMenuLink(linkName){
+                console.log(linkName);
+                this.$emit('navigateToMenuLink', linkName);
+            },
             refetchLocation(){
                 this.$emit('refetchLocation');
             },

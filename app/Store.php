@@ -22,7 +22,8 @@ class Store extends Model
      * @var string
      */
     protected $casts = [
-        'online' => 'boolean',  //  Return the following 1/0 as true/false
+        'online' => 'boolean',                      //  Return the following 1/0 as true/false
+        'allow_sending_merchant_sms' => 'boolean',  //  Return the following 1/0 as true/false
     ];
 
     /**
@@ -31,7 +32,7 @@ class Store extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'online', 'offline_message', 'user_id', 'currency', 'minimum_stock_quantity',
+        'name', 'online', 'offline_message', 'allow_sending_merchant_sms', 'user_id'
     ];
 
     /*
@@ -126,7 +127,7 @@ class Store extends Model
     {
         $user_id = auth()->user()->id;
 
-        return $this->subscriptions()->active( $user_id )->asOwner( $user_id );
+        return $this->subscriptions()->active()->asOwner($user_id);
     }
 
     /*
@@ -137,7 +138,7 @@ class Store extends Model
     {
         $user_id = auth()->user()->id;
 
-        return $this->subscriptions()->inactive( $user_id )->asOwner( $user_id );
+        return $this->subscriptions()->inactive()->asOwner($user_id);
     }
 
     /*
@@ -173,38 +174,6 @@ class Store extends Model
     public function locations()
     {
         return $this->hasMany('App\Location', 'store_id');
-    }
-
-    /*
-     *  Returns locations of this store
-     */
-    public function products()
-    {
-        return $this->hasMany('App\Product', 'store_id');
-    }
-
-    /**
-     *  Returns coupons for this store.
-     */
-    public function coupons()
-    {
-        return $this->hasMany('App\Coupon', 'store_id');
-    }
-
-    /*
-     *  Returns the instant carts that have been assigned to this store
-     */
-    public function instantCarts()
-    {
-        return $this->hasMany('App\InstantCart')->with(['products', 'coupons'])->latest();
-    }
-
-    /**
-     *  Get the store ratings.
-     */
-    public function ratings()
-    {
-        return $this->hasMany('App\StoreRating');
     }
 
     /** ATTRIBUTES
@@ -270,6 +239,11 @@ class Store extends Model
         $this->attributes['online'] = (($value == 'true' || $value === '1') ? 1 : 0);
     }
 
+    public function setAllowSendingMerchantSmsAttribute($value)
+    {
+        $this->attributes['allow_sending_merchant_sms'] = (($value == 'true' || $value === '1') ? 1 : 0);
+    }
+
     //  ON DELETE EVENT
     public static function boot()
     {
@@ -284,34 +258,13 @@ class Store extends Model
                     $location->delete();
                 }
 
-                //  Delete all products
-                foreach ($store->products as $product) {
-                    $product->delete();
-                }
-
                 //  Delete all subscription
                 foreach ($store->subscriptions as $subscription) {
                     $subscription->delete();
                 }
 
-                //  Delete all subscription
-                foreach ($store->subscriptions as $subscription) {
-                    $subscription->delete();
-                }
-
-                //  Delete all instant carts
-                $store->instantCarts()->delete();
-
-                //  Delete all coupons
-                $store->coupons()->delete();
-
-                //  Delete all ratings
-                $store->ratings()->delete();
-
-                //  Expire short codes
-                $store->shortCodes()->update([
-                    'expires_at' => Carbon::now()
-                ]);
+                //  Expire short codes (CommanTraits)
+                $store->expireShortCodes();
 
                 // do the rest of the cleanup...
             });

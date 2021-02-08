@@ -12,9 +12,15 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+Route::get('/exception', function(){
+    return [
+        'auth(api)->user' => auth('api')->user()->id,
+    ];
+});
 
 //  API Home
 Route::get('/', 'Api\HomeController@home')->name('api-home');
+Route::get('/currencies', 'Api\HomeController@getCurrencies')->name('currencies');
 Route::get('/payment-methods', 'Api\HomeController@getPaymentMethods')->name('payment-methods');
 Route::get('/subscription-plans', 'Api\HomeController@getSubscriptionPlans')->name('subscription-plans');
 
@@ -46,8 +52,8 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::get('/', 'UserController@getUser')->name('profile');
 
         Route::get('/stores', 'UserController@getUserStores')->name('stores');
-        Route::get('/stores?type=created', 'UserController@getUserStores')->name('created-stores');
         Route::get('/stores?type=shared', 'UserController@getUserStores')->name('shared-stores');
+        Route::get('/stores?type=created', 'UserController@getUserStores')->name('created-stores');
         Route::get('/stores?type=favourite', 'UserController@getUserStores')->name('favourite-stores');
 
         //  Single store    /api/me/store/{store_id}   name => my-store
@@ -62,48 +68,105 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
             //  Single Location    /api/me/store/{store_id}/locations   name => my-store-locations
             Route::get('/locations/{location_id}', 'UserController@getUserStoreLocation')->name('location');
+
+            //  Single location resources    /api/me/store/{store_id}/locations/{location_id}   name => my-store-location-*
+            Route::prefix('locations/{location_id}')->name('location-')->group(function () {
+
+                Route::get('/orders', 'UserController@getUserStoreLocationOrders')->name('orders');
+                Route::get('/order-totals', 'UserController@getUserStoreLocationOrderTotals')->name('order-totals');
+
+            });
+
         });
 
     });
 
     //  Store Resource Routes
     Route::prefix('stores')->group(function () {
+
         Route::get('/', 'StoreController@getStores')->name('stores');
         Route::post('/', 'StoreController@createStore')->name('store-create');
 
-        //  Single store  /stores/{store_id}
-        Route::get('/{store_id}', 'StoreController@getStore')->name('store')->where('store_id', '[0-9]+');
-        Route::put('/{store_id}', 'StoreController@updateStore')->name('store-update')->where('store_id', '[0-9]+');
-        Route::delete('/{store_id}', 'StoreController@deleteStore')->name('store-delete')->where('store_id', '[0-9]+');
+        //  Single store resources    /api/stores/{store_id}   name => store-*
+        Route::prefix('/{store_id}')->name('store-')->group(function () {
 
-        Route::post('/{store_id}/favourite', 'StoreController@addOrRemoveStoreAsFavourite')->name('store-favourite')->where('store_id', '[0-9]+');
+            Route::get('/', 'StoreController@getStore')->name('show')->where('store_id', '[0-9]+');
+            Route::put('/', 'StoreController@updateStore')->name('update')->where('store_id', '[0-9]+');
+            Route::delete('/', 'StoreController@deleteStore')->name('delete')->where('store_id', '[0-9]+');
 
-        Route::post('/{store_id}/subscribe', 'StoreController@generateSubscription')->name('store-subscribe')->where('store_id', '[0-9]+');
+            //  Store locations  /stores/{store_id}/locations
+            Route::get('/locations', 'StoreController@getStoreLocations')->name('locations');
+            Route::post('/locations', 'StoreController@createStoreLocation')->name('location-create');
 
-        Route::post('/{store_id}/generate-payment-shortcode', 'StoreController@generatePaymentShortCode')->name('store-generate-payment-shortcode')->where('store_id', '[0-9]+');
+            Route::post('/subscribe', 'StoreController@generateSubscription')->name('subscribe')->where('store_id', '[0-9]+');
+            Route::post('/generate-payment-shortcode', 'StoreController@generatePaymentShortCode')->name('generate-payment-shortcode')->where('store_id', '[0-9]+');
 
-        //  Single store users: /stores/{store_id}/users
-        Route::get('/{store_id}/users', 'StoreController@getStoreUsers')->name('store-users')->where('store_id', '[0-9]+');
+        });
 
-        //  Single store products: /stores/{store_id}/products
-        Route::get('/{store_id}/products', 'StoreController@getStoreProducts')->name('store-products')->where('store_id', '[0-9]+');
-
-        //  Single store locations: /stores/{store_id}/locations
-        Route::get('/{store_id}/locations', 'StoreController@getStoreLocations')->name('store-locations')->where('store_id', '[0-9]+');
-
-        //  Single store favourite locations: /stores/{store_id}/favourite-locations
-        Route::get('/{store_id}/locations?type=favourite', 'StoreController@getStoreLocations')->name('store-favourite-locations')->where('store_id', '[0-9]+');
-
-        //  Single store coupons: /stores/{store_id}/coupons
-        Route::get('/{store_id}/coupons', 'StoreController@getStoreCoupons')->name('store-coupons')->where('store_id', '[0-9]+');
-
-        //  Single store instant carts: /stores/{store_id}/instant-carts
-        Route::get('/{store_id}/instant-carts', 'StoreController@getStoreInstantCarts')->name('store-instant-carts')->where('store_id', '[0-9]+');
-
-        //  Single store rating statistics: /stores/{store_id}/rating-statistics
-        Route::get('/{store_id}/rating-statistics', 'StoreController@getStoreRatingStatistics')->name('store-rating-statistics')->where('store_id', '[0-9]+');
     });
 
+    //  Location Resource Routes
+    Route::prefix('locations')->group(function () {
+
+        Route::get('/', 'LocationController@getLocations')->name('locations');
+        Route::post('/', 'LocationController@createLocation')->name('location-create');
+
+        //  Single location resources    /api/locations/{location_id}   name => location-*
+        Route::prefix('/{location_id}')->name('location-')->group(function () {
+
+            Route::get('/', 'LocationController@getLocation')->name('show')->where('location_id', '[0-9]+');
+            Route::put('/', 'LocationController@updateLocation')->name('update')->where('location_id', '[0-9]+');
+            Route::delete('/', 'LocationController@deleteLocation')->name('delete')->where('location_id', '[0-9]+');
+
+            Route::get('/users', 'LocationController@getLocationUsers')->name('users');
+
+            Route::get('/orders', 'LocationController@getLocationOrders')->name('orders');
+            Route::get('/order-totals', 'LocationController@getLocationOrderTotals')->name('order-totals');
+
+            Route::get('/coupons', 'LocationController@getLocationCoupons')->name('coupons');
+            Route::get('/products', 'LocationController@getLocationProducts')->name('products');
+            Route::get('/instant-carts', 'LocationController@getLocationInstantCarts')->name('instant-carts');
+
+            Route::post('/toggle-favourite', 'LocationController@toggleLocationAsFavourite')->name('toggle-favourite');
+
+        });
+
+    });
+
+    //  Order Resource Routes
+    Route::prefix('orders')->group(function () {
+
+        Route::get('/', 'OrderController@getOrders')->name('orders');
+        Route::post('/', 'OrderController@createOrder')->name('order-create');
+
+        //  Single order resources    /api/orders/{order_id}   name => order-*
+        Route::prefix('/{order_id}')->name('order-')->group(function () {
+
+            Route::get('/', 'OrderController@getOrder')->name('show')->where('order_id', '[0-9]+');
+            Route::put('/', 'OrderController@updateOrder')->name('update')->where('order_id', '[0-9]+');
+            Route::delete('/', 'OrderController@deleteOrder')->name('delete')->where('order_id', '[0-9]+');
+
+            Route::put('/fulfil', 'OrderController@fulfilOrder')->name('fulfil');
+            Route::put('/unfulfil', 'OrderController@unfulfilOrder')->name('unfulfil');
+
+            Route::put('/cancel', 'OrderController@cancelOrder')->name('cancel');
+            Route::put('/uncancel', 'OrderController@uncancelOrder')->name('uncancel');
+
+            Route::get('/item-lines', 'OrderController@getOrderItemLines')->name('item-lines');
+            Route::get('/coupon-lines', 'OrderController@getOrderCouponLines')->name('coupon-lines');
+
+            Route::get('/shared-locations', 'OrderController@getOrderSharedLocations')->name('shared-locations');
+            Route::get('/received-location', 'OrderController@getOrderReceivedLocation')->name('received-location');
+            Route::post('/shared-locations', 'OrderController@updateOrderSharedLocations')->name('update-shared-locations');
+
+            Route::put('/resend-delivery-confirmation-code', 'OrderController@resendOrderDeliveryConfirmationCode')
+                      ->name('resend-delivery-confirmation-code');
+
+        });
+
+    });
+
+    /*
     //  Location Resource Routes
     Route::prefix('locations')->group(function () {
         Route::get('/', 'LocationController@getLocations')->name('locations');
@@ -145,6 +208,7 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         //  Single location payment methods: /locations/{location_id}/payment-methods
         Route::get('/{location_id}/payment-methods', 'LocationController@getLocationPaymentMethods')->name('location-payment-methods')->where('location_id', '[0-9]+');
     });
+
 
     //  Product Resource Routes
     Route::prefix('products')->group(function () {
@@ -190,7 +254,7 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::get('/{instant_cart_id}', 'InstantCartController@getInstantCart')->name('instant-cart')->where('instant_cart_id', '[0-9]+');
         Route::put('/{instant_cart_id}', 'InstantCartController@updateInstantCart')->name('instant-cart-update')->where('instant_cart_id', '[0-9]+');
     });
-
+    */
     //  Cart Resource Routes
     Route::prefix('cart')->group(function () {
         Route::post('/', 'CartController@calculateCart')->name('cart-calculator');

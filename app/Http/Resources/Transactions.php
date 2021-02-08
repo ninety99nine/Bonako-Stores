@@ -26,7 +26,7 @@ class Transactions extends ResourceCollection
         $data = [];
 
         //  If we are paginating
-        if($this instanceof LengthAwarePaginator ) {
+        if( $this->resource instanceof LengthAwarePaginator ) {
 
             //  Provide pagination links
             $data['_links'] = [
@@ -34,7 +34,7 @@ class Transactions extends ResourceCollection
                 //  Link to current resource
                 'self' => [
                     'href' => url()->full(),
-                    'title' => 'These subscriptions',
+                    'title' => 'These transactions',
                 ],
 
                 'first' => [

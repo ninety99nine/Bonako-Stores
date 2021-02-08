@@ -553,12 +553,3 @@ body {
 .text-cancelled {
     text-decoration: line-through;
 }
-
-/*  Order Table */
-.order-table tr .order-table-actions {
-    opacity: 0;
-}
-
-.order-table tr:hover .order-table-actions {
-    opacity: 1;
-}

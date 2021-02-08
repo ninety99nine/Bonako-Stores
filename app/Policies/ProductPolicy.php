@@ -17,13 +17,13 @@ class ProductPolicy
     public function before($user, $ability)
     {
         /** Note that this will run before any other checks. This means is we return true we will be authorized
-         *  for every action. However be aware that if we return false here, then we are also not authorizing 
-         *  all other methods. We must be careful here, we only return true if the user is a "Super Admin" 
-         *  but nothing is they are not, since we want other methods to run their own local checks. 
-         * 
+         *  for every action. However be aware that if we return false here, then we are also not authorizing
+         *  all other methods. We must be careful here, we only return true if the user is a "Super Admin"
+         *  but nothing is they are not, since we want other methods to run their own local checks.
+         *
         */
         try {
-            
+
             if($user->isSuperAdmin()) return true;
 
         } catch (\Exception $e) {
@@ -32,7 +32,7 @@ class ProductPolicy
 
         }
     }
-    
+
     /**
      * Determine whether the user can view all products.
      *
@@ -42,7 +42,7 @@ class ProductPolicy
     public function viewAll(User $user)
     {
         try {
-        
+
             //  Only the Super Admin can view all products
             return $user->isSuperAdmin();
 
@@ -84,8 +84,8 @@ class ProductPolicy
     {
         try {
 
-            //  Any Authenticated user can create products
-            return auth('api')->user() ? true : false;
+            //  Any Authenticated user can create a product
+            return ($user instanceof \App\User) ? true : false;
 
         } catch (\Exception $e) {
 

@@ -219,21 +219,21 @@
                     var productList = products.map((product) => {
 
                         var unit_regular_price = product.unit_regular_price;
-                        var sale_discount = product.sale_discount;
+                        var unit_sale_discount = product.unit_sale_discount;
                         var quantity = product.pivot.quantity;
                         var on_sale = product.on_sale;
                         var name = product.name;
 
                         var product_details = quantity+'x('+name+')';
                         var product_pricing = this.formatPrice((unit_regular_price * quantity), 'P');
-                        var sale_discount = (sale_discount ? ' - '+this.formatPrice((sale_discount * quantity), 'P') : '');
+                        var unit_sale_discount = (unit_sale_discount ? ' - '+this.formatPrice((unit_sale_discount * quantity), 'P') : '');
                         var on_sale = (on_sale ? ' (sale)' : '');
 
                         return h('tr', [
                             h('td', [ h('span', product_details) ]),
                             h('td', [ 
                                 h('span', product_pricing),
-                                h('small', { class: ['text-danger'] }, sale_discount),
+                                h('small', { class: ['text-danger'] }, unit_sale_discount),
                                 h('span', on_sale)
                             ])
                         ]);

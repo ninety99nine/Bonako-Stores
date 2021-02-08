@@ -41,11 +41,13 @@ class Coupon extends JsonResource
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
 
+                /*
                 //  Link to current resource
                 'self' => [
                     'href' => route('coupon', ['coupon_id' => $this->id]),
                     'title' => 'This coupon'
                 ]
+                */
                 
             ],
 

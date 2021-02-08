@@ -17,6 +17,7 @@ class CreateSubscriptionPlansTable extends Migration
             /*  Subscription Package Details  */
             $table->string('name');
             $table->string('description')->nullable();
+            $table->string('type')->nullable();
             $table->string('frequency');
             $table->unsignedSmallInteger('duration');
             $table->float('price');

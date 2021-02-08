@@ -16,15 +16,10 @@ class CreateStoresTable extends Migration
 
             /*  Basic Info  */
             $table->string('name')->nullable();
-            $table->boolean('online')->nullable()->default(false);
+            $table->boolean('online')->default(false);
             $table->string('offline_message')->nullable();
+            $table->boolean('allow_sending_merchant_sms')->default(true);
             $table->bigInteger('user_id')->unsigned()->nullable();
-
-            /*  Currency Info  */
-            $table->char('currency', 3)->default('BWP');
-
-            /*  Stock Info  */
-            $table->unsignedInteger('minimum_stock_quantity')->default(10);
 
             /*  Timestamps  */
             $table->timestamps();

@@ -22,7 +22,9 @@ class CreateTransactionsTable extends Migration
             $table->string('description')->nullable();
 
             /*  Ownership Information  */
-            $table->bigInteger('user_id')->unsigned();
+            $table->bigInteger('user_id')->unsigned()->nullable();
+            $table->bigInteger('owner_id')->unsigned()->nullable();
+            $table->string('owner_type')->nullable();
 
             /*  Timestamps  */
             $table->timestamps();

@@ -2,34 +2,43 @@
 
 namespace App\Traits;
 
-use DB;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Subscription as SubscriptionResource;
 use App\Http\Resources\Subscriptions as SubscriptionsResource;
 
 trait SubscriptionTraits
 {
-    public $request = null;
     public $subscription = null;
 
-    /*  convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format
-     *
+    /**
+     *  This method transforms a collection or single model instance
      */
-    public function convertToApiFormat($subscriptions = null)
+    public function convertToApiFormat($collection = null)
     {
-        if( $subscriptions ){
+        try {
 
-            //  Transform the multiple instances
-            return new SubscriptionsResource($subscriptions);
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
 
-        }else{
+                //  Transform the multiple instances
+                return new SubscriptionsResource($collection);
 
-            //  Transform the single instance
-            return new SubscriptionResource($this);
+            // If this instance is not a collection
+            }elseif($this instanceof \App\Subscription){
+
+                //  Transform the single instance
+                return new SubscriptionResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
     }
@@ -37,46 +46,51 @@ trait SubscriptionTraits
     /**
      *  This method creates a new subscription
      */
-    public function createResource($request, $model = null)
+    public function createResource($data = [])
     {
         try {
 
-            //  Set the request variable
-            $this->request = $request;
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-            //  Validate the request
-            $this->handleValidation('CREATE');
+            //  Validate the data
+            $this->createResourceValidation($data);
 
-            /**
-             *  Retrieve the request values
-             */
-            $store_id = $request->input('store_id') ?? null;
-            $subscription_plan_id = $request->input('subscription_plan_id') ?? null;
+            //  Set the subscription plan id
+            $subscription_plan_id = $data['subscription_plan_id'] ?? null;
 
             //  Retrieve the subscription plan
-            $subscription_plan = \App\SubscriptionPlan::find($subscription_plan_id);
+            $subscription_plan = (new \App\SubscriptionPlan())->getResource($subscription_plan_id);
 
-            //  If we don't have a subscription plan
-            if( !$subscription_plan ){
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
 
-                //  The subscription plan does not exist. Throw a validation error
-                throw ValidationException::withMessages(['message' => 'The subscription plan does not exist']);
-
-            }
-
+            //  Set the subscription "start_at" datetime
             $start_at = (Carbon::now())->format('Y-m-d H:i:s');
 
-            //  If the subscription plan frequency of measured in days
+            //  If the subscription plan frequency is measured in days
             if( $subscription_plan->frequency == 'day' ){
 
                 //  End the subscription plan after the given duration of days
                 $end_at = Carbon::parse($start_at)->addDays( $subscription_plan->duration );
 
-            //  If the subscription plan frequency of measured in months
+            //  If the subscription plan frequency is measured in weeks
+            }elseif( $subscription_plan->frequency == 'week' ){
+
+                //  End the subscription plan after the given duration of weeks
+                $end_at = Carbon::parse($start_at)->addWeeks( $subscription_plan->duration );
+
+            //  If the subscription plan frequency is measured in months
             }elseif( $subscription_plan->frequency == 'month' ){
 
                 //  End the subscription plan after the given duration of months
                 $end_at = Carbon::parse($start_at)->addMonths( $subscription_plan->duration );
+
+                //  If the subscription plan frequency is measured in years
+            }elseif( $subscription_plan->frequency == 'year' ){
+
+                //  End the subscription plan after the given duration of years
+                $end_at = Carbon::parse($start_at)->addYears( $subscription_plan->duration );
 
             }else{
 
@@ -84,46 +98,38 @@ trait SubscriptionTraits
 
             }
 
-            //  Set the template
-            $template = [
+            //  If the current authenticated user is a Super Admin and the "user_id" is provided
+            if( auth('api')->user()->isSuperAdmin() && isset($data['user_id']) ){
 
-                /*  Basic Info  */
-                'store_id' => $store_id,
-                'user_id' => auth('api')->user()->id,
-                'subscription_plan_id' => $subscription_plan_id,
-                'start_at' => $start_at,
-                'end_at' => $end_at,
-                'active' => true
+                //  Set the "user_id" provided as the user responsible for owning this resource
+                $template['user_id'] = $data['user_id'];
 
-            ];
+            }else{
+
+                //  Set the current authenticated user as the user responsible for owning this resource
+                $template['user_id'] = auth('api')->user()->id;
+
+            }
+
+            //  Set the "start at" datetime
+            $template['start_at'] = $start_at;
+
+            //  Set the "start at" datetime
+            $template['end_at'] = $end_at;
 
             /**
-             *  Create new a subscription, then retrieve a fresh instance
+             *  Create a new resource
              */
-            $this->subscription = $this->create($template)->fresh();
+            $this->subscription = $this->create($template);
 
             //  If created successfully
             if ( $this->subscription ) {
 
                 //  Generate a new transaction
-                $this->generateTransaction($subscription_plan);
+                $this->subscription->createResourceTransaction($data, $subscription_plan);
 
-                //  If a model was provided
-                if( $model ){
-
-                    //  Generate the visit short code
-                    $this->generateVisitShortCode($model);
-
-                    //  Expire the payment short codes
-                    $this->expirePaymentShortCodes($model);
-
-                }
-
-                //  Get a fresh instance
-                $subscription = $this->subscription->fresh();
-
-                //  Return an API Readable Format
-                return $subscription->convertToApiFormat();
+                //  Return a fresh instance
+                return $this->subscription->fresh();
 
             }
 
@@ -133,50 +139,35 @@ trait SubscriptionTraits
 
         }
     }
-
-    public function expirePaymentShortCodes($model)
-    {
-        //  Expire payment short codes
-        $model->paymentShortCodes()->update([
-            'expires_at' => Carbon::now()
-        ]);
-    }
-
-    public function generateVisitShortCode($model)
+    /**
+     *  This method creates a new subscription transaction
+     */
+    public function createResourceTransaction($data = [], $subscription_plan)
     {
         try {
 
-            //  Set the short code action
-            $action = 'visit';
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-            //  Create a new visit short code
-            return ( new \App\ShortCode() )->createResource($action, $model);
+            //  Merge the data with additional fields
+            $data = array_merge($data, [
 
-        } catch (\Exception $e) {
+                //  Set the transaction type on the data
+                'type' => 'subscription',
 
-            throw($e);
+                //  Set the transaction amount on the data
+                'amount' => $subscription_plan->price,
 
-        }
-    }
+                //  Set the transaction description on the data
+                'description' => 'Subscription for '.$subscription_plan->name
 
-    public function generateTransaction($subscription_plan)
-    {
-        try {
+            ]);
 
-            //  Set the owning model
-            $model = $this->subscription;
-
-            //  Set the transaction amount on the request
-            $this->request->merge(['amount' => $subscription_plan->price]);
-
-            //  Set the transaction type on the request
-            $this->request->merge(['type' => 'subscription']);
-
-            //  Set the transaction description on the request
-            $this->request->merge(['description' => 'Subscription for '.$subscription_plan->name]);
+            //  Set the transaction owning model
+            $model = $this;
 
             //  Create a new transaction
-            return ( new \App\Transaction() )->createResource($this->request, $model);
+            return ( new \App\Transaction() )->createResource($data, $model);
 
         } catch (\Exception $e) {
 
@@ -185,36 +176,33 @@ trait SubscriptionTraits
         }
     }
 
-    public function handleValidation($type)
+    /**
+     *  This method validates creating a new resource
+     */
+    public function createResourceValidation($data = [])
     {
         try {
 
-            if( $type == 'CREATE' ){
+            //  Set validation rules
+            $rules = [
+                'user_id' => 'sometimes|regex:/^[0-9]+$/i',
+                'store_id' => 'required|regex:/^[0-9]+$/i',
+                'subscription_plan_id' => 'required|regex:/^[0-9]+$/i'
+            ];
 
-                $rules = [
-                    'store_id' => 'required|regex:/^[0-9]+$/i',
-                    'subscription_plan_id' => 'required|regex:/^[0-9]+$/i',
-                ];
+            //  Set validation messages
+            $messages = [
+                'store_id.regex' => 'The user id must be a valid number e.g 123',
 
-                $messages = [
-                    'store_id.required' => 'The store id is required to create a subscription',
-                    'store_id.regex' => 'The store id must be a valid number e.g 123',
-                    'subscription_plan_id.required' => 'The subscription plan id is required to create a subscription',
-                    'subscription_plan_id.regex' => 'The store id must be a valid number e.g 1'
-                ];
+                'store_id.required' => 'The store id is required to create a subscription',
+                'store_id.regex' => 'The store id must be a valid number e.g 123',
 
-            }
+                'subscription_plan_id.required' => 'The subscription plan id is required to create a subscription',
+                'subscription_plan_id.regex' => 'The store id must be a valid number e.g 1'
+            ];
 
-            //  Validate request
-            $validator = Validator::make($this->request->all(), $rules, $messages);
-
-            //  If the validation failed
-            if ($validator->fails()) {
-
-                //  Throw Validation Exception with validation errors
-                throw ValidationException::withMessages(collect($validator->errors())->toArray());
-
-            }
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
 
         } catch (\Exception $e) {
 

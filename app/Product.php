@@ -37,9 +37,9 @@ class Product extends Model
     protected $fillable = [
         //  Product Details
         'name', 'description', 'arrangement', 'active', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price',
-        'sku', 'barcode', 'stock_quantity', 'allow_stock_management', 'auto_manage_stock', 'variant_attributes', 
-        'allow_variants', 'allow_downloads', 'show_on_store', 'is_new', 'is_featured', 'parent_product_id', 
-        'user_id', 'store_id', 'location_id',
+        'sku', 'barcode', 'stock_quantity', 'allow_stock_management', 'auto_manage_stock', 'variant_attributes',
+        'allow_variants', 'allow_downloads', 'show_on_store', 'is_new', 'is_featured', 'parent_product_id',
+        'user_id', 'location_id',
     ];
 
     /*
@@ -133,7 +133,7 @@ class Product extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'unit_price', 'sale_discount', 'on_sale',
+        'resource_type', 'unit_price', 'unit_sale_discount', 'on_sale',
     ];
 
     /**
@@ -177,7 +177,7 @@ class Product extends Model
      *
      *  This is the difference in the regular price and sale price.
      */
-    public function getSaleDiscountAttribute()
+    public function getUnitSaleDiscountAttribute()
     {
         if ($this->on_sale) {
             //  Calculate the sale discount or amount saved

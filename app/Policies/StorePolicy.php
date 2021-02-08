@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Store;
 use App\User;
+use App\Store;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class StorePolicy
@@ -26,25 +26,6 @@ class StorePolicy
             if ($user->isSuperAdmin()) {
                 return true;
             }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     * Determine whether the user can view all stores.
-     *
-     * @return mixed
-     */
-    public function viewAll(User $user)
-    {
-        try {
-
-            //  Only the Super Admin can view all stores
-            return $user->isSuperAdmin();
 
         } catch (\Exception $e) {
 
@@ -82,7 +63,7 @@ class StorePolicy
         try {
 
             //  Any Authenticated user can create a store
-            return auth('api')->user() ? true : false;
+            return ($user instanceof \App\User) ? true : false;
 
         } catch (\Exception $e) {
 
@@ -100,8 +81,27 @@ class StorePolicy
     {
         try {
 
-            //  Only the Owner can update this store
-            return $store->isOwner($user->id);
+            //  Only the Owner with a store subscription can update this store
+            return $store->isOwner($user) && $store->isSubscribed($user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     * Determine whether the user can subscribe to the store.
+     *
+     * @return mixed
+     */
+    public function subscribe(User $user, Store $store)
+    {
+        try {
+
+            //  Only the Owner can subscribe this store
+            return $store->isOwner($user);
 
         } catch (\Exception $e) {
 
@@ -119,8 +119,8 @@ class StorePolicy
     {
         try {
 
-            //  Only the Owner can delete this store
-            return $store->isOwner($user->id);
+            //  Only the Owner with a store subscription can delete this store
+            return $store->isOwner($user) && $store->isSubscribed($user);
 
         } catch (\Exception $e) {
 
@@ -139,7 +139,7 @@ class StorePolicy
         try {
 
             //  Only the Owner can restore this store
-            return $store->isOwner($user->id);
+            return $store->isOwner($user);
 
         } catch (\Exception $e) {
 
@@ -158,7 +158,7 @@ class StorePolicy
         try {
 
             //  Only the Owner can force delete this store
-            return $store->isOwner($user->id);
+            return $store->isOwner($user);
 
         } catch (\Exception $e) {
 

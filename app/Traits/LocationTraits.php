@@ -3,93 +3,39 @@
 namespace App\Traits;
 
 use DB;
+use Carbon\Carbon;
 use App\Http\Resources\Location as LocationResource;
 use App\Http\Resources\Locations as LocationsResource;
 
 trait LocationTraits
 {
-    public $request = null;
     public $location = null;
-    public $location_to_clone = null;
 
-    /*  convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format
-     *
+    /**
+     *  This method transforms a collection or single model instance
      */
-    public function convertToApiFormat($locations = null)
-    {
-        if ($locations) {
-            //  Transform the multiple instances
-            return new LocationsResource($locations);
-        } else {
-            //  Transform the single instance
-            return new LocationResource($this);
-        }
-    }
-
-    /**  initiateCreate()
-     *
-     *  This method creates a new Location
-     */
-    public function initiateCreate($request)
+    public function convertToApiFormat($collection = null)
     {
         try {
 
-            //  Set the request variable
-            $this->request = $request;
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
 
-            //  Validate the request
-            $validation_data = $request->validate([
-                'name' => 'required',
-            ]);
+                //  Transform the multiple instances
+                return new LocationsResource($collection);
 
-            //  If we have the location id representing the location to clone
-            if ($request->input('clone_location_id')) {
-                //  Retrieve the location to clone
-                $this->location_to_clone = \App\Location::where('id', $request->input('clone_location_id'))->first();
+            // If this instance is not a collection
+            }elseif($this instanceof \App\Location){
+
+                //  Transform the single instance
+                return new LocationResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
             }
-
-            //  Set the template
-            $template = [
-                'user_id' => auth('api')->user()->id,
-                'name' => $this->request->input('name'),
-                'online' => $this->request->input('online'),
-                'about_us' => $this->request->input('about_us'),
-                'store_id' => $this->request->input('store_id'),
-                'contact_us' => $this->request->input('contact_us'),
-                'abbreviation' => $this->request->input('abbreviation'),
-                'allow_payments' => $this->request->input('allow_payments'),
-                'call_to_action' => $this->request->input('call_to_action'),
-                'allow_delivery' => $this->request->input('allow_delivery'),
-                'offline_message' => $this->request->input('offline_message'),
-                'delivery_note' => $this->request->input('delivery_note'),
-                'delivery_flat_fee' => $this->request->input('delivery_flat_fee'),
-                'delivery_days' => $this->request->input('delivery_days'),
-                'pickup_days' => $this->request->input('pickup_days'),
-                'delivery_times' => $this->request->input('delivery_times'),
-                'pickup_note' => $this->request->input('pickup_note'),
-                'pickup_times' => $this->request->input('pickup_times'),
-                'delivery_destinations' => $this->request->input('delivery_destinations'),
-                'pickup_destinations' => $this->request->input('pickup_destinations'),
-                'allow_pickups' => $this->request->input('allow_pickups'),
-                'online_payment_methods' => $this->request->input('online_payment_methods'),
-                'offline_payment_methods' => $this->request->input('offline_payment_methods'),
-            ];
-
-            /*
-             *  Create new a location, then retrieve a fresh instance
-             */
-            $this->location = $this->create($template);
-
-            //  If the location was created successfully
-            if ($this->location) {
-                //  Assign user as an Admin to this location
-                $this->assignUserAsAdmin();
-
-                return $this->location->fresh();
-            }
-
 
         } catch (\Exception $e) {
 
@@ -98,30 +44,554 @@ trait LocationTraits
         }
     }
 
-    /**  initiateUpdateProductArrangement()
-     *
-     *  This method updates the arrangement of products in the current location.
-     *  The logic allows us to run a single query to update multiple products
-     *  with different values of their arrangement for a given location.
+    /**
+     *  This method creates a new location
      */
-    public function initiateUpdateProductArrangement($request)
+    public function createResource($data = [], $user = null)
     {
         try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data
+            $this->createResourceValidation($data);
+
+            //  Set the store id
+            $store_id = $data['store_id'];
+
+            //  Verify permissions
+            $this->createResourcePermission($user, $store_id);
+
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
+
+            //  If the current authenticated user is a Super Admin and the "user_id" is provided
+            if( auth('api')->user()->isSuperAdmin() && isset($data['user_id']) ){
+
+                //  Set the "user_id" provided as the user responsible for owning this resource
+                $template['user_id'] = $data['user_id'];
+
+                //  Overide the default user to insert this user for assignUserAsAdmin()
+                $user = \App\User::find($data['user_id']);
+
+            }else{
+
+                //  Set the current authenticated user as the user responsible for owning this resource
+                $template['user_id'] = auth('api')->user()->id;
+
+            }
+
+            /**
+             *  Create a new resource
+             */
+            $this->location = $this->create($template);
+
+            //  If created successfully
+            if ( $this->location ) {
+
+                //  Assign user as an Admin to this location
+                $this->location->assignUserAsAdmin($user);
+
+                //  Return the location
+                return $this->location;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method updates an existing location
+     */
+    public function updateResource($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Merge the existing data with the new data
+            $data = array_merge(collect($this)->only($this->getFillable())->toArray(), $data);
+
+            //  Verify permissions
+            $this->updateResourcePermission($user);
+
+            //  Validate the data
+            $this->updateResourceValidation($data);
+
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
+
+            //  Set the original user as the primary user responsible for creating this resource
+            $template['user_id'] = $this->user_id;
+
+            /**
+             *  Update the resource details
+             */
+            $updated = $this->update($template);
+
+            //  If updated successfully
+            if ($updated) {
+
+                //  Return a fresh instance
+                return $this->fresh();
+
+            }else{
+
+                //  Return original instance
+                return $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of locations
+     */
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data
+            $this->getResourcesValidation($data);
+
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
+
+                //  Set the locations to this eloquent builder
+                $locations = $builder;
+
+            }else{
+
+                //  Get the locations
+                $locations = \App\Location::latest();
+
+            }
+
+            //  Filter the locations by search
+            $locations = $this->filterResourcesBySearch($data, $locations);
+
+            //  Return locations
+            return $this->collectionResponse($data, $locations, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the locations by search
+     */
+    public function filterResourcesBySearch($data = [], $locations)
+    {
+        //  Set the search term e.g "Location 1"
+        $search_term = $data['search'] ?? null;
+
+        //  Return searched locations otherwise original locations
+        return empty($search_term) ? $locations : $locations->search($search_term);
+
+    }
+
+    /**
+     *  This method returns a single location
+     */
+    public function getResource($id)
+    {
+        try {
+
+            //  Get the resource
+            $location = \App\Location::where('id', $id)->first() ?? null;
+
+            //  If exists
+            if ($location) {
+
+                //  Return location
+                return $location;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of location users
+     */
+    public function getResourceUsers($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the pagination limit e.g 15
+            $limit = $data['limit'] ?? null;
+
+            //  Set the search term e.g "John"
+            $search_term = $data['search'] ?? null;
+
+            //  Validate the data
+            $this->getResourcesValidation($data);
+
+            //  Get the users
+            $users = $this->users()->latest();
+
+            //  If we need to search for specific users
+            if (!empty($search_term)) {
+
+                $users = $users->search($search_term);
+
+            }
+
+            //  If we should paginate the collection
+            if( $paginate === true ){
+
+                //  Return the paginated users
+                $users = $users->paginate($limit);
+
+            }else{
+
+                //  Return the users
+                $users = $users->get();
+
+            }
+
+            //  If we should convert the collection to an API Readable Format
+            if( $convert_to_api_format === true ){
+
+                //  Convert to API Readable Format
+                return (new \App\User)->convertToApiFormat($users);
+
+            }else{
+
+                //  Return users
+                return $users;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of location orders
+     */
+    public function getResourceOrders($data = [], $user, $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Filter the location orders by type
+            $orders = $this->filterResourceOrdersByType($data, $user);
+
+            //  Return a list of location orders
+            return (new \App\Order())->getResources($data, $orders, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the user orders by type
+     */
+    public function filterResourceOrdersByType($data = [], $user)
+    {
+        //  Extract the Request Object data (CommanTraits)
+        $data = $this->extractRequestData($data);
+
+        //  Set the type e.g "received", "shared" or "sent"
+        $type = isset($data['type']) ? strtolower($data['type']) : null;
+
+        //  If we want received orders
+        if ($type === 'received') {
+
+            //  Scope orders received
+            $orders = $this->receivedOrders();
+
+        //  If we want shared orders
+        } elseif ($type === 'shared') {
+
+            //  Scope orders shared
+            $orders = $this->sharedOrders();
+
+        //  If we want orders sent
+        } elseif ($type === 'sent') {
+
+            //  Scope orders received sent by user
+            $orders = $this->receivedOrders()->userIsCustomer($user);
+
+        }else{
+
+            //  Scope orders
+            $orders = $this->orders();
+
+        }
+
+        //  Return the orders
+        return $orders;
+    }
+
+    /**
+     *  This method returns location received order totals
+     */
+    public function getResourceOrderTotals($data = [], $user)
+    {
+        try {
+
+            //  Get location orders
+            $orders = $this->getResourceOrders($data = [], $user, false, false);
+
+            //  Return location order totals
+            return (new \App\Order())->getResourceTotals($data, $orders);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of location coupons
+     */
+    public function getResourceCoupons($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the pagination limit e.g 15
+            $limit = $data['limit'] ?? null;
+
+            //  Set the search term e.g "save10"
+            $search_term = $data['search'] ?? null;
+
+            //  Validate the data
+            $this->getResourcesValidation($data);
+
+            //  Get the coupons
+            $coupons = $this->coupons()->latest();
+
+            //  If we need to search for specific coupons
+            if (!empty($search_term)) {
+
+                $coupons = $coupons->search($search_term);
+
+            }
+
+            //  If we should paginate the collection
+            if( $paginate === true ){
+
+                //  Return the paginated coupons
+                $coupons = $coupons->paginate($limit);
+
+            }else{
+
+                //  Return the coupons
+                $coupons = $coupons->get();
+
+            }
+
+            //  If we should convert the collection to an API Readable Format
+            if( $convert_to_api_format === true ){
+
+                //  Convert to API Readable Format
+                return (new \App\Coupon)->convertToApiFormat($coupons);
+
+            }else{
+
+                //  Return coupons
+                return $coupons;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of location products
+     */
+    public function getResourceProducts($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the pagination limit e.g 15
+            $limit = $data['limit'] ?? null;
+
+            //  Set the search term e.g "Combo 1"
+            $search_term = $data['search'] ?? null;
+
+            //  Validate the data
+            $this->getResourcesValidation($data);
+
+            //  Get the products
+            $products = $this->products()->latest();
+
+            //  If we need to search for specific products
+            if (!empty($search_term)) {
+
+                $products = $products->search($search_term);
+
+            }
+
+            //  If we should paginate the collection
+            if( $paginate === true ){
+
+                //  Return the paginated products
+                $products = $products->paginate($limit);
+
+            }else{
+
+                //  Return the products
+                $products = $products->get();
+
+            }
+
+            //  If we should convert the collection to an API Readable Format
+            if( $convert_to_api_format === true ){
+
+                //  Convert to API Readable Format
+                return (new \App\Product)->convertToApiFormat($products);
+
+            }else{
+
+                //  Return products
+                return $products;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of location instant carts
+     */
+    public function getResourceInstantCarts($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the pagination limit e.g 15
+            $limit = $data['limit'] ?? null;
+
+            //  Set the search term e.g "Festive Combo"
+            $search_term = $data['search'] ?? null;
+
+            //  Validate the data
+            $this->getResourcesValidation($data);
+
+            //  Get the instant carts
+            $instantCarts = $this->instantCarts()->latest();
+
+            //  If we need to search for specific instant carts
+            if (!empty($search_term)) {
+
+                $instantCarts = $instantCarts->search($search_term);
+
+            }
+
+            //  If we should paginate the collection
+            if( $paginate === true ){
+
+                //  Return the paginated instant carts
+                $instantCarts = $instantCarts->paginate($limit);
+
+            }else{
+
+                //  Return the instant carts
+                $instantCarts = $instantCarts->get();
+
+            }
+
+            //  If we should convert the collection to an API Readable Format
+            if( $convert_to_api_format === true ){
+
+                //  Convert to API Readable Format
+                return (new \App\InstantCart)->convertToApiFormat($instantCarts);
+
+            }else{
+
+                //  Return instant carts
+                return $instantCarts;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method updates the arrangement of products in the current location
+     */
+    public function updateResourceProductArrangement($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the variables
+            $ids = [];  $cases = [];  $params = [];
 
             //  Get the products assigned to this location (Products must not be variations)
             $products = collect($this->products()->isNotVariation()->get())->toArray();
 
-            //  Get the request product arrangement
-            $product_arrangements = $request->input('product_arrangements');
-
-            $ids = [];
-            $cases = [];
-            $params = [];
+            //  Get the data product arrangement
+            $product_arrangements = $data['product_arrangements'];
 
             //  Foreach product we must arrange
             foreach ($product_arrangements as $key => $product_arrangement) {
 
+                //  Set the id (i.e Target)
                 $id = $product_arrangement['id'];
+
+                //  Set the arrangement (i.e Position)
                 $arrangement = $product_arrangement['arrangement'];
 
                 $cases[] = "WHEN {$id} then ?";
@@ -155,12 +625,13 @@ trait LocationTraits
 
             if (!empty($ids)) {
 
+                /**
+                 *  This logic allows us to run a single query to update multiple products
+                 *  with different values of their arrangement for a given location
+                 */
                 DB::update("UPDATE products SET `arrangement` = CASE `id` {$cases} END WHERE `id` in ({$ids})", $params);
 
             }
-
-            //  Return the location products in their new order
-            return $this->products()->paginate();
 
         } catch (\Exception $e) {
 
@@ -170,33 +641,241 @@ trait LocationTraits
 
     }
 
-    public function assignUserAsAdmin()
+    /**
+     *  This method adds or removes this location as a favourite for given user
+     */
+    public function toggleResourceAsFavourite($user = null)
+    {
+        //  Retrieve the User ID
+        $user_id = ($user instanceof \App\User) ? $user->id : auth('api')->user()->id;
+
+        //  Set the search
+        $search = [
+            'user_id' => $user_id,
+            'location_id' => $this->id
+        ];
+
+        //  Check if the user already marked this location as a favourite
+        $exists = DB::table('favourites')->where($search)->exists();
+
+        //  If this location is marked as a favourite
+        if ( $exists ) {
+
+            //  Unmark location as favourite
+            DB::table('favourites')->where($search)->delete();
+
+        //  If this location is not marked as a favourite
+        } else {
+
+            //  Set the record
+            $record = [
+                'user_id' => $user_id,
+                'location_id' => $this->id,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+
+            //  Mark location as favourite
+            DB::table('favourites')->insert($record);
+
+        }
+
+    }
+
+    /**
+     *  This method deletes a location
+     */
+    public function deleteResource($user = null)
     {
         try {
-            //  Get the currently authenticated users id
-            $user_id = auth('api')->user()->id;
 
-            //  If the current authenticated user is a Super Admin
-            if (auth('api')->user()->isSuperAdmin()) {
+            //  Verify permissions
+            $this->forceDeleteResourcePermission($user);
 
-                //  If the Super Admin has provided a user responsible for this resource
-                if (!empty($this->request->input('user_id'))) {
+            /**
+             *  Delete the resource
+             */
+            return $this->delete();
 
-                    //  Set the provided user id as the user responsible for this resource
-                    $user_id = $this->request->input('user_id');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method assigns a user as an admin to the location
+     */
+    public function assignUserAsAdmin($user = null)
+    {
+        try {
+
+            //  Add the user as an Admin to the current location
+            return $this->assignUserRole('admin', $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method assigns a user with a role to the location
+     */
+    public function assignUserRole($type, $user = null)
+    {
+        try {
+
+            //  Retrieve the User ID
+            $user_id = ($user instanceof \App\User) ? $user->id : auth('api')->user()->id;
+
+           if ( !empty($user_id) ) {
+
+                //  Set the record of user to location assignment
+                $record = [
+                    'type' => $type,
+                    'user_id' => $user_id,
+                    'location_id' => $this->id,
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
+                ];
+
+                //  Remove previous user and role assignments
+                DB::table('location_user')->where(['user_id' => $user_id , 'location_id' => $this->id])->delete();
+
+                //  Add the user as an Admin to the current location
+                DB::table('location_user')->insert($record);
+
+           }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns the location rating statistics
+     */
+    public function getResourceRatingStatistics()
+    {
+        try {
+
+            //  Get the latest 500 ratings of this location
+            $ratings = $this->ratings()->latest()->take(500)->get();
+
+            $total_ratings = count($ratings);
+            $lowest_rating = collect($ratings)->min('value');
+            $highest_rating = collect($ratings)->max('value');
+
+            //  Get the most recurring rating e.g "4"
+            $rating_mode = collect($ratings)->mode('value') ?? [];
+
+            //  Get the average rating e.g "4.666666666666667"
+            $average_rating = $total_ratings ? collect($ratings)->sum('value') / $total_ratings : null;
+
+            return [
+
+                'rating_mode' => count($rating_mode) ? $rating_mode[0] : null,
+                'highest_rating' => $highest_rating,
+                'lowest_rating' => $lowest_rating,
+                'total_ratings' => $total_ratings,
+                'average_rating' => [
+
+                    //  Average for system e.g "4.666666666666667"
+                    'actual' => $average_rating,
+
+                    //  Average for merchants e.g "4.67"
+                    'seller' => !is_null($average_rating) ? round($average_rating, 2) : null,
+
+                    //  Average for customers e.g "4.7"
+                    'buyer' => !is_null($average_rating) ? round($average_rating, 1) : null
+
+                ]
+
+            ];
+
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    /**
+     *  This method checks permissions for creating a new resource
+     */
+    public function createResourcePermission($user = null, $store_id = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user && $store_id ){
+
+                /**
+                 *  Check if the user is authourized to create the store resource.
+                 *  NOTE: To create a new location, the user must be the Owner
+                 *  of the store for which the location is being created.
+                 */
+                return (new \App\Store())->getResource($store_id)->updateResourcePermission($user);
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method checks permissions for updating an existing resource
+     */
+    public function updateResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to update the resource
+                if ($user->can('update', $this)) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
 
                 }
 
             }
 
-            //  Add the user as an Admin to the current location
-            DB::table('location_user')->insert([
-                'type' => 'admin',
-                'user_id' => $user_id,
-                'location_id' => $this->location->id,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method checks permissions for deleting an existing resource
+     */
+    public function forceDeleteResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to delete the resource
+                if ($user->can('forceDelete', $this)) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
 
         } catch (\Exception $e) {
 
@@ -205,14 +884,106 @@ trait LocationTraits
         }
     }
 
-    /*
-     *  Checks if a given user is the owner of the location
+    /**
+     *  This method validates fetching multiple resources
      */
-   public function isOwner($user_id)
+    public function getResourcesValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+                'limit' => 'sometimes|required|numeric|min:1|max:100',
+            ];
+
+            //  Set validation messages
+            $messages = [
+                'limit.required' => 'Enter a valid limit containing only digits e.g 50',
+                'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
+                'limit.min' => 'The limit attribute must be a value between 1 and 100',
+                'limit.max' => 'The limit attribute must be a value between 1 and 100',
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates creating a new resource
+     */
+    public function createResourceValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+                'name' => 'required|string|min:3|max:50|regex:/^[a-zA-Z0-9\s]+$/i',
+                'currency' => 'sometimes|required|string|regex:/^[a-zA-Z]+$/i',
+                'minimum_stock_quantity' => 'sometimes|required|numeric|min:1',
+            ];
+
+            //  Set validation messages
+            $messages = [
+                'name.required' => 'The location name is required e.g Gaborone',
+                'name.string' => 'The location name must be a valid string e.g Gaborone',
+                'name.regex' => 'The location name must contain only letters, numbers and spaces e.g Gaborone',
+                'name.min' => 'The location name must be atleast 3 characters long',
+                'name.max' => 'The location name must not be more than 50 characters long',
+
+                'currency.required' => 'Enter a valid currency e.g BWP, ZAR, USD',
+                'currency.string' => 'Enter a valid currency e.g BWP, ZAR, USD',
+                'currency.regex' => 'The currency must be a valid ISO 4217 standard e.g BWP, ZAR, USD',
+
+                'minimum_stock_quantity.required' => 'The minimum stock quantity must be a valid number greater than 0 e.g 10',
+                'minimum_stock_quantity.numeric' => 'The minimum stock quantity must be a valid number greater than 0 e.g 10',
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates updating an existing resource
+     */
+    public function updateResourceValidation($data = [])
+    {
+        try {
+
+            //  Run the resource creation validation
+            $this->createResourceValidation($data);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method verifies if the user is the owner of the location
+     */
+   public function isOwner($resource = null)
    {
        try {
 
-           return $this->whereUserId($user_id)->exists();
+            //  Retrieve the User ID
+            $user_id = ($resource instanceof \App\User) ? $resource->id : $resource;
+
+            //  Check if this is the owner
+            return ( !empty($user_id) ) ? $this->whereUserId($user_id)->exists() : false;
 
        } catch (\Exception $e) {
 
@@ -221,18 +992,18 @@ trait LocationTraits
        }
    }
 
-   /*
-    *  Checks if a given user is the admin of the location
-    */
-   public function isAdmin($user_id = null)
+    /**
+     *  This method verifies if the user is the admin of the location
+     */
+   public function isAdmin($resource = null)
    {
        try{
 
-           if ( !empty($user_id) ) {
+            //  Retrieve the User ID
+            $user_id = ($resource instanceof \App\User) ? $resource->id : $resource;
 
-               return $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'admin')->exists();
-
-           }
+            //  Check if the user is an admin
+            return ( !empty($user_id) ) ? $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'admin')->exists() : false;
 
        } catch (\Exception $e) {
 
@@ -240,4 +1011,5 @@ trait LocationTraits
 
        }
    }
+
 }

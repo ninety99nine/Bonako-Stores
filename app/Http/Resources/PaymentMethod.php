@@ -23,10 +23,6 @@ class PaymentMethod extends JsonResource
             'used_offline' => $this->used_offline,
             'active' => $this->active,
 
-            /*  Timestamp Info  */
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-
             /*  Resource Links */
             '_links' => [
 

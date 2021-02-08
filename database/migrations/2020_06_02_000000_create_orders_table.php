@@ -16,53 +16,25 @@ class CreateOrdersTable extends Migration
 
             /*  Basic Info  */
             $table->string('number')->nullable();
-            $table->json('currency')->nullable();
-            $table->timestamp('created_date')->nullable();
 
-            /*  Rating Info  */
-            $table->timestamp('request_customer_rating_at')->nullable();
-
-            /*  Status  */
-            $table->string('status')->default('draft');
-
-            /*  Payment Status  */
-            $table->string('payment_status')->default('unpaid');
-
-            /*  Fulfillment Status  */
-            $table->string('fulfillment_status')->default('unfulfilled');
+            /*  Status Info  */
+            $table->string('status_id')->nullable();
+            $table->string('payment_status_id')->nullable();
+            $table->string('fulfillment_status_id')->nullable();
 
             /*  Cancellation Reason  */
             $table->string('cancellation_reason')->nullable();
 
-            /*  Item Info  */
-            $table->json('item_lines')->nullable();
-
-            /*  Coupon Info  */
-            $table->json('coupon_lines')->nullable();
-
-            /*  Cart Info  */
-            $table->float('sub_total')->nullable();
-            $table->float('coupon_total')->nullable();
-            $table->float('discount_total')->nullable();
-            $table->float('coupon_and_discount_total')->nullable();
-            $table->float('delivery_fee')->nullable();
-            $table->float('grand_total')->nullable();
-
             /*  Customer Info  */
             $table->unsignedInteger('customer_id')->nullable();
-            $table->json('customer_info')->nullable();
 
             /*  Delivery Info  */
-            $table->json('delivery_info')->nullable();
+            $table->string('delivery_confirmation_code')->nullable();
+            $table->boolean('delivery_verified')->default(false);
+            $table->timestamp('delivery_verified_at')->nullable();
 
-            /*  Checkout Info  */
-            $table->string('checkout_method')->nullable();
-
-            /*  Store Info  */
-            $table->unsignedInteger('store_id')->nullable();
-
-            /*  Location Info  */
-            $table->unsignedInteger('location_id')->nullable();
+            /*  Rating Info  */
+            $table->timestamp('request_customer_rating_at')->nullable();
 
             /*  Timestamps  */
             $table->timestamps();

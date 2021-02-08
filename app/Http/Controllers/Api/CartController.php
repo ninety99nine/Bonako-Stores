@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\MyCart;
+use App\Cart;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,7 +29,7 @@ class CartController extends Controller
             ];
 
             //  Get the cart details
-            $cart = (new MyCart)->getCartDetails($info);
+            $cart = (new Cart)->getCartDetails($info);
 
             return $cart;
 

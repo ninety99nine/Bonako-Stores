@@ -85,6 +85,9 @@
                         </div>
                     </FormItem>
 
+                    <!-- Clone Coupons Checkbox -->
+                    <Checkbox v-model="storeForm.allow_sending_merchant_sms" class="ml-2">Send alerts via SMS</Checkbox>
+
                     <!-- Create Button -->
                     <FormItem v-if="!isCreating">
                         <Button type="primary" class="float-right" :disabled="isSearching || isCreating" @click="handleSubmit()">Create Store</Button>
@@ -117,6 +120,7 @@
                     name: '',
                     online: true,
                     call_to_action: '',
+                    allow_sending_merchant_sms: true,
                     offline_message: 'Sorry, we are currently offline',
 
                     clone_locations: true,

@@ -2,7 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Cart as CartResource;
+use App\Http\Resources\User as UserResource;
+use App\Http\Resources\Status as StatusResource;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\DeliveryLine as DeliveryLineResource;
 
 class Order extends JsonResource
 {
@@ -19,29 +23,12 @@ class Order extends JsonResource
 
             'id' => $this->id,
             'number' => $this->number,
-            'currency' => $this->currency,
-            'created_date' => $this->created_date,
-            'item_lines' => $this->item_lines,
-            'coupon_lines' => $this->coupon_lines,
-            'sub_total' => $this->sub_total,
-            'coupon_total' => $this->coupon_total,
-            'discount_total' => $this->discount_total,
-            'coupon_and_discount_total' => $this->coupon_and_discount_total,
-            'delivery_fee' => $this->delivery_fee,
-            'grand_total' => $this->grand_total,
-            'customer_info' => $this->customer_info,
-            'delivery_info' => $this->delivery_info,
-            'checkout_method' => $this->checkout_method,
-            'store_id' => $this->store_id,
+            'delivery_verified' => $this->delivery_verified,
+            'delivery_verified_at' => $this->delivery_verified_at,
+            'customer_id' => $this->customer_id,
             'location_id' => $this->location_id,
-
-            //  Attributes
-            'status' => $this->status,
-            'payment_status' => $this->payment_status,
-            'fulfillment_status' => $this->fulfillment_status,
-            'unfulfilled_item_lines' => $this->unfulfilled_item_lines,
-            'quantity_of_fulfilled_item_lines' => $this->quantity_of_fulfilled_item_lines,
-            'quantity_of_unfulfilled_item_lines' => $this->quantity_of_unfulfilled_item_lines,
+            'cancellation_reason' => $this->cancellation_reason,
+            'request_customer_rating_at' => $this->request_customer_rating_at,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
@@ -56,26 +43,50 @@ class Order extends JsonResource
 
                 //  Link to current resource
                 'self' => [
-                    'href' => route('order', ['order_id' => $this->id]),
+                    'href' => route('order-show', ['order_id' => $this->id]),
                     'title' => 'This order'
                 ],
 
                 //  Link to fulfil order
                 'bos:fulfil' => [
-                    'href' => route('order-fulfillment', ['order_id' => $this->id]),
+                    'href' => route('order-fulfil', ['order_id' => $this->id]),
                     'title' => 'The POST route to fulfil this order'
                 ],
 
                 //  Link to cancel order
                 'bos:cancel' => [
-                    'href' => route('order-cancellation', ['order_id' => $this->id]),
+                    'href' => route('order-cancel', ['order_id' => $this->id]),
                     'title' => 'The POST route to cancel this order'
                 ],
-                
+
+                //  Link to shared locations
+                'bos:shared-locations' => [
+                    'href' => route('order-shared-locations', ['order_id' => $this->id]),
+                    'title' => 'The order shared locations',
+                ],
+
+                //  Link to received locations
+                'bos:received-location' => [
+                    'href' => route('order-received-location', ['order_id' => $this->id]),
+                    'title' => 'The order received location',
+                ]
+
+            ],
+
+            '_attributes' => [
+                'is_paid' => $this->isPaid(),
+                'is_fulfilled' => $this->isFulfilled()
             ],
 
             '_embedded' => [
-                
+
+                'status' => new StatusResource( $this->status ),
+                'payment_status' => new StatusResource( $this->paymentStatus ),
+                'fulfillment_status' => new StatusResource( $this->fulfillmentStatus ),
+                'active_cart' => new CartResource( $this->activeCart ),
+                'delivery_line' => new DeliveryLineResource( $this->deliveryLine ),
+                'customer' => new UserResource( $this->customer ),
+
             ]
 
         ];

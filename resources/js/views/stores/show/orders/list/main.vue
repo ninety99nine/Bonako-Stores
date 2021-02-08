@@ -1,79 +1,133 @@
 <template>
 
-    <Row>
+    <Row class="mt-3">
 
-        <Col :span="24">
+        <Col :span="22" :offset="1">
 
-            <Row :gutter="12" class="mb-4">
+            <!-- If viewing single order -->
+            <template v-if="order && isViewingOrder">
 
-                <Col :span="8">
+                <!-- Single Order -->
+                <singleOrder :store="store" :location="location" :assignedLocations="assignedLocations"
+                             :order="order" @close="handleCloseOrder()">
+                </singleOrder>
 
-                    <Input type="text" size="large" placeholder="Search order..." icon="ios-search-outline"></Input>
+            </template>
 
-                </Col>
+            <!-- If viewing orders -->
+            <template v-else>
 
-                <Col :span="8">
+                <!-- Heading & Watch Video Button -->
+                <Row :gutter="12" :class="['border-bottom-dashed', 'mb-4', 'mt-3', 'pb-4']">
 
-                    <Poptip trigger="hover" content="Add filters for specific orders" word-wrap class="poptip-w-100">
-                        <Select v-model="selectedStatuses" size="large" multiple class="w-100"
-                                placeholder="Add filters" @on-change="fetchOrders()">
-                            <Option v-for="(status, index) in statuses" :value="status" :key="index">{{ status }}</Option>
-                        </Select>
-                    </Poptip>
+                    <Col :span="12">
 
-                </Col>
+                        <!-- Heading -->
+                        <h1 :class="['font-weight-bold', 'text-muted']">
+                            Orders
+                        </h1>
 
-                <Col :span="8" class="clearfix">
+                    </Col>
 
-                    <!-- Refresh Button -->
-                    <Button type="default" size="default" :class="['float-right', 'mt-2']"
-                            @click.native="fetchOrders()">
-                        <Icon type="ios-refresh" class="mr-1" :size="20" />
-                        <span>Refresh</span>
-                    </Button>
+                    <Col :span="12">
 
-                </Col>
+                        <div class="clearfix">
 
-            </Row>
+                            <!-- Watch Video Button -->
+                            <Button type="primary" size="default" @click.native="fetchStores()" :class="['float-right']">
+                                <Icon type="ios-play-outline" class="mr-1" :size="20" />
+                                <span>Watch Video</span>
+                            </Button>
+
+                        </div>
+
+                    </Col>
+
+                </Row>
+
+                <!-- Search Bar, Filters & Refresh Button -->
+                <Row :gutter="12" class="mb-4">
+
+                    <Col :span="8">
+
+                        <Input v-model="search" type="text" size="default" clearable placeholder="Search order..." icon="ios-search-outline"></Input>
+
+                    </Col>
+
+                    <Col :span="8">
+
+                        <Poptip trigger="hover" content="Add filters for specific orders" word-wrap class="poptip-w-100">
+                            <Select v-model="selectedFilters" size="default" multiple class="w-100"
+                                    prefix="ios-funnel-outline" clearable placeholder="Add filters" @on-select="fetchOrders()">
+
+                                    <OptionGroup label="Type">
+                                        <Option v-for="(type, index) in types" :value="type.name" :key="index" :label="type.name">
+                                            <span :class="['font-weight-bold']">{{ type.name }}</span>
+                                            <span style="color:#ccc" :class="['float-right', 'font-italic', 'mr-3']">{{ type.desc }}</span>
+                                        </Option>
+                                    </OptionGroup>
+
+                                    <OptionGroup label="Status">
+                                        <Option v-for="(status, index) in statuses" :value="status" :key="index" :label="status">
+                                            <span :class="['font-weight-bold']">{{ status }}</span>
+                                        </Option>
+                                    </OptionGroup>
+
+                            </Select>
+                        </Poptip>
+
+                    </Col>
+
+                    <Col :span="8" class="clearfix">
+
+                        <!-- Refresh Button -->
+                        <Button type="default" size="default" :class="['float-right']"
+                                @click.native="fetchOrders()">
+                            <Icon type="ios-refresh" class="mr-1" :size="20" />
+                            <span>Refresh</span>
+                        </Button>
+
+                    </Col>
+
+                </Row>
+
+                <!-- Order Table -->
+                <Table class="order-table" :columns="dynamicColumns" :data="orders" :loading="isLoading"
+                        no-data-text="No orders found" :style="{ overflow: 'visible' }">
+
+                    <template slot-scope="{ row, index }" slot="action">
+
+                        <div>
+                            <Dropdown trigger="click" placement="bottom-end">
+                                <Icon type="md-more" size="20" :class="['border', 'rounded-circle', 'border-secondary', 'text-secondary']" />
+                                <DropdownMenu slot="list">
+                                    <DropdownItem name="View" @click.native="handleViewOrder(row, index)">View</DropdownItem>
+                                    <DropdownItem v-if="row._embedded.fulfillment_status.name === 'Unfulfilled'" name="Fulfil" @click.native="handleFulfilOrder(row, index)">Fulfil</DropdownItem>
+                                    <DropdownItem name="Cancel" class="text-danger">Cancel</DropdownItem>
+                                </DropdownMenu>
+                            </Dropdown>
+                        </div>
+
+                    </template>
+
+                </Table>
+
+            </template>
+
+            <!--
+                MODAL TO VERIFY ORDER DELIVERY
+            -->
+            <template v-if="isOpenVerifyOrderDeliveryModal">
+
+                <verifyOrderDeliveryModal
+                    :order="order"
+                    @verified="handleVerifiedOrder"
+                    @visibility="isOpenVerifyOrderDeliveryModal = $event">
+                </verifyOrderDeliveryModal>
+
+            </template>
 
         </Col>
-
-        <Col :span="24">
-
-            <Table class="order-table" :columns="dynamicColumns" :data="orders" :loading="isLoading"
-                    no-data-text="No orders found" :style="{ overflow: 'visible' }">
-
-                <template slot-scope="{ row, index }" slot="action">
-
-                    <div class="order-table-actions">
-                        <Dropdown trigger="click" placement="bottom-end">
-                            <Icon type="md-more" size="20" :class="['border', 'rounded-circle', 'border-secondary', 'text-secondary']" />
-                            <DropdownMenu slot="list">
-                                <DropdownItem name="View">View</DropdownItem>
-                                <DropdownItem name="Fulfil" @click.native="handleOpenVerifyOrderDeliveryModal(row)">Fulfil</DropdownItem>
-                                <DropdownItem name="Delete" class="text-danger">Delete</DropdownItem>
-                            </DropdownMenu>
-                        </Dropdown>
-                    </div>
-
-                </template>
-
-            </Table>
-
-        </Col>
-
-        <!--
-            MODAL TO VERIFY ORDER DELIVERY
-        -->
-        <template v-if="isOpenVerifyOrderDeliveryModal">
-
-            <verifyOrderDeliveryModal
-                :order="order"
-                @verified="handleVerifiedOrder"
-                @visibility="isOpenVerifyOrderDeliveryModal = $event">
-            </verifyOrderDeliveryModal>
-
-        </template>
 
     </Row>
 
@@ -83,31 +137,68 @@
 
     import verifyOrderDeliveryModal from './verifyOrderDeliveryModal.vue';
     import statusTag from './../components/statusTag.vue';
+    import singleOrder from './../show/main.vue';
     import moment from 'moment';
 
     export default {
         props: {
+            store: {
+                type: Object,
+                default: null
+            },
             location: {
                 type: Object,
                 default: null
             },
+            assignedLocations: {
+                type: Array,
+                default: []
+            },
         },
-        components: { verifyOrderDeliveryModal, statusTag },
+        components: { verifyOrderDeliveryModal, statusTag, singleOrder },
         data () {
             return {
                 orders: [],
                 order: null,
+                index: null,
                 isLoading: false,
-                statuses: [
-                    'Paid', 'Unpaid', 'Fulfilled', 'UnFulfilled', 'Cancelled'
+                isViewingOrder: false,
+                types: [
+                    {
+                        name: 'Shared',
+                        desc: 'Orders shared by locations'
+                    },
+                    {
+                        name: 'Received',
+                        desc: 'Orders sent by customers'
+                    }
                 ],
-                selectedStatuses: [],
+                statuses: [
+                    'Paid', 'Unpaid', 'Fulfilled', 'Unfulfilled', 'Cancelled'
+                ],
+                selectedFilters: ['Unfulfilled'],
                 tableColumnsToShowByDefault: [
                     'Selector', 'Order #', 'Customer', 'Mobile', 'Items', 'Payment Status',
                     'Fulfillment Status', 'Created Date', 'Total'
                 ],
-                isOpenVerifyOrderDeliveryModal: false
+                isOpenVerifyOrderDeliveryModal: false,
+                awaitingSearch: false,
+                search: '',
             }
+        },
+        watch: {
+            /** Search orders only 1 second after the user
+             *  is done typing.
+             */
+            search: function (val) {
+                if (!this.awaitingSearch) {
+                setTimeout(() => {
+                    this.fetchOrders();
+                    this.awaitingSearch = false;
+                }, 1000); // 1 sec delay
+                }
+                this.awaitingSearch = true;
+            },
         },
         computed: {
             locationOrdersUrl(){
@@ -134,7 +225,7 @@
                         sortable: true,
                         render: (h, params) => {
                             return h('span', {
-                                class: [(params.row.status.name == 'Cancelled' ? 'text-danger' : '')],
+                                class: [(this.checkIfCancelledOrder(params.row) ? 'text-danger' : '')],
                                 on: {
                                     click: () => {
                                         this.activeOrderUrl = ((params.row._links || {}).self || {}).href;
@@ -148,7 +239,7 @@
                                     },
                                 }, [
                                     h('span', {
-                                        class: ['cut-text', (params.row.status.name == 'Cancelled' ? 'text-danger text-cancelled' : 'text-dark')]
+                                        class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : 'text-dark')]
                                     }, (params.row.number) || '...')
                                 ])
                             ]);
@@ -173,13 +264,12 @@
                                     trigger:'hover',
                                     placement: 'top',
                                     title: 'Customer',
-                                    content: ((params.row.customer_info || {}).first_name  || '...')+' '
-                                             +((params.row.customer_info || {}).last_name  || '')
+                                    content: ((params.row._embedded.customer || {})._attributes || {}).name
                                 }
                             }, [
                                 h('span', {
-                                    class: ['cut-text', 'text-capitalize', (params.row.status.name == 'Cancelled' ? 'text-danger text-cancelled' : '')]
-                                }, ((params.row.customer_info || {}).first_name) || '...')
+                                    class: ['cut-text', 'text-capitalize', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : '')]
+                                }, ((params.row._embedded.customer || {}).first_name) || '...')
                             ])
                         }
                     });
@@ -202,12 +292,12 @@
                                     trigger:'hover',
                                     placement: 'top',
                                     title: 'Mobile',
-                                    content: ((params.row.customer_info || {}).mobile_number  || '...')
+                                    content: ((params.row._embedded.customer || {}).mobile_number  || '...')
                                 }
                             }, [
                                 h('span', {
-                                    class: ['cut-text', (params.row.status.name == 'Cancelled' ? 'text-danger text-cancelled' : '')]
-                                }, ((params.row.customer_info || {}).mobile_number  || '...'))
+                                    class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : '')]
+                                }, ((params.row._embedded.customer || {}).mobile_number  || '...'))
                             ])
                         }
                     })
@@ -222,21 +312,17 @@
                         align: 'center',
                         render: (h, params) => {
 
-                            var symbol = 'P';
-                            var itemLines = (params.row.item_lines || []);
-                            var totalItems = itemLines.map((item) => {
-                                    return parseInt(item.quantity)
-                                }).reduce(function(a, b){
-                                    return a + b;
-                                }, 0);
+                            var symbol = (params.row._embedded.active_cart._embedded.currency.symbol || '');
+                            var itemLines = (params.row._embedded.active_cart._embedded.item_lines || []);
+                            var totalItems = (params.row._embedded.active_cart.total_items || 0);
 
                             var ListItems = itemLines.map((item) => {
 
                                 var itemInfo = item.quantity+'x('+item.name+')'+ ' for '+
-                                                this.formatPrice(item.grand_total, symbol);
+                                                this.formatPrice(item.sub_total, symbol);
 
-                                var hasSaleDiscount = item.sale_discount ? true : false;
-                                var saleDiscount = ' - '+this.formatPrice(item.sale_discount, symbol)+' sale discount';
+                                var hasSaleDiscount = item.sale_discount_total ? true : false;
+                                var saleDiscount = ' - '+this.formatPrice(item.sale_discount_total, symbol)+' sale discount';
 
                                 return h('ListItem', {
                                         class: ['d-block']
@@ -263,7 +349,7 @@
                                 class: ['breakdown-poptip']
                             }, [
                                 h('span', {
-                                    class: ['cut-text', (params.row.status.name == 'Cancelled' ? 'cancelled text-danger' : '')]
+                                    class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'cancelled text-danger' : '')]
                                 }, totalItems ),
                                 h('List', {
                                         slot: 'content',
@@ -286,7 +372,7 @@
                             //  Payment Status Badge
                             return h(statusTag, {
                                 props: {
-                                    status: params.row.payment_status
+                                    status: params.row._embedded.payment_status
                                 }
                             })
                         }
@@ -302,7 +388,7 @@
                             //  Fulfillment Status Badge
                             return h(statusTag, {
                                 props: {
-                                    status: params.row.fulfillment_status
+                                    status: params.row._embedded.fulfillment_status
                                 }
                             })
                         }
@@ -330,7 +416,7 @@
                                 }
                             }, [
                                 h('span', {
-                                    class: ['cut-text', (params.row.status.name == 'Cancelled' ? 'text-danger text-cancelled' : '')]
+                                    class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : '')]
                                 }, this.formatDateTime(params.row.created_at.date))
                             ])
                         }
@@ -345,12 +431,12 @@
                         sortable: true,
                         render: (h, params) => {
 
-                            var subTotal = (params.row.sub_total || 0);
-                            var couponTotal = (params.row.coupon_total || 0);
-                            var discountTotal = (params.row.discount_total || 0);
-                            var grandTotal = (params.row.grand_total || 0);
-
-                            var symbol = 'P';
+                            var symbol = (params.row._embedded.active_cart._embedded.currency.symbol || '');
+                            var subTotal = (params.row._embedded.active_cart.sub_total || 0);
+                            var couponTotal = (params.row._embedded.active_cart.coupon_total || 0);
+                            var discountTotal = (params.row._embedded.active_cart.sale_discount_total || 0);
+                            var deliveryFee = (params.row._embedded.active_cart.delivery_fee || 0);
+                            var grandTotal = (params.row._embedded.active_cart.grand_total || 0);
 
                             return h('Poptip', {
                                 style: {
@@ -367,7 +453,7 @@
                                 class: ['breakdown-poptip']
                             }, [
                                 h('span', {
-                                    class: ['cut-text', (params.row.status.name == 'Cancelled' ? 'cancelled text-danger' : '')]
+                                    class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'cancelled text-danger' : '')]
                                 }, this.formatPrice(grandTotal, symbol) ),
                                 h('List', {
                                         slot: 'content',
@@ -377,10 +463,18 @@
                                         }
                                     }, [
                                         h('ListItem', 'Sub Total: '+this.formatPrice(subTotal, symbol) ),
-                                        h('ListItem', 'Sale Discount: '+this.formatPrice(discountTotal, symbol) ),
-                                        h('ListItem', 'Coupon Discount: '+this.formatPrice(couponTotal, symbol) ),
                                         h('ListItem', {
-                                            class: ['font-weight-bold']
+                                            class: ['border-0', 'text-danger']
+                                        }, 'Sale Discount: '+this.formatPrice(discountTotal, symbol) ),
+                                        h('ListItem', {
+                                            class: ['text-danger']
+                                        }, 'Coupon Discount: '+this.formatPrice(couponTotal, symbol) ),
+                                        h('ListItem', {
+                                            class: ['border-0', deliveryFee ? '' : 'd-none']
+                                        },'Delivery Fee: '+this.formatPrice(deliveryFee, symbol) ),
+                                        h('ListItem', {
+                                            class: ['font-weight-bold', 'mt-2'],
+                                            style: { outline: 'double' }
                                         },'Grand Total: '+this.formatPrice(grandTotal, symbol) )
                                     ])
                             ])
@@ -403,12 +497,28 @@
             }
         },
         methods: {
-            handleOpenVerifyOrderDeliveryModal(order){
+            checkIfCancelledOrder(order){
+                return order['_embedded']['status']['name'] == 'Cancelled' ? true : false;
+            },
+            handleViewOrder(order, index){
                 this.order = order;
+                this.index = index;
+                this.isViewingOrder = true;
+            },
+            handleCloseOrder(){
+                this.isViewingOrder = false;
+            },
+            handleFulfilOrder(order, index){
+                this.order = order;
+                this.index = index;
+                this.handleOpenVerifyOrderDeliveryModal();
+            },
+            handleOpenVerifyOrderDeliveryModal(){
                 this.isOpenVerifyOrderDeliveryModal = true;
             },
-            handleVerifiedOrder(){
-
+            handleVerifiedOrder(order){
+                this.$set(this.orders, this.index, order);
+                this.fetchOrders();
             },
             formatDateTime(date, withTime = false) {
                 if( withTime ){
@@ -423,39 +533,64 @@
             },
             fetchOrders() {
 
-                //  If we have the location orders url
-                if( this.locationOrdersUrl ){
+                /**
+                 *  Note that we need to use the $nextTick() method to get the latest data of the
+                 *  "selectedFilters". This is because everytime we trigger the select option
+                 *  "on-select" event, it always brings the "selectedFilters" before its
+                 *  updated with the latest selected/unselected option data. This is not
+                 *  desired, so the $nextTick() method helps us get the latest updates.
+                 */
+                this.$nextTick(() => {
 
-                    //  Hold constant reference to the current Vue instance
-                    const self = this;
+                    //  If we have the location orders url
+                    if( this.locationOrdersUrl ){
 
-                    //  Start loader
-                    self.isLoading = true;
+                        //  Hold constant reference to the current Vue instance
+                        const self = this;
 
-                    //  Use the api call() function, refer to api.js
-                    api.call('get', this.locationOrdersUrl)
-                        .then(({data}) => {
+                        //  Start loader
+                        self.isLoading = true;
 
-                            //  Console log the data returned
-                            console.log(data);
+                        var statuses = this.selectedFilters.filter((value) => {
 
-                            //  Get the store
-                            self.orders = (((data || {})._embedded || {}).orders || []);
+                            //  If its in the list of statuses then return
+                            return this.statuses.includes(value);
 
-                            //  Stop loader
-                            self.isLoading = false;
+                        }).join(',');
 
-                        })
-                        .catch(response => {
+                        var types = this.selectedFilters.filter((value) => {
 
-                            //  Log the responce
-                            console.error(response);
+                            //  If its in the list of types then return
+                            return this.types.map((type) => { return type.name }).includes(value);
 
-                            //  Stop loader
-                            self.isLoading = false;
+                        }).join(',');
 
-                        });
-                }
+                        //  Use the api call() function, refer to api.js
+                        api.call('get', this.locationOrdersUrl+'?search='+this.search+'&status='+statuses+'&type='+types)
+                            .then(({data}) => {
+
+                                //  Console log the data returned
+                                console.log(data);
+
+                                //  Get the store
+                                self.orders = (((data || {})._embedded || {}).orders || []);
+
+                                //  Stop loader
+                                self.isLoading = false;
+
+                            })
+                            .catch(response => {
+
+                                //  Log the responce
+                                console.error(response);
+
+                                //  Stop loader
+                                self.isLoading = false;
+
+                            });
+                    }
+
+                });
             }
         },
         created(){

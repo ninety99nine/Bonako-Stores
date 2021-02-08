@@ -16,7 +16,7 @@ class Coupon extends Model
      * @var string
      */
     protected $casts = [
-        
+
         'active' => 'boolean',
         'uses_code' => 'boolean',
         'always_apply' => 'boolean',
@@ -31,16 +31,16 @@ class Coupon extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'description', 'active', 'always_apply', 'uses_code', 'code', 'is_fixed_rate', 
-        'fixed_rate', 'is_percentage_rate', 'percentage_rate', 'store_id'
+        'name', 'description', 'active', 'always_apply', 'uses_code', 'code', 'is_fixed_rate',
+        'fixed_rate', 'is_percentage_rate', 'percentage_rate', 'location_id'
     ];
 
     /*
-     *  Returns the store of this coupon
+     *  Returns the location of this coupon
      */
-    public function store()
+    public function location()
     {
-        return $this->belongsTo('App\Store', 'store_id');
+        return $this->belongsTo('App\Location', 'location_id');
     }
 
     /**
@@ -52,24 +52,24 @@ class Coupon extends Model
     }
 
     /** ATTRIBUTES
-     * 
+     *
      *  Note that the "resource_type" is defined within CommonTraits
-     * 
+     *
      */
     protected $appends = [
         'resource_type',
     ];
-    
+
     public function setActiveAttribute($value)
     {
         $this->attributes['active'] = (($value == 'true' || $value == '1') ? 1 : 0);
     }
-    
+
     public function setAlwaysApplyAttribute($value)
     {
         $this->attributes['always_apply'] = (($value == 'true' || $value == '1') ? 1 : 0);
     }
-    
+
     public function setUsesCodeAttribute($value)
     {
         $this->attributes['uses_code'] = (($value == 'true' || $value == '1') ? 1 : 0);

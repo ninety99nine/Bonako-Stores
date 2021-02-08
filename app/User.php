@@ -3,6 +3,7 @@
 namespace App;
 
 use App\Traits\UserTraits;
+use App\Traits\CommonTraits;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use \Staudenmeir\EloquentHasManyDeep\HasRelationships;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,10 +12,7 @@ use Laravel\Passport\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasRelationships;
-    use HasApiTokens;
-    use Notifiable;
-    use UserTraits;
+    use HasRelationships, HasApiTokens, Notifiable, UserTraits, CommonTraits;
 
     /**
      * The attributes that are mass assignable.
@@ -139,6 +137,45 @@ class User extends Authenticatable
         return $this->locations()
                     ->where('user_id', '!=', auth()->user()->id)
                     ->where('location_user.user_id', '=', auth()->user()->id);
+    }
+
+    /**
+     *  The addresses that belong to this user
+     */
+    public function addresses()
+    {
+        return $this->morphMany(Address::class, 'owner');
+    }
+
+    /** ATTRIBUTES
+     *
+     *  Note that the "resource_type" is defined within CommonTraits.
+     */
+    protected $appends = [
+        'resource_type', 'name'
+    ];
+
+    public function getNameAttribute($value)
+    {
+        return trim($this->first_name.' '.$this->last_name);
+    }
+
+    public function setDeliveryTypeAttribute($value)
+    {   
+        $first_letter = strtolower(substr($value, 0, 1));
+
+        //  If the first letter is "d" or "p" which stands for "delivery" or "pickup"
+        if( in_array($first_letter, ['d', 'p']) ){
+
+            //  Set the value
+            $this->attributes['delivery_type'] = $first_letter;
+
+        }else{
+
+            //  Set default value
+            $this->attributes['delivery_type'] = 'd';
+
+        }
     }
 
 }

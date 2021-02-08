@@ -8,22 +8,35 @@ use App\Http\Resources\PaymentMethods as PaymentMethodsResource;
 
 trait PaymentMethodTraits
 {
-    /*  convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format
-     *
+    /**
+     *  This method transforms a collection or single model instance
      */
-    public function convertToApiFormat($locations = null)
+    public function convertToApiFormat($collection = null)
     {
-        if( $locations ){
-                
-            //  Transform the multiple instances
-            return new PaymentMethodsResource($locations);
+        try {
 
-        }else{
-            
-            //  Transform the single instance
-            return new PaymentMethodResource($this);
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
+
+                //  Transform the multiple instances
+                return new PaymentMethodsResource($collection);
+
+            // If this instance is not a collection
+            }elseif($this instanceof \App\PaymentMethod){
+
+                //  Transform the single instance
+                return new PaymentMethodResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
     }

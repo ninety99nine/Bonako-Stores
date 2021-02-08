@@ -3,29 +3,41 @@
 namespace App\Traits;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
 use App\Http\Resources\ShortCode as ShortCodeResource;
 use App\Http\Resources\ShortCodes as ShortCodesResource;
 
 trait ShortCodeTraits
 {
 
-    /*  convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format
-     *
+    /**
+     *  This method transforms a collection or single model instance
      */
-    public function convertToApiFormat($short_codes = null)
+    public function convertToApiFormat($collection = null)
     {
-        if ($short_codes) {
+        try {
 
-            //  Transform the multiple instances
-            return new ShortCodesResource($short_codes);
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
 
-        } else {
+                //  Transform the multiple instances
+                return new ShortCodesResource($collection);
 
-            //  Transform the single instance
-            return new ShortCodeResource($this);
+            // If this instance is not a collection
+            }elseif($this instanceof \App\ShortCode){
+
+                //  Transform the single instance
+                return new ShortCodeResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
     }
@@ -33,12 +45,24 @@ trait ShortCodeTraits
     /**
      *  This method creates a new short code
      */
-    public function createResource($action, $model)
+    public function createResource($data = [], $model, $user = null)
     {
         try {
 
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Verify permissions
+            $this->createResourcePermission($user);
+
+            //  Validate the data
+            $this->createResourceValidation($data);
+
+            //  Set the action
+            $action = $data['action'];
+
             //  Search for a current active short code
-            $current_short_code = $this->getCurrentShortCode($action, $model);
+            $current_short_code = $this->getCurrentResource($action, $model);
 
             //  If this is a payment short code
             if( $action == 'payment' ){
@@ -52,7 +76,7 @@ trait ShortCodeTraits
                 //  Get the subscription with the longest time till expiry
                 $subscription = \App\Subscription::where('store_id', $model->id)->orderBy('end_at', 'desc')->first();
 
-                //  Set expiry after at the same time as the subscription end datetime
+                //  Set expiry to the same time as the subscription end datetime
                 $expires_at = Carbon::parse($subscription->end_at)->format('Y-m-d H:i:s');
 
             }
@@ -71,7 +95,7 @@ trait ShortCodeTraits
             }else{
 
                 //  Search for any other available inactive short codes
-                $available_short_code = $this->getAvailableShortCode($action, $model);
+                $available_short_code = $this->getAvailableResource($action, $model);
 
                 //  If we have any available short code
                 if( $available_short_code ){
@@ -82,13 +106,13 @@ trait ShortCodeTraits
                         'expires_at' => $expires_at
                     ]);
 
-                //  Get a fresh instance of the available short code
+                    //  Get a fresh instance of the available short code
                     $short_code = $available_short_code->fresh();
 
                 }else{
 
                     //  Generate a new code
-                    $code = $this->generateCode($action, $model);
+                    $code = $this->generateResourceCode($action, $model);
 
                     //  Set the short code template
                     $template = [
@@ -100,7 +124,7 @@ trait ShortCodeTraits
                     ];
 
                     /**
-                     *  Create new a short code
+                     *  Create a new resource
                      */
                     $short_code = $this->create($template);
 
@@ -108,45 +132,59 @@ trait ShortCodeTraits
 
             }
 
-            //  Return an API Readable Format
-            return $short_code->convertToApiFormat();
+            //  Return the short code
+            return $short_code;
 
         } catch (\Exception $e) {
 
             throw($e);
 
         }
+
     }
 
     /**
-     *  Check if this model already has a valid short code.
-     *  The short code must match the same Action, Resource
-     *  ID and Resource Type.
+     *  This method will search and return a short code
+     *  that matches the given action and owning model
      */
-    public function getCurrentShortCode($action, $model)
+    public function getCurrentResource($action, $model)
     {
-        return \App\ShortCode::where(['action' => $action, 'owner_id' => $model->id, 'owner_type' => $model->resource_type])
-                    ->orderBy('created_at', 'desc')
-                    ->first();
+        $search = [
+            'action' => $action,
+            'owner_id' => $model->id,
+            'owner_type' => $model->resource_type
+        ];
+
+        return \App\ShortCode::where($search)->orderBy('created_at', 'desc')->first();
     }
 
     /**
-     *  Check if we have any available short code to use.
-     *  The short code must match the same action and
-     *  resource type and must also have expired.
+     *  This method will search and return any available short code
+     *  that is currently not in use. The short code must match the
+     *  same action and resource type and must also have expired.
      */
-    public function getAvailableShortCode($action, $model)
+    public function getAvailableResource($action, $model)
     {
-        return \App\ShortCode::where(['action' => $action, 'owner_type' => $model->resource_type])
-                    ->whereDate('expires_at', '<', Carbon::now())
-                    ->orderBy('created_at', 'desc')
-                    ->first();
+        $search = [
+            'action' => $action,
+            'owner_type' => $model->resource_type
+        ];
+
+        return \App\ShortCode::where($search)->whereDate('expires_at', '<', Carbon::now())->orderBy('created_at', 'desc')->first();
     }
 
-    public function generateCode($action, $model)
+    /**
+     *  This method will generate a new unique code
+     */
+    public function generateResourceCode($action, $model)
     {
-        //  Count similar short codes
-        $total = \App\ShortCode::where(['action' => $action, 'owner_type' => $model->resource_type])->count();
+        $search = [
+            'action' => $action,
+            'owner_type' => $model->resource_type
+        ];
+
+        //  Count the total number of similar short codes
+        $total = \App\ShortCode::where($search)->count();
 
         //  The new code must be an increment of this total
         $code = ($total + 1);
@@ -165,6 +203,59 @@ trait ShortCodeTraits
         //  Return the code
         return $code;
 
+    }
+
+    /**
+     *  This method checks permissions for creating a new resource
+     */
+    public function createResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to create the resource
+                if ($user->can('create', ShortCode::class) === false) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates creating a new resource
+     */
+    public function createResourceValidation($data = [])
+    {
+        try {
+
+            $rules = [
+                'action' => 'required|in:visit,payment',
+            ];
+
+            $messages = [
+                'action.required' => 'The short code action is required',
+                'action.in' => 'The short code action is incorrect'
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
 }

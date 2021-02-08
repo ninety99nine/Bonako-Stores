@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Location;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class LocationController extends Controller
 {
@@ -16,6 +16,189 @@ class LocationController extends Controller
         $this->user = auth('api')->user();
     }
 
+    public function createLocation(Request $request)
+    {
+        try {
+
+            //  Return a new location
+            return (new Location())->createResource($request, $this->user)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function updateLocation(Request $request, $location_id)
+    {
+        try {
+
+            //  Get the location
+            $location = \App\Location::where('id', $location_id)->first() ?? null;
+
+            //  Check if the location exists
+            if ($location) {
+
+                //  Return the updated location
+                return $location->updateResource($request, $this->user)->convertToApiFormat();
+
+            } else {
+
+                //  Not Found
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocations(Request $request)
+    {
+        try {
+
+            //  Return a list of locations
+            return (new Location())->getResources($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocation($location_id)
+    {
+        try {
+
+            //  Return a single location
+            return (new Location())->getResource($location_id)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function deleteLocation($location_id)
+    {
+        try {
+
+            //  Delete the location
+            return (new Location())->getResource($location_id)->deleteResource($this->user);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocationUsers(Request $request, $location_id)
+    {
+        try {
+
+            //  Return a list of location users
+            return (new Location())->getResource($location_id)->getResourceUsers($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocationOrders(Request $request, $location_id)
+    {
+        try {
+
+            //  Return a list of location orders
+            return (new Location())->getResource($location_id)->getResourceOrders($request, $this->user);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocationOrderTotals(Request $request, $location_id)
+    {
+        try {
+
+            //  Return location order totals
+            return (new Location())->getResource($location_id)->getResourceOrderTotals($request, $this->user);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocationCoupons(Request $request, $location_id)
+    {
+        try {
+
+            //  Return a list of location coupons
+            return (new Location())->getResource($location_id)->getResourceCoupons($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocationProducts(Request $request, $location_id)
+    {
+        try {
+
+            //  Return a list of location products
+            return (new Location())->getResource($location_id)->getResourceProducts($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocationInstantCarts(Request $request, $location_id)
+    {
+        try {
+
+            //  Return a list of location instant carts
+            return (new Location())->getResource($location_id)->getResourceInstantCarts($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function toggleLocationAsFavourite(Request $request, $location_id)
+    {
+        try {
+
+            //  Toggle location as favourite
+            return (new Location())->getResource($location_id)->toggleResourceAsFavourite($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+
+    /*
     public function createLocation(Request $request)
     {
         try {
@@ -223,7 +406,7 @@ class LocationController extends Controller
                 if ($this->user && $this->user->can('update', $location)) {
 
                     //  Update the product arrangement of the location
-                    $products = $location->initiateUpdateProductArrangement($request);
+                    $products = $location->updateResourceProductArrangement($request);
 
                     //  Return an API Readable Format of the Product Instance
                     return ( new \App\Product() )->convertToApiFormat($products);
@@ -442,4 +625,5 @@ class LocationController extends Controller
             return help_handle_exception($e);
         }
     }
+    */
 }

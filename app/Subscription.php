@@ -28,7 +28,7 @@ class Subscription extends Model
      * @var array
      */
     protected $fillable = [
-        'user_id', 'subscription_plan_id', 'store_id', 'transaction_id', 'start_at', 'end_at', 'active'
+        'user_id', 'subscription_plan_id', 'store_id', 'start_at', 'end_at', 'active'
     ];
 
     /** ATTRIBUTES
@@ -53,7 +53,7 @@ class Subscription extends Model
      *  Scope:
      *  Returns subscriptions that are active
      */
-    public function scopeActive($query, $user_id)
+    public function scopeActive($query)
     {
         return $query->where('end_at', '>', Carbon::now());
     }
@@ -62,7 +62,7 @@ class Subscription extends Model
      *  Scope:
      *  Returns subscriptions that are not active
      */
-    public function scopeInactive($query, $user_id)
+    public function scopeInactive($query)
     {
         return $query->where('end_at', '<', Carbon::now());
     }

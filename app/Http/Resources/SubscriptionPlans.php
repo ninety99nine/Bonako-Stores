@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
@@ -25,7 +26,7 @@ class SubscriptionPlans extends ResourceCollection
         $data = [];
 
         //  If we are paginating
-        if($this instanceof LengthAwarePaginator ) {
+        if( $this->resource instanceof LengthAwarePaginator ) {
 
             //  Provide pagination links
             $data['_links'] = [

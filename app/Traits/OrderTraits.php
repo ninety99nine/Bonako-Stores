@@ -4,126 +4,83 @@ namespace App\Traits;
 
 use DB;
 use Carbon\Carbon;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Eloquent\Builder;
 use App\Http\Resources\Order as OrderResource;
+use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Orders as OrdersResource;
 
 trait OrderTraits
 {
     public $order = null;
-    public $request = null;
 
-    /*  convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format
-     *
+    /**
+     *  This method transforms a collection or single model instance
      */
-    public function convertToApiFormat($orders = null)
+    public function convertToApiFormat($collection = null)
     {
-        if( $orders ){
-                
-            //  Transform the multiple instances
-            return new OrdersResource($orders);
+        try {
 
-        }else{
-            
-            //  Transform the single instance
-            return new OrderResource($this);
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
+
+                //  Transform the multiple instances
+                return new OrdersResource($collection);
+
+            // If this instance is not a collection
+            }elseif($this instanceof \App\Order){
+
+                //  Transform the single instance
+                return new OrderResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
     }
 
-    /** initiateCreate() method  
-     *   
+    /**
      *  This method creates a new order
      */
-    public function initiateCreate( $request )
-    {   
+    public function createResource($data = [], $user = null)
+    {
         try {
-                
-            //  Set the request variable
-            $this->request = $request;
-            
-            $products = $request->input('products') ?? null;
-            $store_id = $request->input('store_id') ?? null;
-            $location_id = $request->input('location_id') ?? null;
-            $coupon_codes = $request->input('coupon_codes') ?? null;
-            $delivery_fee = $request->input('delivery_fee') ?? null;
-            $customer_info = $request->input('customer_info') ?? null;
-            $delivery_info = $request->input('delivery_info') ?? null;
-            $checkout_method = $request->input('checkout_method') ?? null;
-            $payment_status = $request->input('payment_status') ?? null;
-            
-            $info = [
-                'items' => $products,
-                'store_id' => $store_id,
-                'coupon_codes' => $coupon_codes,
-                'delivery_fee' => $delivery_fee
-            ];
 
-            //  Get the store matching the store id
-            $store = \App\Store::where('id', $store_id)->first();
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-            //  Get the cart details
-            $cart = ( new \App\MyCart() )->getCartDetails($info);
+            //  Validate the data
+            $this->createResourceValidation($data);
 
-            //  Set the template
-            $template = [
+            //  Verify permissions
+            $this->createResourcePermission($user);
 
-                /*  Basic Info  */
-                'number' => null,
-                'currency' => $store->currency,
-                'created_date' => Carbon::now()->format('Y-m-d H:i:s'),
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
 
-                /*  Item Info  */
-                'item_lines' => $cart['items'] ?? null,
+            //  If the current authenticated user is a Super Admin and the "customer_id" is provided
+            if( auth('api')->user()->isSuperAdmin() && isset($data['customer_id']) ){
 
-                'coupon_lines' => $cart['coupons'] ?? null,
+                //  Set the "customer_id" provided as the user responsible for owning this resource
+                $template['customer_id'] = $data['customer_id'];
 
-                /*  Cart Info  */
-                'sub_total' => $cart['sub_total'] ?? 0,
-                'coupon_total' => $cart['coupon_total'] ?? 0,
-                'discount_total' => $cart['discount_total'] ?? 0,
-                'coupon_and_discount_total' => $cart['coupon_and_discount_total'] ?? 0,
-                'delivery_fee' => $cart['delivery_fee'] ?? 0,
-                'grand_total' => $cart['grand_total'] ?? 0,
+            }else{
 
-                /*  Customer Info  */
-                'customer_id' => auth()->user()->id,
-                'customer_info' => [
-                    'first_name' => $customer_info['first_name'],
-                    'last_name' => $customer_info['last_name'],
-                    'mobile_number' => $customer_info['mobile_number']
-                ],
+                //  Set the current authenticated user as the user responsible for owning this resource
+                $template['customer_id'] = auth('api')->user()->id;
 
-                /*  Delivery Info  */
-                'delivery_info' => [
-                    'type' => $delivery_info['type'],     // e.g 'deliver_to_me', 'pickup_myself'
-                    'deliver_to_me' => [
-                        'physical_address' => $delivery_info['deliver_to_me']['physical_address'],
-                        'destination' => $delivery_info['deliver_to_me']['destination'],
-                        'time' => $delivery_info['deliver_to_me']['time'],
-                        'day' => $delivery_info['deliver_to_me']['day'],
-                    ],
-                    'pickup_myself' => [
-                        'destination' => $delivery_info['pickup_myself']['destination'],
-                        'time' => $delivery_info['pickup_myself']['time'],
-                        'day' => $delivery_info['pickup_myself']['day'],
-                    ]
-                ],
+            }
 
-                /*  Checkout Info  */
-                'checkout_method' => $checkout_method,
-
-                /*  Store Info  */
-                'store_id' => $store->id ?? null,
-
-                /*  Location Info  */
-                'location_id' => $location_id ?? null
-            ];
-            
-            /*
-             *  Create new a order, then retrieve a fresh instance
+            /**
+             *  Create a new resource
              */
             $this->order = $this->create($template)->fresh();
 
@@ -131,227 +88,437 @@ trait OrderTraits
             if ($this->order) {
 
                 //  Set the order number
-                $this->order->setOrderNumber();
+                $this->order->generateResourceNumber();
 
-                //  If the order payment status is set to unpaid
-                if( $payment_status == 'unpaid'){
+                //  Update the order status as "Unpaid"
+                $this->order->setPaymentStatusToUnpaid();
 
-                    //  Set the order payment status to "Unpaid"
-                    $this->order->setStatusToUnpaid();
+                //  Update the order status as "Unfulfilled"
+                $this->order->setFulfillmentStatusToUnfulfilled();
 
-                }
+                //  Assign order to location
+                $this->order->assignResourceToLocation($data);
 
-                //  Return a fresh instance
-                return $this->order;
+                //  Create a new cart resource
+                $this->order->createResourceCart($data);
+
+                //  Create a new delivery line resource
+                $this->order->createResourceDeliveryLine($data);
+
+                //  Refresh the instance to load the delivery line
+                $this->order = $this->order->fresh();
+
+                //  Send the order delivery confirmation code sms
+                $this->order->sendDeliveryConfirmationCodeSms($user);
+
+                //  Send the new order merchant sms
+                $this->order->sendNewOrderMerchantSms($user);
 
             }
+
+            //  Return a fresh instance
+            return $this->order->fresh();
 
         } catch (\Exception $e) {
 
             throw($e);
 
         }
+
     }
 
-    /** initiateCreate() method  
-     *   
-     *  This method updates an existing order
+    /**
+     *  This method returns a list of orders
      */
-    public function initiateUpdate( $request )
-    {   
-        try {
-                
-            //  Set the request variable
-            $this->request = $request;
-
-            //  Set the template
-            $template = [
-                'status' => $this->request->input('status'),
-                'cancellation_reason' => $this->request->input('cancellation_reason')
-            ];
-            
-            // Update existing order
-            $updated = $this->update($template);
-
-            //  If updated successfully
-            if ( $updated ) {
-
-                //  Return a fresh instance
-                return $this->fresh();
-
-            }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /*  initiateFulfillment() method
-     *
-     *  This method is used to create order fulfillment
-     *  of the current order items. The $orderInfo holds
-     *  additional order fulfillment details if any.
-     */
-    public function initiateFulfillment( $request )
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
     {
         try {
 
-            $orderInfo = $request->all();
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-            $fulfilled_item_lines = [];
-            $unfulfilled_item_lines = $this->unfulfilled_item_lines;
+            //  Validate the data
+            $this->getResourcesValidation($data);
 
-            //  If we have item lines already provided then this means we want to fulfill specific item lines
-            if( isset($orderInfo['item_lines']) && !empty($orderInfo['item_lines']) ){
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
 
-                //  Foreach specified item line
-                foreach($orderInfo['item_lines'] as $fulfilled_item_line){
+                //  Set the orders to this eloquent builder
+                $orders = $builder;
 
-                    if( count($unfulfilled_item_lines) ){
-
-                        //  Foreach unfulfilled order item line
-                        foreach( $unfulfilled_item_lines as $unfulfilled_item_line ){
-    
-                            //  Lets check if the current unfulfilled line item matches the current specified item line
-                            if( $unfulfilled_item_line['id'] == $fulfilled_item_line['id'] ){
-    
-                                if( intval($fulfilled_item_line['quantity']) != 0){
-    
-                                    //  The quantity we want to fulfil cannot be more than the actual quantity available for fulfillment
-                                    $hasValidQuantity = intval($fulfilled_item_line['quantity']) <= intval($unfulfilled_item_line['quantity']);
-        
-                                    $quantity =  $hasValidQuantity ? intval($fulfilled_item_line['quantity']) : intval($unfulfilled_item_line['quantity']);
-        
-                                    $fulfilled_item_line['quantity'] = $quantity;
-    
-                                }
-    
-                            }
-    
-                        }
-
-                    }
-                            
-                    array_push($fulfilled_item_lines, $fulfilled_item_line);
-
-                }
-
-            }
-
-            if( !empty($fulfilled_item_lines) ){
-
-                //  Create a new fulfillment
-                $fulfillment = ( new \App\Fulfillment() )->create([
-
-                    //  Fulfillment notes 
-                    'notes' => $orderInfo['notes'] ?? null,
-    
-                    //  Fulfillment item lines
-                    'item_lines' => $fulfilled_item_lines,
-
-                    'recipient_info' => [
-                        
-                        //  Recipient name 
-                        'name' => $orderInfo['name'] ?? null,
-                        
-                        //  Recipient mobile number
-                        'mobile_number' => $orderInfo['mobile_number'] ?? null
-
-                    ],
-
-                    'order_id' => $this->id
-    
-                ]);
-
-                //  If the fulfillment was created successfully
-                if ($fulfillment) {
-
-                    //  Update fulfilment status
-                    $this->updateFulfilmentStatus();
-
-                }
-
-                return true;
-
-            }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /*  initiateCancellation() method
-     *
-     *  This method is used to cancel an order.
-     */
-    public function initiateCancellation( $request )
-    {
-        try {
-            
-            //  Set the order status to cancelled
-            $request->request->add(['status' => 'cancelled']);
-
-            //  Update the order
-            return $this->initiateUpdate($request);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    public function updateFulfilmentStatus()
-    {
-        try {
-
-            $orderInstance = $this->fresh();
-
-            //  If the quantity of fulfilled item lines is zero (0)
-            if( $orderInstance->quantity_of_fulfilled_item_lines == 0 ){
-
-                //  Mark as unfulfilled
-                $status = 'unfulfilled';
-
-            //  If the quantity of unfulfilled item lines is zero (0)
-            }elseif( $orderInstance->quantity_of_unfulfilled_item_lines == 0 ){
-
-                //  Mark as fully fulfilled
-                $status = 'fulfilled';
-
-            //  Otherwise
             }else{
 
-                //  Mark as partially fulfilled
-                $status = 'partially fulfilled';
+                //  Get the orders
+                $orders = \App\Order::latest();
 
             }
 
-            //  Update the fulfillment status
-            $orderInstance->update([
+            //  Filter the orders
+            $orders = $this->filterResources($data, $orders);
 
-                'fulfillment_status' => $status
-
-            ]);
+            //  Return orders
+            return $this->collectionResponse($data, $orders, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 
             throw($e);
 
-        } 
+        }
     }
 
-    /*  setOrderNumber()
+    /**
+     *  This method returns a list of order totals
      *
-     *  This method creates a unique order number using the order id.
-     *  It does this by padding the unique order id with leading zero's
-     *  "0" so that the order number is always atleast 5 digits long
+     *  Note: $builder is an instance of the eloquent builder. In this
+     *  case the eloquent builder must represent an instance of orders
      */
-    public function setOrderNumber()
+    public function getResourceTotals($data = [], $builder)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the totals
+            $totals = [];
+
+            //  Set the status filters to calculate the totals
+            $filters = [
+                'open', 'draft', 'archieved', 'cancelled',
+                'paid', 'unpaid', 'refunded', 'failed',
+                'fulfilled', 'unfulfilled'
+            ];
+
+            collect($filters)->map(function($filter) use (&$totals, $builder){
+
+                /**
+                 *  $filter = 'open' or 'draft' or 'archieved' ... e.t.c
+                 *
+                 *  $bulder = Eloquent Builder Instance e.g $location->orders()->latest()
+                 *
+                 *  We clone the builder object to have a new instance to use when filtering the orders.
+                 *  If we do not clone, only one object instance will be used for every filter producing
+                 *  incorrect results e.g The instance may be used to filter only orders with a status
+                 *  of "paid" and return a few results. The same builder will then be used to filter
+                 *  orders with a status of "fulfilled", however since we are using the same instance
+                 *  it would have applied the previous filter of "paid", which means that the final
+                 *  orders returned will need to be "paid" and "fulfilled". This gets worse as we
+                 *  load more filters e.g It will look to return orders that must match every
+                 *  status i.e "open", "draft", "archieved", "cancelled", e.t.c
+                 */
+                $totals[$filter] = $this->filterResourcesByStatus($filter, clone $builder)->count();
+
+            })->toArray();
+
+            /**
+             *  Return the totals
+             *
+             *  Example result
+             *
+             *  {
+             *      "open": 1,
+             *      "draft": 0,
+             *      "archieved": 0,
+             *      "cancelled": 0,
+             *
+             *      "paid": 0,
+             *      "unpaid": 1,
+             *
+             *      "refunded": 0,
+             *      "failed": 0,
+             *      "fulfilled": 0,
+             *      "unfulfilled": 1
+             *  }
+             */
+            return $totals;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the orders by search or status
+     */
+    public function filterResources($data = [], $orders)
+    {
+        //  If we need to search for specific orders
+        if ( isset($data['search']) && !empty($data['search']) ) {
+
+            $orders = $this->filterResourcesBySearch($data, $orders);
+
+        }elseif ( isset($data['status']) && !empty($data['status']) ) {
+
+            $orders = $this->filterResourcesByStatus($data, $orders);
+
+        }
+
+        //  Return the orders
+        return $orders;
+    }
+
+    /**
+     *  This method filters the orders by search
+     */
+    public function filterResourcesBySearch($data = [], $orders)
+    {
+        //  Set the search term e.g "00123"
+        $search_term = $data['search'] ?? null;
+
+        //  Return searched orders otherwise original orders
+        return empty($search_term) ? $orders : $orders->search($search_term);
+
+    }
+
+    /**
+     *  This method filters the orders by status
+     */
+    public function filterResourcesByStatus($data = [], $orders)
+    {
+        //  Set the statuses to an empty array
+        $statuses = [];
+
+        //  Set the status e.g ["open", "paid", "fulfilled", ...] or "open,paid,fulfilled, ..."
+        $status_filters = $data['status'] ?? null;
+
+        //  If the filters are provided as String format e.g "open,paid,fulfilled"
+        if( is_string($status_filters) ){
+
+            //  Set the statuses to the exploded Array ["open", "paid", "fulfilled"]
+            $statuses = explode(',', $status_filters);
+
+        }elseif( is_array($status_filters) ){
+
+            //  Set the statuses to the given Array ["open", "paid", "fulfilled"]
+            $statuses = $status_filters;
+
+        }
+
+        //  Clean-up each status filter
+        foreach ($statuses as $key => $status) {
+
+            //  Convert " unpaid " to "Unpaid"
+            $statuses[$key] = ucfirst(strtolower(trim($status)));
+        }
+
+        if ( $orders && count($statuses) ) {
+
+            $general_statuses = collect($statuses)->filter(function ($value) {
+                return ($value == 'Open' || $value == 'Draft' || $value == 'Archieved' || $value == 'Cancelled');
+            });
+
+            $payment_statuses = collect($statuses)->filter(function ($value) {
+                return ($value == 'Paid' || $value == 'Unpaid' || $value == 'Refunded' || $value == 'Failed');
+            });
+
+            $fulfillment_statuses = collect($statuses)->filter(function ($value) {
+                return ($value == 'Fulfilled' || $value == 'Unfulfilled');
+            });
+
+            if( count($general_statuses) ){
+                $orders = $orders->whereHas('status', function (Builder $query) use ($general_statuses){
+                    $query->whereIn('name', $general_statuses);
+                });
+            }
+
+            if( count($payment_statuses) ){
+                $orders = $orders->whereHas('paymentStatus', function (Builder $query) use ($payment_statuses){
+                    $query->whereIn('name', $payment_statuses);
+                });
+            }
+
+            if( count($fulfillment_statuses) ){
+                $orders = $orders->whereHas('fulfillmentStatus', function (Builder $query) use ($fulfillment_statuses){
+                    $query->whereIn('name', $fulfillment_statuses);
+                });
+            }
+
+        }
+
+        //  Return the orders
+        return $orders;
+    }
+
+    /**
+     *  This method assigns the order to one or many locations
+     */
+    public function assignResourceToLocation($data, $is_shared = false)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the location id
+            $location_id = $data['location_id'] ?? null;
+
+            //  Set the location ids (If we want to bulk assign)
+            $location_ids = $data['location_ids'] ?? null;
+
+            //  Set the records
+            $records = [];
+
+            //  If we have a location id
+            if( $location_id ){
+
+                //  Set the record of order to location assignment
+                $record = [
+                    'order_id' => $this->id,
+                    'is_shared' => $is_shared,
+                    'location_id' => $location_id,
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
+                ];
+
+                //  Add the record
+                array_push($records, $record);
+
+            //  If we have locations
+            }elseif($location_ids){
+
+                //  Foreach location
+                foreach($location_ids as $location_id){
+
+                    //  If we have a location id
+                    if( $location_id ){
+
+                        //  Set the record of order to location assignment
+                        $record = [
+                            'order_id' => $this->id,
+                            'is_shared' => $is_shared,
+                            'location_id' => $location_id,
+                            'created_at' => Carbon::now(),
+                            'updated_at' => Carbon::now(),
+                        ];
+
+                        //  Add the record
+                        array_push($records, $record);
+
+                    }
+
+                }
+
+            }
+
+            //  Delete previous shared locations
+            DB::table('location_order')->where(['order_id' => $this->id, 'is_shared' => 1])->delete();
+
+            //  If we have any records
+            if( count($records) ){
+
+                //  Assign order to location
+                DB::table('location_order')->insert($records);
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a single order
+     */
+    public function getResource($id)
+    {
+        try {
+
+            //  Get the resource
+            $order = \App\Order::where('id', $id)->first() ?? null;
+
+            //  If exists
+            if ($order) {
+
+                //  Return order
+                return $order;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns the order received location
+     */
+    public function getResourceReceivedLocation()
+    {
+        try {
+
+            //  Get the resource received location
+            return $this->receivedLocations()->first();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns the order shared location
+     */
+    public function getResourceSharedLocations($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the shared location
+            $locations = $this->sharedLocations();
+
+            //  Return locations
+            return (new \App\Location())->collectionResponse($data, $locations, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method updates the order shared locations
+     */
+    public function updateResourceSharedLocations($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  If we have the location ids
+            if( isset($data['location_ids']) ){
+
+                //  Assign order to location (Set True to assign as shared resource)
+                $this->assignResourceToLocation($data, true);
+
+            }
+
+            //  Return the order shared locations
+            return $this->getResourceSharedLocations($data = [], $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method generates a new order number
+     */
+    public function generateResourceNumber()
     {
         try {
 
@@ -364,6 +531,9 @@ trait OrderTraits
             //  Set the unique order number
             $this->update(['number' => $order_number]);
 
+            //  Update the resource
+            $this->order = $this->fresh();
+
         } catch (\Exception $e) {
 
             throw($e);
@@ -371,12 +541,426 @@ trait OrderTraits
         }
     }
 
-    public function setStatusToPaid()
+    /**
+     *  This method creates a new order cart
+     */
+    public function createResourceCart($data = [])
+    {
+        try {
+
+            //  Set the cart owning model
+            $model = $this;
+
+            /**
+             *  Create new a cart resource
+             */
+            $cart = ( new \App\Cart() )->createResource($data, $model);
+
+            //  Set order carts to be inactive
+            $this->carts()->update(['active' => false]);
+
+            //  Set new cart to be active
+            $cart->update(['active' => true]);
+
+            //  Return the cart resource
+            return $cart;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method creates a new order delivery line
+     */
+    public function createResourceDeliveryLine($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  If we have delivery information
+            if( isset($data['delivery']) ){
+
+                //  Overide data with delivery data
+                $data = $data['delivery'];
+
+                //  If we have an address id provided
+                if( isset($data['address']['id']) && !empty($data['address']['id']) ){
+
+                    //  Get the first matching address
+                    $address = $this->customer->addresses()->where('id', $data['address']['id'])->first();
+
+                }else{
+
+                    $address = null;
+
+                }
+
+                //  If the customer has a matching address resource
+                if( $address ){
+
+                    //  If we have any address related data
+                    if( isset($data['address']['name']) || isset($data['address']['mobile_number']) ||
+                        isset($data['address']['physical_address']) || isset($data['address']['type']) ){
+
+                        //  Update the existing customer address resource
+                        $address = $address->updateResource($data['address']);
+
+                    }
+
+                //  If the customer does not have any address resource
+                }else{
+
+                    //  Create a new customer address resource
+                    $address = $this->order->customer->createResourceAddress($data['address']);
+
+                }
+
+                //  Merge the data with additional fields
+                $data = array_merge($data, [
+
+                    //  Set the address name on the data
+                    'name' => $address->name,
+
+                    //  Set the address mobile number on the data
+                    'mobile_number' => $address->mobile_number,
+
+                    //  Set the physical address on the data
+                    'physical_address' => $address->physical_address,
+
+                    //  Set the address type id on the data
+                    'address_type_id' => $address->address_type_id,
+
+                    //  Set the address id on the data
+                    'address_id' => $address->id,
+
+                    //  Set the order id on the data
+                    'order_id' => $this->id
+
+                ]);
+
+                /**
+                 *  Create new a delivery line resource
+                 */
+                return ( new \App\DeliveryLine() )->createResource($data);
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sends the delivery confirmation code message to the customer
+     */
+    public function sendDeliveryConfirmationCodeSms($user = null)
+    {
+        try {
+
+            /*******************************************
+             * GENERATE THE DELIVERY CONFIRMATION CODE *
+             *******************************************/
+
+            //  Generate 6 digit mobile delivery confirmation code
+            $six_digit_random_number = mt_rand(100000, 999999);
+
+            //  Encrypt the delivery confirmation code
+            $code = bcrypt($six_digit_random_number);
+
+            //  Set the delivery confirmation code
+            $this->update(['delivery_confirmation_code' => $code]);
+
+            //  Craft the sms message
+            $message = 'Hi '.$this->deliveryLine->name.', your delivery confirmation code '.
+                       'for order #'.$this->number.' is ' .$six_digit_random_number.'. '.
+                       'Share this code with your merchant only after you receive your order.';
+
+            $type = 'Order delivery confirmation code';
+
+            $data = [
+
+                //  Set the type on the data
+                'type' => $type,
+
+                //  Set the message on the data
+                'message' => $message,
+
+                //  Set the mobile_number on the data
+                'mobile_number' => $user->mobile_number
+
+            ];
+
+            //  Set the sms owning model
+            $model = $this;
+
+            //  Create a new sms and send
+            return ( new \App\Sms() )->createResource($data, $model, $user)->sendSms();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sends the new order message to the merchant
+     */
+    public function sendNewOrderMerchantSms($user = null)
+    {
+        try {
+
+            //  Set the location that received this order
+            $location = $this->receivedLocations()->first();
+
+            //  Set the store that the location belongs to
+            $store = $location->store;
+
+            //  If this store supports sending merchant sms
+            if( $store->allow_sending_merchant_sms ){
+
+                //  Set the store owner name as the merchant name
+                $merchant_name = $store->owner->first_name;
+
+                //  Set the store owner mobile number as the merchant mobile number
+                $merchant_mobile_number = $store->owner->mobile_number;
+
+                //  Set the customer name otherwise to the billing name
+                $customer_name = $this->customer->first_name;
+
+                //  Set the customer mobile number otherwise to the billing mobile number
+                $customer_mobile_number = $this->customer->mobile_number;
+
+                //  Set the main short code
+                $main_short_code = '*'.env('MAIN_SHORT_CODE').'#';
+
+                //  Set the main short code
+                $website_domain = env('MAIN_WEBSITE_DOMAIN');
+
+                //  Set the grand total
+                $grand_total = $this->activeCart->currency->symbol . $this->convertToMoney($this->activeCart->grand_total);
+
+                //  Craft the sms message
+                $message = 'Hi '.$merchant_name.', order #'.$this->number.' received for '.$store->name.' '.
+                           'amount '.$grand_total.' from '. $customer_name. ' ('.$customer_mobile_number.'). '.
+                           'Dial '.$main_short_code.' or visit '.$website_domain.' to view order.';
+
+                $type = 'New order alert';
+
+                $data = [
+
+                    //  Set the type on the data
+                    'type' => $type,
+
+                    //  Set the message on the data
+                    'message' => $message,
+
+                    //  Set the mobile_number on the data
+                    'mobile_number' => $merchant_mobile_number
+
+                ];
+
+                //  Set the sms owning model
+                $model = $this;
+
+                //  Create a new sms and send
+                return ( new \App\Sms() )->createResource($data, $model, $user)->sendSms();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+
+
+    /**
+     *  This method generates a new order number
+     */
+    public function fulfilResource($data = [], $user)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data
+            $this->fulfilResourceValidation($data);
+
+            //  Verify permissions
+            $this->fulfilResourcePermission($user);
+
+            //  Set the delivery confirmation code
+            $delivery_confirmation_code = $data['delivery_confirmation_code'];
+
+            //  If the order is not fulfilled
+            if( !$this->isFulfilled() ){
+
+                //  Check if we have a matching delivery confirmation code
+                if( Hash::check($delivery_confirmation_code, $this->delivery_confirmation_code) ){
+
+                    //  Update the order
+                    $this->update([
+                        'delivery_verified_at' => Carbon::now(),
+                        'delivery_confirmation_code' => null,
+                        'delivery_verified' => true
+                    ]);
+
+                    //  Update the order status as "Fulfilled"
+                    $this->setFulfillmentStatusToFulfilled();
+
+
+                    //  If the order is not paid
+                    if( !$this->isPaid() ){
+
+                        //  Update the order status as "Paid"
+                        $this->setPaymentStatusToPaid();
+
+                    }
+
+                    //  Return a fresh instance
+                    return $this->fresh();
+
+                }else{
+
+                    //  The delivery confirmation code is invalid. Throw a validation error
+                    throw ValidationException::withMessages(['delivery_confirmation_code' => 'The delivery confirmation code "'.$delivery_confirmation_code.'" is not valid.']);
+
+                }
+
+            }else{
+
+                //  The order is already fulfilled. Throw a validation error
+                throw ValidationException::withMessages(['delivery_confirmation_code' => 'The order has already been fulfilled.']);
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns true/false if the order is fulfilled
+     */
+    public function isFulfilled()
+    {
+        try {
+
+            return $this->fulfillmentStatus->name === 'Fulfilled' ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns true/false if the order is paid
+     */
+    public function isPaid()
+    {
+        try {
+
+            return $this->paymentStatus->name === 'Paid' ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sets the order payment status to open
+     */
+    public function setStatusToOpen()
+    {
+        try {
+
+            //  Set order status to "Open"
+            $this->updateStatus('Open', 'order status');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sets the order payment status to archieved
+     */
+    public function setStatusToArchieved()
+    {
+        try {
+
+            //  Set order status to "Archieved"
+            $this->updateStatus('Archieved', 'order status');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sets the order payment status to draft
+     */
+    public function setStatusToDraft()
+    {
+        try {
+
+            //  Set order status to "Draft"
+            $this->updateStatus('Draft', 'order status');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sets the order payment status to cancelled
+     */
+    public function setStatusToCancelled()
+    {
+        try {
+
+            //  Set order status to "Cancelled"
+            $this->updateStatus('Cancelled', 'order status');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sets the order payment status to paid
+     */
+    public function setPaymentStatusToPaid()
     {
         try {
 
             //  Set order status to "Paid"
-            $this->updatePaymentStatus( $status = 'paid' );
+            $this->updateStatus('Paid', 'order payment status');
 
         } catch (\Exception $e) {
 
@@ -385,12 +969,15 @@ trait OrderTraits
         }
     }
 
-    public function setStatusToUnpaid()
+    /**
+     *  This method sets the order payment status to unpaid
+     */
+    public function setPaymentStatusToUnpaid()
     {
         try {
 
             //  Set order status to "Unpaid"
-            $this->updatePaymentStatus( $status = 'unpaid' );
+            $this->updateStatus('Unpaid', 'order payment status');
 
         } catch (\Exception $e) {
 
@@ -399,12 +986,15 @@ trait OrderTraits
         }
     }
 
-    public function setStatusToFailedPayment()
+    /**
+     *  This method sets the order payment status to refunded
+     */
+    public function setPaymentStatusToRefunded()
     {
         try {
 
-            //  Set order status to "Failed Payment"
-            $this->updatePaymentStatus( $status = 'failed payment' );
+            //  Set order status to "Refunded"
+            $this->updateStatus('Refunded', 'order payment status');
 
         } catch (\Exception $e) {
 
@@ -413,59 +1003,131 @@ trait OrderTraits
         }
     }
 
-    public function updatePaymentStatus( $status = null )
+    /**
+     *  This method sets the order payment status to failed
+     */
+    public function setPaymentStatusToFailed()
     {
         try {
 
-            //  If we do not have a status already defined (Usually when updating an existing order)
-            if( $status == null ){
+            //  Set order status to "Failed"
+            $this->updateStatus('Failed', 'order payment status');
 
-                //  Get a fresh instance of this order
-                $orderInstance = $this->fresh();
+        } catch (\Exception $e) {
 
-                //  If the quantity of paid item lines is zero (0)
-                if( $orderInstance->quantity_of_paid_item_lines == 0 ){
+            throw($e);
 
-                    //  Mark as unpaid
-                    $status = 'unpaid';
+        }
+    }
 
-                //  If the quantity of unpaid item lines is zero (0)
-                }elseif( $orderInstance->quantity_of_unpaid_item_lines == 0 ){
+    /**
+     *  This method sets the order fulfillment status to fulfilled
+     */
+    public function setFulfillmentStatusToFulfilled()
+    {
+        try {
 
-                    //  Mark as fully paid
-                    $status = 'paid';
+            //  Set order status to "Fulfilled"
+            $this->updateStatus('Fulfilled', 'order fulfillment status');
 
-                //  Otherwise
-                }else{
+        } catch (\Exception $e) {
 
-                    //  Mark as partially paid
-                    $status = 'partially paid';
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sets the order fulfillment status to unfulfilled
+     */
+    public function setFulfillmentStatusToUnfulfilled()
+    {
+        try {
+
+            //  Set order status to "Unfulfilled"
+            $this->updateStatus('Unfulfilled', 'order fulfillment status');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sets the order payment status
+     */
+    public function updateStatus( $name = null, $type = null )
+    {
+        try {
+
+            //  Get the matching order status
+            $status = \App\Status::where(['name' => $name, 'type' => $type])->first();
+
+            //  If we have a matching status
+            if( $status ){
+
+                //  If we are updating the order status
+                if( $type == 'order status'){
+
+                    $this->update([
+                        'status_id' => $status->id
+                    ]);
+
+                //  If we are updating the order payment status
+                }elseif( $type == 'order payment status'){
+
+                    $this->update([
+                        'payment_status_id' => $status->id
+                    ]);
+
+                //  If we are updating the order fulfillment status
+                }elseif( $type == 'order fulfillment status'){
+
+                    $this->update([
+                        'fulfillment_status_id' => $status->id
+                    ]);
+
+                    //  If this fulfillment status is set to "Fulfilled"
+                    if( $status->name == 'Fulfilled' ){
+
+                        //  Set order status to archieved
+                        $this->setStatusToArchieved();
+
+                    //  If this fulfillment status is set to "Unfulfilled"
+                    }elseif( $status->name == 'Unfulfilled' ){
+
+                        //  Set order status to open
+                        $this->setStatusToOpen();
+
+                    }
 
                 }
 
-            //  If we have a status already defined (Usually when creating a new order)
-            }else{
-
-                //  Get the current instance of the order
-                $orderInstance = $this;
-                
             }
 
-            //  Update the payment status
-            $orderUpdatedStatus = $orderInstance->update([
+        } catch (\Exception $e) {
 
-                'payment_status' => $status
+            throw($e);
 
-            ]);
+        }
+    }
 
-            //  If the payment status was updated successfully
-            if( $orderUpdatedStatus ){
+    /**
+     *  This method checks permissions for creating a new resource
+     */
+    public function createResourcePermission($user = null)
+    {
+        try {
 
-                //  If the current order instance has a general status of draft
-                if( $orderInstance->status['name'] == 'Draft' ){
+            //  If the user is provided
+            if( $user ){
 
-                    //  Update the general status by setting the order status from draft to open status
-                    $orderInstance->updateStatus();
+                //  Check if the user is authourized to create the resource
+                if ($user->can('create', Order::class) === false) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
 
                 }
 
@@ -478,16 +1140,25 @@ trait OrderTraits
         }
     }
 
-    public function updateStatus( $status = 'open' )
+    /**
+     *  This method checks permissions for fulfilling an existing resource
+     */
+    public function fulfilResourcePermission($user = null)
     {
         try {
 
-            //  Update the general order status
-            return $this->update([
+            //  If the user is provided
+            if( $user ){
 
-                'status' => $status
+                //  Check if the user is authourized to fulfil this resource
+                if ($user->can('fulfil', Order::class) === false) {
 
-            ]);
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
 
         } catch (\Exception $e) {
 
@@ -495,5 +1166,106 @@ trait OrderTraits
 
         }
     }
-    
+
+    /**
+     *  This method validates fetching multiple resources
+     */
+    public function getResourcesValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+                'limit' => 'sometimes|required|numeric|min:1|max:100',
+            ];
+
+            //  Set validation messages
+            $messages = [
+                'limit.required' => 'Enter a valid limit containing only digits e.g 50',
+                'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
+                'limit.min' => 'The limit attribute must be a value between 1 and 100',
+                'limit.max' => 'The limit attribute must be a value between 1 and 100',
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates creating a new resource
+     */
+    public function createResourceValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+
+            ];
+
+            //  Set validation messages
+            $messages = [
+
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates updating an existing resource
+     */
+    public function updateResourceValidation($data = [])
+    {
+        try {
+
+            //  Run the resource creation validation
+            $this->createResourceValidation($data);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method validates updating an existing resource
+     */
+    public function fulfilResourceValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+                'delivery_confirmation_code' => 'required',
+            ];
+
+            //  Set validation messages
+            $messages = [
+                'limit.required' => 'The delivery_confirmation_code attribute is required'
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
 }

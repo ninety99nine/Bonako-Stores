@@ -6,22 +6,65 @@ use App\Http\Resources\SubscriptionPlans as SubscriptionPlansResource;
 
 trait SubscriptionPlanTraits
 {
-    /*  convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format
-     *
+    /**
+     *  This method transforms a collection or single model instance
      */
-    public function convertToApiFormat($subcription_plans = null)
+    public function convertToApiFormat($collection = null)
     {
-        if( $subcription_plans ){
+        try {
 
-            //  Transform the multiple instances
-            return new SubscriptionPlansResource($subcription_plans);
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
 
-        }else{
+                //  Transform the multiple instances
+                return new SubscriptionPlansResource($collection);
 
-            //  Transform the single instance
-            return new SubscriptionPlanResource($this);
+            // If this instance is not a collection
+            }elseif($this instanceof \App\SubscriptionPlan){
+
+                //  Transform the single instance
+                return new SubscriptionPlanResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a single subscription plan
+     */
+    public function getResource($id)
+    {
+        try {
+
+            //  Get the resource
+            $subscription_plan = \App\SubscriptionPlan::where('id', $id)->first() ?? null;
+
+            //  If exists
+            if ($subscription_plan) {
+
+                //  Return store
+                return $subscription_plan;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
 
         }
     }

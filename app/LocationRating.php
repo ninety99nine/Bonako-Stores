@@ -5,7 +5,7 @@ namespace App;
 use App\Traits\CommonTraits;
 use Illuminate\Database\Eloquent\Model;
 
-class StoreRating extends Model
+class LocationRating extends Model
 {
     use CommonTraits;
 
@@ -15,7 +15,7 @@ class StoreRating extends Model
      * @var array
      */
     protected $fillable = [
-        'value', 'comment', 'user_id',
+        'value', 'comment', 'user_id', 'location_id'
     ];
 
     /** ATTRIBUTES

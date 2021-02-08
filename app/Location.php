@@ -13,6 +13,8 @@ class Location extends Model
     use LocationTraits;
     use CommonTraits;
 
+    protected $with = ['currency'];
+
     /**
      * The table associated with the model.
      *
@@ -21,8 +23,18 @@ class Location extends Model
     protected $casts = [
         'online' => 'boolean',                      //  Return the following 1/0 as true/false
         'allow_delivery' => 'boolean',              //  Return the following 1/0 as true/false
-        'allow_pickups' => 'boolean',      //  Return the following 1/0 as true/false
+        'allow_pickups' => 'boolean',               //  Return the following 1/0 as true/false
         'allow_payments' => 'boolean',              //  Return the following 1/0 as true/false
+        'allow_sending_merchant_sms' => 'boolean',           //  Return the following 1/0 as true/false
+
+        'delivery_destinations' => 'array',
+        'delivery_days' => 'array',
+        'delivery_times' => 'array',
+        'pickup_destinations' => 'array',
+        'pickup_days' => 'array',
+        'pickup_times' => 'array',
+        'online_payment_methods' => 'array',
+        'offline_payment_methods' => 'array',
     ];
 
     /**
@@ -31,13 +43,15 @@ class Location extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'abbreviation', 'about_us', 'contact_us', 'call_to_action', 'allow_delivery', 'allow_pickups',
-        'delivery_note', 'delivery_flat_fee', 'allow_payments', 'online_payment_methods', 'offline_payment_methods',
-        'delivery_destinations', 'pickup_destinations', 'delivery_days', 'pickup_note', 'pickup_days', 'delivery_times',
-        'pickup_times', 'online', 'offline_message', 'user_id', 'store_id',
+        'name', 'abbreviation', 'about_us', 'contact_us', 'call_to_action', 'online', 'offline_message',
+        'allow_delivery', 'delivery_note', 'delivery_flat_fee', 'delivery_destinations', 'delivery_days',
+        'delivery_times', 'allow_pickups', 'pickup_note', 'pickup_destinations', 'pickup_days',
+        'pickup_times', 'allow_payments', 'online_payment_methods', 'offline_payment_methods',
+        'currency_id', 'orange_money_merchant_code', 'minimum_stock_quantity',
+        'allow_sending_merchant_sms', 'user_id', 'store_id',
     ];
 
-    /*
+    /**
      *  Scope:
      *  Returns locations that are being searched
      */
@@ -46,7 +60,7 @@ class Location extends Model
         return $query->where('name', $searchTerm);
     }
 
-    /*
+    /**
      *  Scope:
      *  Returns locations marked as the user's favourite locations
      */
@@ -57,15 +71,23 @@ class Location extends Model
         });
     }
 
-    /*
-     *  Returns the users that have been assigned to this location
+    /**
+     *  Returns the favourites of this location
      */
     public function favourites()
     {
         return $this->hasMany('App\Favourite');
     }
 
-    /*
+    /**
+     *  Returns the currency
+     */
+    public function currency()
+    {
+        return $this->belongsTo('App\Currency');
+    }
+
+    /**
      *  Returns the store of this location
      */
     public function store()
@@ -73,7 +95,7 @@ class Location extends Model
         return $this->belongsTo('App\Store', 'store_id');
     }
 
-    /*
+    /**
      *  Returns the users that have been assigned to this location
      */
     public function users()
@@ -82,7 +104,7 @@ class Location extends Model
     }
 
     /**
-     *  Returns the the products assigned to this location.
+     *  Returns the products assigned to this location.
      */
     public function products()
     {
@@ -90,19 +112,45 @@ class Location extends Model
     }
 
     /**
-     *  Returns the the orders assigned to this location.
+     *  Returns the associated orders
      */
     public function orders()
     {
-        return $this->hasMany('App\Order')->latest();
+        return $this->belongsToMany(Order::class, 'location_order')->latest();
     }
 
-    /*
+    /**
+     *  Returns the received order. This is the original
+     *  order that the order was first placed
+     */
+    public function receivedOrders()
+    {
+        return $this->orders()->wherePivot('is_shared', 0);
+    }
+
+    /**
+     *  Returns the shared orders. These are
+     *  orders that the order was shared
+     */
+    public function sharedOrders()
+    {
+        return $this->orders()->wherePivot('is_shared', 1);
+    }
+
+    /**
      *  Returns the instant carts that have been assigned to this location
      */
     public function instantCarts()
     {
         return $this->hasMany('App\InstantCart')->with(['products', 'coupons'])->latest();
+    }
+
+    /**
+     *  Returns coupons for this store.
+     */
+    public function coupons()
+    {
+        return $this->hasMany('App\Coupon')->latest();
     }
 
     /*
@@ -111,6 +159,14 @@ class Location extends Model
     public function paymentMethods()
     {
         return $this->belongsToMany('App\PaymentMethod');
+    }
+
+    /**
+     *  Get the location ratings.
+     */
+    public function ratings()
+    {
+        return $this->hasMany('App\LocationRating');
     }
 
     /** ATTRIBUTES
@@ -123,49 +179,49 @@ class Location extends Model
 
     public function getOnlinePaymentMethodsAttribute($value)
     {
-        //  If null, convert to array
+        //  Convert to array
         return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getOfflinePaymentMethodsAttribute($value)
     {
-        //  If null, convert to array
+        //  Convert to array
         return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getDeliveryDestinationsAttribute($value)
     {
-        //  If null, convert to array
+        //  Convert to array
         return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getDeliveryDaysAttribute($value)
     {
-        //  If null, convert to array
+        //  Convert to array
         return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getDeliveryTimesAttribute($value)
     {
-        //  If null, convert to array
+        //  Convert to array
         return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getPickupDestinationsAttribute($value)
     {
-        //  If null, convert to array
+        //  Convert to array
         return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getPickupDaysAttribute($value)
     {
-        //  If null, convert to array
+        //  Convert to array
         return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function getPickupTimesAttribute($value)
     {
-        //  If null, convert to array
+        //  Convert to array
         return is_null($value) ? [] : json_decode($value, true);
     }
 
@@ -189,6 +245,11 @@ class Location extends Model
         $this->attributes['allow_payments'] = (($value == 'true' || $value === '1') ? 1 : 0);
     }
 
+    public function setAllowSendingMerchantSmsAttribute($value)
+    {
+        $this->attributes['allow_sending_merchant_sms'] = (($value == 'true' || $value === '1') ? 1 : 0);
+    }
+
     //  ON DELETE EVENT
     public static function boot()
     {
@@ -197,10 +258,26 @@ class Location extends Model
 
             // before delete() method call this
             static::deleting(function ($location) {
+
                 //  Delete all products
                 foreach ($location->products as $product) {
                     $product->delete();
                 }
+
+                //  Delete all location
+                $location->orders()->delete();
+
+                //  Delete all location
+                $location->coupons()->delete();
+
+                //  Delete all ratings
+                $location->ratings()->delete();
+
+                //  Delete all favourites
+                $location->favourites()->delete();
+
+                //  Delete all instant carts
+                $location->instantCarts()->delete();
 
                 //  Delete all records of users being assigned to this location
                 DB::table('location_user')->where(['location_id' => $location->id])->delete();

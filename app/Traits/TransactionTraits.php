@@ -2,97 +2,36 @@
 
 namespace App\Traits;
 
-use DB;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Transaction as TransactionResource;
 use App\Http\Resources\Transactions as TransactionsResource;
 
 trait TransactionTraits
 {
-    public $request = null;
     public $transaction = null;
 
-    /*  convertToApiFormat() method:
-     *
-     *  Converts to the appropriate Api Response Format
-     *
-     */
-    public function convertToApiFormat($transactions = null)
-    {
-        if( $transactions ){
-
-            //  Transform the multiple instances
-            return new TransactionsResource($transactions);
-
-        }else{
-
-            //  Transform the single instance
-            return new TransactionResource($this);
-
-        }
-    }
-
     /**
-     *  This method creates a new transaction
+     *  This method transforms a collection or single model instance
      */
-    public function createResource($request, $model = null)
+    public function convertToApiFormat($collection = null)
     {
         try {
 
-            //  Set the request variable
-            $this->request = $request;
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
 
-            //  Validate the request
-            $this->handleValidation('CREATE');
+                //  Transform the multiple instances
+                return new TransactionsResource($collection);
 
-            /**
-             *  Retrieve the request values
-             */
-            $type = $request->input('type') ?? null;
-            $amount = $request->input('amount') ?? null;
-            $description = $request->input('description') ?? null;
-            $payment_method_id = $request->input('payment_method_id') ?? null;
+            // If this instance is not a collection
+            }elseif($this instanceof \App\Transaction){
 
-            //  Set the template
-            $template = [
+                //  Transform the single instance
+                return new TransactionResource($this);
 
-                /*  Basic Info  */
-                'type' => $type,
-                'amount' => $amount,
-                'description' => $description,
-                'user_id' => auth('api')->user()->id,
-                'payment_method_id' => $payment_method_id
+            }else{
 
-            ];
-
-            /**
-             *  Create new a transaction, then retrieve a fresh instance
-             */
-            $this->transaction = $this->create($template)->fresh();
-
-            //  If created successfully
-            if ( $this->transaction ) {
-
-                //  Generate a new transaction
-                $this->generateTransactionNumber();
-
-                //  If we have an owning model
-                if( $model ){
-
-                    //  Update the owning model
-                    $model->update([
-                        'transaction_id' => $this->transaction->id
-                    ]);
-
-                }
-
-                //  Get a fresh instance
-                $transaction = $this->transaction->fresh();
-
-                //  Return an API Readable Format
-                return $transaction->convertToApiFormat();
+                return $collection ?? $this;
 
             }
 
@@ -103,11 +42,78 @@ trait TransactionTraits
         }
     }
 
-    public function generateTransactionNumber()
+    /**
+     *  This method creates a new transaction
+     */
+    public function createResource($data = [], $model = null)
     {
         try {
 
-            /** Generate a unique transaction number.
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data
+            $this->createResourceValidation($data);
+
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
+
+            //  If the current authenticated user is a Super Admin and the "user_id" is provided
+            if( auth('api')->user()->isSuperAdmin() && isset($data['user_id']) ){
+
+                //  Set the "user_id" provided as the user responsible for owning this resource
+                $template['user_id'] = $data['user_id'];
+
+            }else{
+
+                //  Set the current authenticated user as the user responsible for owning this resource
+                $template['user_id'] = auth('api')->user()->id;
+
+            }
+
+            /**
+             *  Create a new resource
+             */
+            $this->transaction = $this->create($template);
+
+            //  If created successfully
+            if ( $this->transaction ) {
+
+                //  Generate a new transaction number
+                $this->generateResourceNumber();
+
+                //  If we have an owning model
+                if( $model ){
+
+                    //  Update the transaction owner id and owner type
+                    $this->transaction->update([
+                        'owner_id' => $model->id,
+                        'owner_type' => $model->resource_type,
+                    ]);
+
+                }
+
+                //  Return a fresh instance
+                return $this->transaction->fresh();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method generates a new transaction number
+     */
+    public function generateResourceNumber()
+    {
+        try {
+
+            /**
+             *  Generate a unique transaction number.
              *
              *  Get the transaction id, and Pad the left side with leading "0"
              *  e.g 123 = 00123, 1234 = 01234, 12345 = 12345
@@ -117,6 +123,9 @@ trait TransactionTraits
             //  Set the unique transaction number
             $this->transaction->update(['number' => $number]);
 
+            //  Update the resource
+            $this->transaction = $this->fresh();
+
         } catch (\Exception $e) {
 
             throw($e);
@@ -124,37 +133,30 @@ trait TransactionTraits
         }
     }
 
-    public function handleValidation($type)
+    /**
+     *  This method validates creating a new resource
+     */
+    public function createResourceValidation($data = [])
     {
         try {
 
-            if( $type == 'CREATE' ){
+            //  Set validation rules
+            $rules = [
+                'amount' => 'required|regex:/^\d+(\.\d{1,2})?$/',
+                'payment_method_id' => 'required|regex:/^[0-9]+$/i'
+            ];
 
-                $rules = [
-                    'amount' => 'required|regex:/^\d+(\.\d{1,2})?$/',
-                    'payment_method_id' => 'required|regex:/^[0-9]+$/i'
-                ];
+            //  Set validation messages
+            $messages = [
+                'amount.required' => 'The amount is required to create a transaction',
+                'amount.regex' => 'The amount must be a valid number e.g 100.00',
 
-                $messages = [
-                    'amount.required' => 'The amount is required to create a transaction',
-                    'amount.regex' => 'The amount must be a valid number e.g 100.00',
+                'payment_method_id.required' => 'The payment method id is required to create a transaction',
+                'payment_method_id.regex' => 'The payment method id must be a valid number e.g 1'
+            ];
 
-                    'payment_method_id.required' => 'The payment method id is required to create a transaction',
-                    'payment_method_id.regex' => 'The payment method id must be a valid number e.g 1'
-                ];
-
-            }
-
-            //  Validate request
-            $validator = Validator::make($this->request->all(), $rules, $messages);
-
-            //  If the validation failed
-            if ($validator->fails()) {
-
-                //  Throw Validation Exception with validation errors
-                throw ValidationException::withMessages(collect($validator->errors())->toArray());
-
-            }
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
 
         } catch (\Exception $e) {
 
