@@ -44,17 +44,36 @@ trait UserTraits
     }
 
     /**
-     *  This method returns a list of user stores
+     *  This method returns a list of users
      */
-    public function getResourceStores($data = [], $paginate = true, $convert_to_api_format = true)
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
     {
         try {
 
-            //  Filter the user stores
-            $stores = $this->filterResourceStoresByType($data);
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-            //  Return a list of user stores
-            return (new \App\Store())->getResources($data, $stores, $paginate, $convert_to_api_format);
+            //  Validate the data (CommanTraits)
+            $this->getResourcesValidation($data);
+
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
+
+                //  Set the users to this eloquent builder
+                $users = $builder;
+
+            }else{
+
+                //  Get the users
+                $users = \App\User::latest();
+
+            }
+
+            //  Filter the users
+            $users = $this->filterResources($data, $users);
+
+            //  Return users
+            return $this->collectionResponse($data, $users, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 
@@ -64,43 +83,204 @@ trait UserTraits
     }
 
     /**
-     *  This method filters the user stores by type
+     *  This method returns a list of user totals
+     *
+     *  Note: $builder is an instance of the eloquent builder. In this
+     *  case the eloquent builder must represent an instance of users
      */
-    public function filterResourceStoresByType($data = [])
+    public function getResourceTotals($data = [], $builder)
     {
-        //  Extract the Request Object data (CommanTraits)
-        $data = $this->extractRequestData($data);
+        try {
 
-        //  Set the type e.g "created", "shared" or "favourite"
-        $type = $data['type'] ?? null;
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-        //  If we want created stores
-        if ($type === 'created') {
+            //  Set the totals
+            $totals = [
+                'roles' => [],
+                'total' => $builder->count()
+            ];
 
-            //  Scope stores created by the user
-            $stores = $this->stores()->asOwner($this->id);
+            //  Set the status filters to calculate the totals
+            $filters = ['admin'];
 
-        //  If we want shared stores
-        } elseif ($type === 'shared') {
+            collect($filters)->map(function($filter) use (&$totals, $builder){
 
-            //  Scope stores shared with the user
-            $stores = $this->stores()->asNonOwner($this->id);
+                /**
+                 *  $filter = 'admin' ... e.t.c
+                 *
+                 *  $bulder = Eloquent Builder Instance e.g $location->users()->latest()
+                 *
+                 *  We clone the builder object to have a new instance to use when filtering the users.
+                 *  If we do not clone, only one object instance will be used for every filter producing
+                 *  incorrect results e.g The instance may be used to filter only users with a role of
+                 *  "admin" and return a few results. The same builder will then be used to filter users
+                 *  with a role of "staff", however since we are using the same instance it would have
+                 *  applied the previous filter of "admin", which means that the final users returned
+                 *  will need to have an "admin" and "staff" role.
+                 */
+                $totals['roles'][$filter] = $this->filterResourcesByLocationRole($filter, clone $builder)->count();
 
-        //  If we want favourite stores
-        } elseif ($type === 'favourite') {
+            })->toArray();
 
-            //  Scope stores favourated by the user
-            $stores = (new \App\Store)->asFavourite($this->id);
+            /**
+             *  Return the totals
+             *
+             *  Example result
+             *
+             *  [
+             *      "roles" => [
+             *          "admin" => "10"
+             *      ]
+             *  ]
+             */
+            return $totals;
 
-        }else{
+        } catch (\Exception $e) {
 
-            //  Scope stores
-            $stores = $this->stores();
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the users by search or account type
+     */
+    public function filterResources($data = [], $users)
+    {
+        //  If we need to search for specific users
+        if ( isset($data['search']) && !empty($data['search']) ) {
+
+            $users = $this->filterResourcesBySearch($data, $users);
+
+        }elseif ( isset($data['account_type']) && !empty($data['account_type']) ) {
+
+            $users = $this->filterResourcesByAccountType($data, $users);
 
         }
 
-        //  Return the orders
-        return $stores;
+        //  Return the users
+        return $users;
+    }
+
+    /**
+     *  This method filters the users by search
+     */
+    public function filterResourcesBySearch($data = [], $users)
+    {
+        //  Set the search term e.g "John"
+        $search_term = $data['search'] ?? null;
+
+        //  Return searched users otherwise original users
+        return empty($search_term) ? $users : $users->search($search_term);
+
+    }
+
+    /**
+     *  This method filters the users by account type
+     */
+    public function filterResourcesByAccountType($data = [], $users)
+    {
+        //  Set the statuses to an empty array
+        $selected_filters = [];
+
+        //  Set the filters e.g ["basic", "superadmin", ...] or "basic,superadmin, ..."
+        $filters = $data['account_type'] ?? $data;
+
+        //  If the filters are provided as String format e.g "basic,superadmin"
+        if( is_string($filters) ){
+
+            //  Set the statuses to the exploded Array ["basic", "superadmin"]
+            $selected_filters = explode(',', $filters);
+
+        }elseif( is_array($filters) ){
+
+            //  Set the statuses to the given Array ["basic", "superadmin"]
+            $selected_filters = $filters;
+
+        }
+
+        //  Clean-up each filter
+        foreach ($selected_filters as $key => $filter) {
+
+            //  Convert " SuperAdmin " to "superadmin"
+            $selected_filters[$key] = strtolower(trim($filter));
+
+        }
+
+        if ( $users && count($selected_filters) ) {
+
+            $users = $users->whereIn('account_type', $selected_filters);
+
+        }
+
+        //  Return the users
+        return $users;
+    }
+
+    /**
+     *  This method filters the users by location role
+     */
+    public function filterResourcesByLocationRole($data = [], $users)
+    {
+        //  Set the selected filters to an empty array
+        $selected_filters = [];
+
+        //  Set the filters e.g ["admin", ...] or "admin, ..."
+        $filters = $data['role'] ?? null;
+
+        //  If the filters are provided as String format e.g "admin, ..."
+        if( is_string($filters) ){
+
+            //  Set the statuses to the exploded Array ["admin", ...]
+            $selected_filters = explode(',', $filters);
+
+        }elseif( is_array($filters) ){
+
+            //  Set the statuses to the given Array ["admin", ...]
+            $selected_filters = $filters;
+
+        }
+
+        //  Clean-up each filter
+        foreach ($selected_filters as $key => $filter) {
+
+            //  Convert " Admin " to "admin"
+            $selected_filters[$key] = strtolower(trim($filter));
+
+        }
+
+        if ( $users && count($selected_filters) ) {
+
+            $users = $users->whereIn('location_user.type', $selected_filters);
+
+        }
+
+        //  Return the users
+        return $users;
+    }
+
+    /**
+     *  This method returns a list of user stores
+     */
+    public function getResourceStores($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Set the user
+            $user = $this;
+
+            //  Set the user stores
+            $stores = $this->stores();
+
+            //  Return a list of user stores
+            return (new \App\Store())->getResources($data, $stores, $user, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -171,7 +351,7 @@ trait UserTraits
         try {
 
             //  Get the location
-            $location = $this->locations()->where('location.id', $location_id)
+            $location = $this->locations()->where('locations.id', $location_id)
                                 ->whereHas('store', function (Builder $query) use ($store_id){
                                         $query->where('stores.id', $store_id);
                                 })->first();
@@ -286,102 +466,6 @@ trait UserTraits
     }
 
     /**
-     *  This method returns a list of store location orders
-     */
-    public function getResourceStoreLocationOrders($data = [], $store_id, $location_id)
-    {
-        try {
-
-            //  Get the location
-            $location = $this->getResourceStoreLocation($store_id, $location_id);
-
-            //  If exists
-            if ($location) {
-
-                //  Return a list of store location orders
-                return $location->getResourceOrders($data, $this);
-
-            } else {
-
-                //  Return "Not Found" Error
-                return help_resource_not_found();
-
-            }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method returns store location order totals
-     */
-    public function getResourceStoreLocationOrderTotals($data = [], $store_id, $location_id)
-    {
-        try {
-
-            //  Get the location
-            $location = $this->getResourceStoreLocation($store_id, $location_id);
-
-            //  If exists
-            if ($location) {
-
-                //  Return store location order totals
-                return $location->getResourceOrderTotals($data, $this);
-
-            } else {
-
-                //  Return "Not Found" Error
-                return help_resource_not_found();
-
-            }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method fulfils the store location order
-     */
-    public function userStoreLocationOrderFulfillment($data = [], $store_id, $location_id, $order_id)
-    {
-        try {
-
-            //  Get the order
-            $order = $this->orders()->where('orders.id', $order_id)
-                        ->whereHas('location', function (Builder $query) use ($store_id, $location_id){
-                            $query->whereHas('location', function (Builder $query) use ($store_id){
-                                $query->where('stores.id', $store_id);
-                            })->where('locations.id', $location_id);
-                        })->first();
-
-            //  If exists
-            if ($order) {
-
-                //  Extract the Request Object data (CommanTraits)
-                $data = $this->extractRequestData($data);
-
-                //  Fulfil order
-                $order->initiateFulfillment($data);
-
-                //  Return a fresh instance
-                return $order->fresh();
-
-            }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
      *  This method creates a new user address
      */
     public function createResourceAddress($data = [])
@@ -398,6 +482,26 @@ trait UserTraits
              *  Create new user address resource
              */
             return ( new \App\Address() )->createResource($data, $model);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of user addresses
+     */
+    public function getResourceAddresses($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the user addresses
+            $addresses = $this->addresses();
+
+            //  Return a list of user addresses
+            return (new \App\Address())->getResources($data, $addresses, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 

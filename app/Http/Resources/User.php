@@ -41,24 +41,30 @@ class user extends JsonResource
                     'href' => route('my-profile'),
                     'title' => 'This user',
                 ],
+
+                //  Link to user addresses
+                'bos:addresses' => [
+                    'href' => route('my-addresses'),
+                    'title' => 'The user addresses'
+                ]
             ],
 
             /*  Embedded Resources */
             '_embedded' => [],
         ];
 
-        /** 
+        /**
          *  Additional Links
-         * 
+         *
          *  Note that "auth('api')->user()" is only accessible when we have an API Bearer Token provided
-         *  e.g when we access the Api Home route ".../api". This is because Laravel will use the Bearer 
-         *  Token to get the authenticated user. However if the Bearer Token is not provided e.g when we 
+         *  e.g when we access the Api Home route ".../api". This is because Laravel will use the Bearer
+         *  Token to get the authenticated user. However if the Bearer Token is not provided e.g when we
          *  are logging in then we cannot use the method to acquire a logged in user.
-         * 
+         *
          *  However since we force the user to login using the "auth()->loginUsingId($user->id)" method
-         *  found within the AuthController, we are able to access the instance of that authenticated 
+         *  found within the AuthController, we are able to access the instance of that authenticated
          *  user directly using the "auth()->user()->id" method.
-         * 
+         *
          *  We use both these techniques to fetch the authenticated user so that we can check if this
          *  User Resource id matches the authenticated user id. If it does then it means that the user
          *  is the owner and therefore we can load additional routes.
@@ -70,25 +76,7 @@ class user extends JsonResource
                 //  Link to the user's stores
                 'bos:stores' => [
                     'href' => route('my-stores'),
-                    'title' => 'The stores that are created or shared with this user',
-                ],
-
-                //  Link to the user's created stores
-                'bos:created-stores' => [
-                    'href' => route('my-created-stores'),
-                    'title' => 'The stores that are created by this user',
-                ],
-
-                //  Link to the user's shared stores
-                'bos:shared-stores' => [
-                    'href' => route('my-shared-stores'),
-                    'title' => 'The stores that are shared with this user',
-                ],
-
-                //  Link to the user's favourite stores
-                'bos:favourite_stores' => [
-                    'href' => route('my-favourite-stores'),
-                    'title' => 'This user\'s favourite stores',
+                    'title' => 'The stores that are created, shared or favourited by this user',
                 ]
 
             ]);

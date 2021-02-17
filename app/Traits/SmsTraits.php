@@ -111,12 +111,12 @@ trait SmsTraits
             $mobile_number = $this->mobile_number ?? $this->mobile_number;
 
             //  Send an SMS to the user
-            //$response = Twilio::message('+'.$mobile_number, $message);
+            $response = Twilio::message('+'.$mobile_number, $message);
 
             //  Update the SMS record status
             $this->update(['status' => 'success']);
 
-            //return $response;
+            return $response;
 
 
         } catch (\Exception $e) {

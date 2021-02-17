@@ -2,7 +2,10 @@
 
     <Layout class="border-top" :style="{ minHeight:'100em' }">
 
-        <Header :style="{ width: '100%' }" :class="['bg-white', 'border-top', 'border-bottom', 'p-0']">
+        <!-- If we are loading, Show Loader -->
+        <Loader v-show="isLoading" class="bg-white"></Loader>
+
+        <Header v-if="!isLoading" :style="{ width: '100%' }" :class="['bg-white', 'border-top', 'border-bottom', 'p-0']">
 
             <Row :gutter="12">
 
@@ -57,7 +60,28 @@
 
                 <Col :span="6">
 
-                    <Input type="text" placeholder="Search order..." icon="ios-search-outline"></Input>
+                    <Select :placeholder="location.name+': Search order'" icon="ios-search-outline" loading-text="Searching orders..."
+                            not-found-text="No orders found" prefix="ios-search-outline" filterable :remote-method="searchOrder"
+                            :loading="isSearching" @on-select="navigateToOrderLink($event)" :key="searchRenderKey">
+
+                        <Option v-for="(order, index) in orders" :value="order._links.self.href" :key="index"
+                                :label="'Order #'+order.number">
+
+                            <div class="d-flex">
+                                <Icon type="ios-cube-outline" :size="20" :class="['text-primary', 'mr-1']"/>
+                                <div>
+                                    <span :class="['font-weight-bold']">Order #{{ order.number }}</span>
+                                    <span> - {{ order._embedded.customer._attributes.name }}</span>
+                                    <div :style="{ fontSize: 'small' }" :class="['mt-1', 'text-black-50']">
+                                        <span>{{ order._embedded.status.name }}</span>
+                                        <span>{{ order._embedded.payment_status.name }}</span>
+                                        <span>{{ order._embedded.fulfillment_status.name }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </Option>
+
+                    </Select>
 
                 </Col>
 
@@ -102,9 +126,6 @@
 
         </Header>
 
-        <!-- If we are loading, Show Loader -->
-        <Loader v-show="isLoading" class="bg-white"></Loader>
-
         <!-- If we are not loading and have the store -->
         <Layout v-if="!isLoading">
 
@@ -142,9 +163,25 @@
                 <template v-if="store && location">
 
                     <router-view :store="store" :location="location" :assignedLocations="assignedLocations"
-                                @refetchLocation="fetchAssignedLocations" @navigateToMenuLink="navigateToMenuLink" />
-
+                                 :locationTotals="locationTotals" @refetchLocationOrder="fetchAssignedLocations"
+                                 @navigateToMenuLink="navigateToMenuLink" @fetchLocationTotals="fetchLocationTotals" />
                 </template>
+
+                <!-- If we are not loading and don't have the store -->
+                <Alert v-else-if="!store" type="warning" class="mx-5" show-icon>
+                    Store Not Found
+                    <template slot="desc">
+                    We could not get the store, try refreshing your browser. It's also possible that this store has been deleted.
+                    </template>
+                </Alert>
+
+                <!-- If we are not loading and don't have the location -->
+                <Alert v-else-if="!location" type="warning" class="mx-5" show-icon>
+                    Location Not Found
+                    <template slot="desc">
+                    We could not get the location, try refreshing your browser. It's also possible that this loaction has been deleted.
+                    </template>
+                </Alert>
 
             </Content>
 
@@ -163,10 +200,17 @@
         components: { basicButton, Loader },
         data(){
             return {
+                orders: [],
                 store: null,
                 location: null,
                 locationId: null,
+                searchWord: null,
+                searchRenderKey: 1,
+                isSearching: false,
+                searchTimeout: null,
+                locationTotals: null,
                 isLoadingStore: false,
+                isLoadingTotals: false,
                 isLoadingLocations: false,
                 assignedLocations: [],
                 menuLinks: [
@@ -182,7 +226,7 @@
                     },
                     {
                         name: 'products',
-                        linkName: '',
+                        linkName: 'show-store-products',
                         icon: 'ios-pricetags-outline'
                     },
                     {
@@ -197,7 +241,7 @@
                     },
                     {
                         name: 'settings',
-                        linkName: '',
+                        linkName: 'show-store-location',
                         icon: 'ios-settings-outline'
                     }
                 ],
@@ -205,8 +249,8 @@
         },
         watch: {
 
-            //  Watch for changes on the location
-            location: {
+            //  Watch for changes on the locationTotals
+            locationTotals: {
                 handler: function (val, oldVal) {
 
                     this.updateMenuLinks();
@@ -221,21 +265,28 @@
             storeName(){
                 return (this.store || {}).name;
             },
-            locationUnfulfilledOrdersTotal(){
-                return 50;
-                //  return (this.location || {})['_links']['bos:received-unfulfilled-orders'].total;
-            },
             storeUrl(){
                 return decodeURIComponent(this.$route.params.store_url);
             },
+            orderUrl(){
+                if( this.location ){
+                    return (this.location || {})['_links']['bos:orders'].href;
+                }
+            },
+            locationTotalsUrl(){
+                if( this.location ){
+                    return (this.location || {})['_links']['bos:totals'].href;
+                }
+            },
             assignedLocationsUrl(){
-                return (this.store || {})['_links']['bos:my-store-locations'].href;
+                if( this.store ){
+                    return (this.store || {})['_links']['bos:my-store-locations'].href;
+                }
             },
             defaultAssignedLocationsUrl(){
-                return (this.store || {})['_links']['bos:my-store-default-location'].href;
-            },
-            hasVisitShortCode(){
-                return this.store['_attributes']['has_visit_short_code'];
+                if( this.store ){
+                    return (this.store || {})['_links']['bos:my-store-default-location'].href;
+                }
             },
             visitShortCode(){
                 return (this.store['_attributes']['visit_short_code'] || {});
@@ -253,6 +304,29 @@
             },
         },
         methods: {
+            /**
+             *  Search orders only 1 second after the user is done typing.
+             */
+            searchOrder: function (searchWord) {
+
+                //  Reset the orders
+                this.orders = [];
+
+                //  If we have a search word
+                if( searchWord ){
+
+                    //  Clear the search timeout variable
+                    clearTimeout(this.searchTimeout);
+
+                    this.searchTimeout = setTimeout(() => {
+
+                        //  Get the orders
+                        this.fetchLocationOrders(searchWord);
+
+                    }, 1000); // 1 sec delay
+
+                }
+            },
             fetchStore() {
 
                 //  If we have the store url
@@ -352,6 +426,14 @@
                             //  Set the selected location id
                             self.locationId = self.location.id;
 
+                            //  If we have a default location
+                            if(self.location){
+
+                                //  Fetch location totals
+                                self.fetchLocationTotals();
+
+                            }
+
                             //  Stop loader
                             self.isLoadingLocations = false;
 
@@ -401,6 +483,9 @@
                             //  Console log the data returned
                             console.log(data);
 
+                            //  Fetch location totals
+                            self.fetchLocationTotals();
+
                             //  Stop loader
                             self.isLoadingLocations = false;
 
@@ -416,21 +501,105 @@
                         });
                 }
             },
+            fetchLocationOrders(searchWord) {
+
+                //  Hold constant reference to the current Vue instance
+                const self = this;
+
+                //  Start loader
+                self.isSearching = true;
+
+                //  Use the api call() function, refer to api.js
+                api.call('get', this.orderUrl+'?search='+searchWord)
+                    .then(({data}) => {
+
+                        //  Console log the data returned
+                        console.log(data);
+
+                        //  Get the orders
+                        self.orders = (((data || {})._embedded || {}).orders || []);
+
+                        //  Stop loader
+                        self.isSearching = false;
+
+                    })
+                    .catch(response => {
+
+                        //  Log the responce
+                        console.error(response);
+
+                        //  Stop loader
+                        self.isSearching = false;
+
+                    });
+            },
+            fetchLocationTotals() {
+
+                //  Hold constant reference to the current Vue instance
+                const self = this;
+
+                //  Start loader
+                self.isLoadingTotals = true;
+
+                //  Use the api call() locationTotalsUrl, refer to api.js
+                api.call('get', this.locationTotalsUrl)
+                    .then(({data}) => {
+
+                        //  Console log the data returned
+                        console.log(data);
+
+                        //  Get the locations totals
+                        self.locationTotals = data;
+
+                        //  Stop loader
+                        self.isLoadingTotals = false;
+
+                    })
+                    .catch(response => {
+
+                        //  Log the responce
+                        console.error(response);
+
+                        //  Stop loader
+                        self.isLoadingTotals = false;
+
+                    });
+            },
             updateMenuLinks(){
 
                 for (let x = 0; x < this.menuLinks.length; x++) {
 
                     //  If this is the orders menu
-                    if( this.menuLinks[x].name == 'orders'){
+                    if( this.menuLinks[x].name == 'orders' && this.locationTotals){
 
                         //  Update total unfulfilled orders
-                        this.menuLinks[x]['total'] = this.locationUnfulfilledOrdersTotal;
+                        this.$set(this.menuLinks[x], 'total', this.locationTotals.orders.received.statuses.unfulfilled);
+
+                    }
+
+                    //  If this is the products menu
+                    if( this.menuLinks[x].name == 'products' && this.locationTotals){
+
+                        //  Update total unfulfilled products
+                        this.$set(this.menuLinks[x], 'total', this.locationTotals.products.total);
 
                     }
 
                 }
             },
-            navigateToMenuLink(linkName){
+            navigateToOrderLink(event){
+
+                //  Set the orderUrl
+                var orderUrl = event.value;
+
+                //  Reset the search word
+                ++this.searchRenderKey;
+
+                //  Navigate to the order
+                this.navigateToMenuLink('show-store-order', orderUrl);
+
+            },
+            navigateToMenuLink(linkName, url){
 
                 /** Note that using router.push() or router.replace() does not allow us to make a
                  *  page refresh when visiting routes. This is undesirable at this moment since our
@@ -443,9 +612,23 @@
                 var storeUrl = this.store['_links']['self'].href;
 
                 //  Add the "menu" query to our current store route
-                var route = { name: linkName, params: {
-                    store_url: encodeURIComponent(storeUrl) }
-                };
+                var route = {
+                        name: linkName,
+                        params: {
+                            store_url: encodeURIComponent(storeUrl)
+                        }
+                    };
+
+                //  If we want to load a store order, then we must set the order url
+                if( linkName === 'show-store-order'){
+
+                    //  Ge the order url
+                    var orderUrl = url;
+
+                    //  Set the order url on the route
+                    route.params.order_url = orderUrl;
+
+                }
 
                 //  Contruct the full path url
                 var href = window.location.origin + "/" + VueInstance.$router.resolve(route).href

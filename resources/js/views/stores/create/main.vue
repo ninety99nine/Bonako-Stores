@@ -58,8 +58,8 @@
                     </FormItem>
 
                     <!-- Call To Action -->
-                    <FormItem prop="call_to_action" :error="serverCallToActionError">
-                        <Input type="text" v-model="storeForm.call_to_action" placeholder="Call to action e.g Buy Grocery" :disabled="isCreating"
+                    <FormItem :error="serverCallToActionError">
+                        <Input type="text" v-model="storeForm.location.call_to_action" placeholder="Call to action e.g Buy Grocery" :disabled="isCreating"
                                 maxlength="50" show-word-limit @keyup.enter.native="handleSubmit()">
                         </Input>
                     </FormItem>
@@ -86,7 +86,12 @@
                     </FormItem>
 
                     <!-- Clone Coupons Checkbox -->
-                    <Checkbox v-model="storeForm.allow_sending_merchant_sms" class="ml-2">Send alerts via SMS</Checkbox>
+                    <Checkbox v-model="storeForm.allow_sending_merchant_sms" class="mr-4">Send alerts via SMS</Checkbox>
+
+                    <span class="d-inline-block">
+                        <span class="font-weight-bold">Highlighter</span>:
+                        <ColorPicker v-model="storeForm.hex_color" recommend></ColorPicker>
+                    </span>
 
                     <!-- Create Button -->
                     <FormItem v-if="!isCreating">
@@ -119,9 +124,13 @@
                 storeForm: {
                     name: '',
                     online: true,
-                    call_to_action: '',
                     allow_sending_merchant_sms: true,
                     offline_message: 'Sorry, we are currently offline',
+                    hex_color: '2D8CF0',
+                    location: {
+                        online: true,
+                        call_to_action: '',
+                    },
 
                     clone_locations: true,
                     clone_products: true,
@@ -166,6 +175,13 @@
             },
             statusText(){
                 return this.storeForm.online ? 'Online' : 'Offline';
+            },
+            createStoreUrl(){
+                /**  Note "api_home" is defined within the auth.js file.
+                 *   It holds reference to common links for ease of
+                 *   access.
+                 */
+                return api_home['_links']['bos:stores'].href
             }
         },
         methods: {
@@ -250,13 +266,7 @@
                  */
                 let storeData = this.storeForm;
 
-                /**  Note "api_home" is defined within the auth.js file.
-                 *   It holds reference to common links for ease of
-                 *   access.
-                 */
-                let url = api_home['_links']['bos:stores'].href
-
-                return api.call('post', url, storeData)
+                return api.call('post', this.createStoreUrl, storeData)
                     .then(({data}) => {
 
                         //  Stop loader

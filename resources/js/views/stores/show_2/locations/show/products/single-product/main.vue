@@ -1,17 +1,17 @@
 <template>
 
     <Card :class="cardClasses">
-        
+
         <!-- Product Title -->
         <div slot="title" class="cursor-pointer" @click="toggleExpansion()">
-            
+
             <Row>
 
                 <Col :span="14" class="d-flex">
 
                     <!-- Expand / Collapse Icon  -->
-                    <Icon :type="arrowDirection" 
-                          class="text-primary cursor-pointer mr-2" :size="20" 
+                    <Icon :type="arrowDirection"
+                          class="text-primary cursor-pointer mr-2" :size="20"
                           :style="{ marginTop: '-3px' }" @click.stop="toggleExpansion()" />
 
                     <!-- Product name  -->
@@ -20,12 +20,12 @@
                 </Col>
 
                 <Col class="d-flex" :span="10">
-                
+
                     <!-- Summary Poptip -->
                     <Poptip trigger="hover" width="350" word-wrap>
 
                         <List slot="content" size="small">
-                            
+
                             <template v-if="product.allow_variants">
 
                                 <ListItem class="p-0">
@@ -57,7 +57,7 @@
 
                                 <ListItem class="p-0">
                                     <span class="font-weight-bold mr-1">Cost: </span>
-                                    <span v-if="product.cost_per_item" class="cut-text">{{ product.cost_per_item }}</span>
+                                    <span v-if="product.unit_cost" class="cut-text">{{ product.unit_cost }}</span>
                                     <span v-else class="cut-text text-info">No cost</span>
                                 </ListItem>
 
@@ -76,16 +76,16 @@
                                     <span v-if="product.allow_stock_management && product.stock_quantity" class="cut-text">{{ product.stock_quantity }}</span>
                                     <span v-else class="cut-text text-danger">No quantity</span>
                                 </ListItem>
-                                
+
                                 <ListItem v-if="product.description" class="list-item-comment">
                                     <span>
                                         <Icon type="ios-chatbubbles-outline" :size="20" class="mr-1" />
                                         <span class="font-weight-bold">Description: </span><br>{{ product.description }}
                                     </span>
                                 </ListItem>
-                                
+
                             </template>
-                        
+
                         </List>
 
                         <Icon v-if="isValidProduct" type="ios-information-circle-outline" class="text-primary mr-1" :style="{ marginTop: '-5px' }" size="30" />
@@ -103,7 +103,7 @@
                 </Col>
 
             </Row>
-            
+
         </div>
 
         <!-- Product Toolbar (Edit, Move, Delete Buttons) -->
@@ -122,10 +122,10 @@
 
                 <!-- Move Product Button  -->
                 <Icon type="ios-move" class="single-draggable-item-icon dragger-handle mr-2" size="20" />
-            
-            </div> 
 
-        </div>  
+            </div>
+
+        </div>
 
         <div v-show="isExpanded">
 
@@ -135,16 +135,16 @@
                 <Loader v-show="isLoading">Loading variations...</Loader>
 
                 <template v-if="!isLoading">
-                    
+
                     <span class="font-weight-bold d-block mt-2 mb-3">Variations:</span>
 
                     <!-- Variation List & Dragger  -->
                     <draggable
                         :list="productVariations"
-                        @start="drag=true" 
-                        @end="drag=false" 
+                        @start="drag=true"
+                        @end="drag=false"
                         :options="{
-                            group:'products', 
+                            group:'products',
                             handle:'.dragger-handle',
                             draggable:'.single-draggable-item',
                         }">
@@ -157,7 +157,7 @@
                             :store="store"
                             :index="index">
                         </single-product>
-                        
+
                         <!-- No Product Variations message -->
                         <Alert v-if="!productVariationsExist" type="info" show-icon>
                             No Variations Found
@@ -182,10 +182,10 @@
                 </span>
 
             </template>
-                
+
         </div>
 
-        <!-- 
+        <!--
             MODAL TO ADD / CLONE / EDIT PRODUCT
         -->
         <template v-if="isOpenManageProductDrawer">
@@ -266,7 +266,7 @@
             },
             cardClasses(){
                 return [
-                    'single-draggable-item', 
+                    'single-draggable-item',
                     (this.isExpanded ? 'active' : ''), 'mb-2'
                 ]
             },
@@ -277,19 +277,19 @@
 
                 //  No variations found
                 if( this.product.allow_variants && !this.productVariationsExist ){
-                    
+
                     return false;
 
                 }else if( !this.product.allow_variants ){
 
                     //  No unit regular price set
                     if( !this.product.unit_regular_price ){
-                        
+
                         return false;
 
                     //  No quantity
                     }else if( this.product.allow_stock_management && !this.product.stock_quantity ){
-                        
+
                         return false;
 
                     }
@@ -380,7 +380,7 @@
                 //  Use the api call() function, refer to api.js
                 api.call('get', this.variationsUrl)
                     .then(({data}) => {
-                        
+
                         //  Console log the data returned
                         console.log(data);
 
@@ -390,8 +390,8 @@
                         //  Stop loader
                         self.isLoading = false;
 
-                    })         
-                    .catch(response => { 
+                    })
+                    .catch(response => {
 
                         //  Log the responce
                         console.error(response);
@@ -400,7 +400,7 @@
                         self.isLoading = false;
 
                     });
-                
+
             },
             handleOpenManageProductModal(){
                 this.isExpanded = false;

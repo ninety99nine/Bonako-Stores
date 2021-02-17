@@ -108,7 +108,10 @@ class Location extends Model
      */
     public function products()
     {
-        return $this->hasMany('App\Product')->orderBy('arrangement');
+        return $this->morphToMany('App\Product', 'owner', 'product_allocations')
+                    ->orderBy('product_allocations.arrangement')
+                    ->withTimestamps()->withPivot('quantity')
+                    ->isNotVariation();
     }
 
     /**

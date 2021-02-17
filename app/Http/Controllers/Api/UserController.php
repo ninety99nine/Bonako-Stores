@@ -150,12 +150,13 @@ class UserController extends Controller
         }
     }
 
-    public function getUserStoreLocationOrders(Request $request, $store_id, $location_id)
+    public function getUserAddresses(Request $request)
     {
         try {
 
-            //  Return a list of orders
-            return $this->user->getResourceStoreLocationOrders($request, $store_id, $location_id);
+            //  Return a list of stores
+            return $this->user->getResourceAddresses($request);
+
 
         } catch (\Exception $e) {
 
@@ -164,26 +165,13 @@ class UserController extends Controller
         }
     }
 
-    public function getUserStoreLocationOrderTotals(Request $request, $store_id, $location_id)
+    public function createUserAddress(Request $request)
     {
         try {
 
-            //  Return a list of orders
-            return $this->user->getResourceStoreLocationOrderTotals($request, $store_id, $location_id);
+            //  Return created user address
+            return $this->user->createResourceAddress($request)->convertToApiFormat();
 
-        } catch (\Exception $e) {
-
-            return help_handle_exception($e);
-
-        }
-    }
-
-    public function userStoreLocationOrderFulfillment(Request $request, $store_id, $location_id, $order_id)
-    {
-        try {
-
-            //  Fulfil order
-            return $this->user->storeLocationOrderFulfillment($request, $store_id, $location_id, $order_id);
 
         } catch (\Exception $e) {
 

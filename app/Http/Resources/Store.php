@@ -24,6 +24,7 @@ class Store extends JsonResource
             'online' => $this->online,
             'offline_message' => $this->offline_message,
             'allow_sending_merchant_sms' => $this->allow_sending_merchant_sms,
+            'hex_color' => $this->hex_color,
 
             'is_favourite' => $this->total_favourite_locations ? true : false,
             'total_favourite_locations' => $this->total_favourite_locations,
@@ -31,6 +32,18 @@ class Store extends JsonResource
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+
+            /*  Attributes  */
+            '_attributes' => [
+                'subscription' => $this->subscription,
+                'visit_short_code' => $this->visit_short_code,
+                'payment_short_code' => $this->payment_short_code,
+
+                'has_subscribed' => $this->has_subscribed,
+                'has_visit_short_code' => $this->has_visit_short_code,
+                'has_payment_short_code' => $this->has_payment_short_code,
+                'resource_type' => $this->resource_type
+            ],
 
             /*  Resource Links */
             '_links' => [
@@ -74,16 +87,6 @@ class Store extends JsonResource
                     'title' => 'The POST route to create a store payment shortcode'
                 ],
 
-            ],
-
-            '_attributes' => [
-                'subscription' => $this->subscription,
-                'visit_short_code' => $this->visit_short_code,
-                'payment_short_code' => $this->payment_short_code,
-
-                'has_subscribed' => $this->has_subscribed,
-                'has_visit_short_code' => $this->has_visit_short_code,
-                'has_payment_short_code' => $this->has_payment_short_code,
             ],
 
             /*  Embedded Resources */

@@ -2,6 +2,17 @@ body {
     background-color: #f8fafc !important;
 }
 
+.dot:after {
+    content: '';
+    display: inline-block;
+    background: lightgray;
+    border-radius: 100%;
+    margin-right: 6px;
+    margin-left: 10px;
+    width: 4px;
+    height: 4px;
+}
+
 .cursor-pointer {
     cursor: pointer;
 }
@@ -552,4 +563,15 @@ body {
 /*  Strike through line */
 .text-cancelled {
     text-decoration: line-through;
+}
+
+.sortable-chosen {
+    color: #fff;
+    background: #19be6b !important;
+}
+
+.sortable-ghost {
+    opacity: 0.5;
+    color: #fff;
+    background: #19be6b !important;
 }

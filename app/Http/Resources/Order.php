@@ -34,6 +34,13 @@ class Order extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
 
+            /*  Attributes  */
+            '_attributes' => [
+                'is_paid' => $this->isPaid(),
+                'is_fulfilled' => $this->isFulfilled(),
+                'resource_type' => $this->resource_type
+            ],
+
             /*  Resource Links */
             '_links' => [
 
@@ -69,15 +76,17 @@ class Order extends JsonResource
                 'bos:received-location' => [
                     'href' => route('order-received-location', ['order_id' => $this->id]),
                     'title' => 'The order received location',
+                ],
+
+                //  Link to store
+                'bos:store' => [
+                    'href' => route('order-store', ['order_id' => $this->id]),
+                    'title' => 'The order store',
                 ]
 
             ],
 
-            '_attributes' => [
-                'is_paid' => $this->isPaid(),
-                'is_fulfilled' => $this->isFulfilled()
-            ],
-
+            /*  Embedded  */
             '_embedded' => [
 
                 'status' => new StatusResource( $this->status ),

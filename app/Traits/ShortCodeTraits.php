@@ -67,8 +67,8 @@ trait ShortCodeTraits
             //  If this is a payment short code
             if( $action == 'payment' ){
 
-                //  Set expiry after 24 hours
-                $expires_at = Carbon::now()->addHours(24)->format('Y-m-d H:i:s');
+            //  Set expiry after 24 hours
+            $expires_at = Carbon::now()->addHours(24)->format('Y-m-d H:i:s');
 
             //  If this is a visit store short code
             }elseif( $action == 'visit' && $model->resource_type == 'store' ){
@@ -144,6 +144,53 @@ trait ShortCodeTraits
     }
 
     /**
+     *  This method returns a single shortcode
+     */
+    public function searchResourceByCode($code)
+    {
+        try {
+
+            if( substr($code, 0, 2) === '00' ){
+
+                $action = 'payment';
+
+            }elseif( substr($code, 0, 1) === '0' ){
+
+                $action = 'order';
+
+            }else{
+
+                $action = 'visit';
+
+            }
+
+            //  Convert "001" to "1"
+            $code = (int) $code;
+
+            //  Get the matching shortcode
+            $short_code = $this->where('code', $code)->where('action', $action)->first();
+
+            //  If exists
+            if ($short_code) {
+
+                //  Return shortcode
+                return $short_code;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method will search and return a short code
      *  that matches the given action and owning model
      */
@@ -155,7 +202,7 @@ trait ShortCodeTraits
             'owner_type' => $model->resource_type
         ];
 
-        return \App\ShortCode::where($search)->orderBy('created_at', 'desc')->first();
+        return \App\ShortCode::where($search)->latest()->first();
     }
 
     /**
@@ -170,7 +217,7 @@ trait ShortCodeTraits
             'owner_type' => $model->resource_type
         ];
 
-        return \App\ShortCode::where($search)->whereDate('expires_at', '<', Carbon::now())->orderBy('created_at', 'desc')->first();
+        return \App\ShortCode::where($search)->where('expires_at', '<', Carbon::now())->latest()->first();
     }
 
     /**

@@ -137,7 +137,7 @@ trait OrderTraits
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
-            //  Validate the data
+            //  Validate the data (CommanTraits)
             $this->getResourcesValidation($data);
 
             //  If we already have an eloquent builder defined
@@ -180,7 +180,10 @@ trait OrderTraits
             $data = $this->extractRequestData($data);
 
             //  Set the totals
-            $totals = [];
+            $totals = [
+                'statuses' => [],
+                'total' => $builder->count()
+            ];
 
             //  Set the status filters to calculate the totals
             $filters = [
@@ -206,7 +209,7 @@ trait OrderTraits
                  *  load more filters e.g It will look to return orders that must match every
                  *  status i.e "open", "draft", "archieved", "cancelled", e.t.c
                  */
-                $totals[$filter] = $this->filterResourcesByStatus($filter, clone $builder)->count();
+                $totals['statuses'][$filter] = $this->filterResourcesByStatus($filter, clone $builder)->count();
 
             })->toArray();
 
@@ -215,20 +218,23 @@ trait OrderTraits
              *
              *  Example result
              *
-             *  {
-             *      "open": 1,
-             *      "draft": 0,
-             *      "archieved": 0,
-             *      "cancelled": 0,
+             *  [
+             *    "statuses" => [
+             *       "open" => 1,
+             *       "draft" => 0,
+             *       "archieved" => 0,
+             *       "cancelled" => 0,
              *
-             *      "paid": 0,
-             *      "unpaid": 1,
+             *       "paid" => 0,
+             *       "unpaid" => 1,
              *
-             *      "refunded": 0,
-             *      "failed": 0,
-             *      "fulfilled": 0,
-             *      "unfulfilled": 1
-             *  }
+             *       "refunded" => 0,
+             *       "failed" => 0,
+             *       "fulfilled" => 0,
+             *       "unfulfilled" => 1
+             *      ]
+
+             *  ]
              */
             return $totals;
 
@@ -249,9 +255,15 @@ trait OrderTraits
 
             $orders = $this->filterResourcesBySearch($data, $orders);
 
-        }elseif ( isset($data['status']) && !empty($data['status']) ) {
+        }else{
 
-            $orders = $this->filterResourcesByStatus($data, $orders);
+            if ( isset($data['status']) && !empty($data['status']) ) {
+
+                $orders = $this->filterResourcesByStatus($data, $orders);
+
+            }
+
+            $orders = $this->filterResourcesByRequireRating($data, $orders);
 
         }
 
@@ -280,8 +292,8 @@ trait OrderTraits
         //  Set the statuses to an empty array
         $statuses = [];
 
-        //  Set the status e.g ["open", "paid", "fulfilled", ...] or "open,paid,fulfilled, ..."
-        $status_filters = $data['status'] ?? null;
+        //  Set the status filters e.g ["open", "paid", "fulfilled", ...] or "open,paid,fulfilled, ..."
+        $status_filters = $data['status'] ?? $data;
 
         //  If the filters are provided as String format e.g "open,paid,fulfilled"
         if( is_string($status_filters) ){
@@ -333,6 +345,29 @@ trait OrderTraits
                 $orders = $orders->whereHas('fulfillmentStatus', function (Builder $query) use ($fulfillment_statuses){
                     $query->whereIn('name', $fulfillment_statuses);
                 });
+            }
+
+        }
+
+        //  Return the orders
+        return $orders;
+    }
+
+    /**
+     *  This method filters the orders by those that require rating
+     */
+    public function filterResourcesByRequireRating($data = [], $orders)
+    {
+        if( isset($data['require_rating']) && !is_null($data['require_rating']) ) {
+
+            //  Set the require_rating
+            $require_rating = $data['require_rating'];
+
+            //  If the require_rating is set to "true" or "1"
+            if( in_array($require_rating, [true, 1, '1']) ){
+
+                $orders = $orders->requireRating();
+
             }
 
         }
@@ -458,7 +493,20 @@ trait OrderTraits
         try {
 
             //  Get the resource received location
-            return $this->receivedLocations()->first();
+            $location = $this->receivedLocations()->first();
+
+            //  If exists
+            if ($location) {
+
+                //  Return location
+                return $location;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
+
+            }
 
         } catch (\Exception $e) {
 
@@ -479,6 +527,36 @@ trait OrderTraits
 
             //  Return locations
             return (new \App\Location())->collectionResponse($data, $locations, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns the order store based on the received order
+     */
+    public function getResourceStore()
+    {
+        try {
+
+            //  Get the resource received location store
+            $store = $this->getResourceReceivedLocation()->store;
+
+            //  If exists
+            if ($store) {
+
+                //  Return store
+                return $store;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
+
+            }
 
         } catch (\Exception $e) {
 
@@ -781,8 +859,6 @@ trait OrderTraits
 
         }
     }
-
-
 
     /**
      *  This method generates a new order number
@@ -1159,36 +1235,6 @@ trait OrderTraits
                 }
 
             }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method validates fetching multiple resources
-     */
-    public function getResourcesValidation($data = [])
-    {
-        try {
-
-            //  Set validation rules
-            $rules = [
-                'limit' => 'sometimes|required|numeric|min:1|max:100',
-            ];
-
-            //  Set validation messages
-            $messages = [
-                'limit.required' => 'Enter a valid limit containing only digits e.g 50',
-                'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
-                'limit.min' => 'The limit attribute must be a value between 1 and 100',
-                'limit.max' => 'The limit attribute must be a value between 1 and 100',
-            ];
-
-            //  Method executed within CommonTraits
-            $this->resourceValidation($data, $rules, $messages);
 
         } catch (\Exception $e) {
 

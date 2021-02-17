@@ -1,6 +1,6 @@
 <template>
 
-    <Row class="mt-3 pt-2">
+    <Row class="mt-4">
 
         <Col :span="22" :offset="1">
 
@@ -84,7 +84,7 @@
                         <h2 :style="{ fontSize: '20px' }" :class="['text-center']">
                             <span :class="['font-weight-bold', 'text-center', 'border-bottom-dashed']"
                                 :style="{ fontSize: '1.5em' }">
-                                {{ locationReceivedOrdersTotal }}
+                                {{ locationUnfulfilledOrders }}
                             </span>
                         </h2>
 
@@ -94,7 +94,7 @@
 
                 <Col :span="8">
 
-                    <Card :class="clickableCardClasses" :style="generalCardStyles">
+                    <Card :class="clickableCardClasses" :style="generalCardStyles" @click.native="navigateToMenuLink('show-store-products')">
 
                         <h1 :style="{ fontSize: '20px' }" :class="['text-center', 'mb-2']">
                             <span>Products</span>
@@ -158,6 +158,10 @@
                 type: Object,
                 default: null
             },
+            locationTotals: {
+                type: Object,
+                default: null
+            },
         },
         components: { basicButton, countdown, Loader },
         data () {
@@ -179,33 +183,26 @@
                 return ['cursor-pointer', 'py-3'];
             },
             locationProductsTotal(){
-                return this.location['_links']['bos:products'].total;
+                if( this.locationTotals ){
+                    return this.locationTotals.products.total;
+                }
             },
-            locationReceivedOrdersTotal(){
-                return 50;
-                //return (this.location || {})['_links']['bos:received-orders'].total;
-            },
-            visitShortCodes(){
-                return (((this.store['_embedded']['visit_short_codes'] || [])['_embedded'] || [])['short_codes'] || []);
+            locationUnfulfilledOrders(){
+                if( this.locationTotals ){
+                    return this.locationTotals.orders.received.statuses.unfulfilled;
+                }
             },
             visitShortCode(){
-                if( this.visitShortCodes.length ){
-                    return this.visitShortCodes[0];
-                }
+                return (this.store['_attributes']['visit_short_code'] || {});
             },
             visitShortCodeDialingCode(){
-                return (this.visitShortCode || {}).dialing_code;
+                return this.visitShortCode.dialing_code;
             },
             visitShortCodeExpiryTime(){
-                return (this.visitShortCode || {}).expires_at;
-            },
-            myActiveSubscriptions(){
-                return (((this.store['_embedded']['my_active_subscriptions'] || [])['_embedded'] || [])['subscriptions'] || []);
+                return this.visitShortCode.expires_at;
             },
             myActiveSubscription(){
-                if( this.myActiveSubscriptions.length ){
-                    return this.myActiveSubscriptions[0];
-                }
+                return (this.store['_attributes']['subscription'] || {});
             },
             myActiveSubscriptionId(){
                 return (this.myActiveSubscription || {}).id;

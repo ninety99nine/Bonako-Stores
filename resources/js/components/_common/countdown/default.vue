@@ -52,7 +52,8 @@
         data(){
             return {
                 countdown: '',
-                countdown_humanized: ''
+                countdown_humanized: '',
+                notified_parent_on_expiry: false
             }
         },
         methods: {
@@ -117,6 +118,15 @@
                         this.countdown = 0;
 
                         this.countdown_humanized = 0;
+
+                        //  If we haven't notified the parent on the
+                        if( this.notified_parent_on_expiry === false ){
+
+                            this.notified_parent_on_expiry = true;
+
+                            this.$emit('expired', true);
+
+                        }
 
                     }
 

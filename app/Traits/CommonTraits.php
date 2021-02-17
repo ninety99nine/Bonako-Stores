@@ -33,6 +33,35 @@ trait CommonTraits
         }
     }
 
+    /**
+     *  This method validates fetching multiple resources
+     */
+    public function getResourcesValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+                'limit' => 'sometimes|required|numeric|min:1|max:100',
+            ];
+
+            //  Set validation messages
+            $messages = [
+                'limit.required' => 'Enter a valid limit containing only digits e.g 50',
+                'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
+                'limit.min' => 'The limit attribute must be a value between 1 and 100',
+                'limit.max' => 'The limit attribute must be a value between 1 and 100',
+            ];
+
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
     public function resourceValidation($data = [], $rules = [], $messages = [])
     {
         try {
@@ -55,27 +84,34 @@ trait CommonTraits
         }
     }
 
-    public function collectionResponse($data = [], $collection = null, $paginate = true, $convert_to_api_format = true)
+    public function collectionResponse($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
     {
         try {
 
             //  Set the pagination limit e.g 15
             $limit = $data['limit'] ?? null;
 
-            //  If we should paginate the collection
+            //  If we should paginate the builder
             if( $paginate === true ){
 
-                //  Paginate collection
-                $modified_collection = $collection->paginate($limit);
+                //  Paginate builder
+                $modified_builder = $builder->paginate($limit);
 
-            }else{
+            //  If we should not paginate the builder
+            }elseif( $paginate === false ){
 
-                //  Get collection
-                $modified_collection = $collection->get();
+                //  Get builder
+                $modified_builder = $builder->get();
+
+            //  If we should do nothing
+            }elseif( $paginate === null ){
+
+                //  Return builder
+                return $builder;
 
             }
 
-            //  If we should convert the collection to an API Readable Format
+            //  If we should convert the builder to an API Readable Format
             if( $convert_to_api_format === true ){
 
                 //  Get the model class name e.g "App\User"
@@ -83,14 +119,14 @@ trait CommonTraits
 
                 //  Initialize a new model object e.g (new App\User)
                 $model = (new $class);
-                
-                //  Convert to API Readable Format - 
-                return $model->convertToApiFormat($modified_collection);
+
+                //  Convert to API Readable Format -
+                return $model->convertToApiFormat($modified_builder);
 
             }else{
 
-                //  Return collection
-                return $modified_collection;
+                //  Return builder
+                return $modified_builder;
 
             }
 

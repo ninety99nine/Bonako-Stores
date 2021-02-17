@@ -16,35 +16,51 @@ class Product extends JsonResource
     public function toArray($request)
     {
         return [
+
+            /*  Product Management  */
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'active' => $this->active,
-            'type' => $this->type,
-            'cost_per_item' => $this->cost_per_item,
-            'unit_regular_price' => $this->unit_regular_price,
-            'unit_sale_price' => $this->unit_sale_price,
+            'show_description' => $this->show_description,
             'sku' => $this->sku,
             'barcode' => $this->barcode,
-            'stock_quantity' => $this->stock_quantity,
+            'visible' => $this->visible,
+            'product_type_id' => $this->product_type_id,
+
+            /*  Variation Management  */
+            'allow_variants' => $this->allow_variants,
+            'variant_attributes' => $this->variant_attributes,
+
+            /*  Pricing Management  */
+            'unit_regular_price' => $this->unit_regular_price,
+            'unit_sale_price' => $this->unit_sale_price,
+            'unit_cost' => $this->unit_cost,
+
+            /*  Quantity Management  */
+            'allow_multiple_quantity_per_order' => $this->allow_multiple_quantity_per_order,
+            'allow_maximum_quantity_per_order' => $this->allow_maximum_quantity_per_order,
+            'maximum_quantity_per_order' => $this->maximum_quantity_per_order,
+
+            /*  Stock Management  */
             'allow_stock_management' => $this->allow_stock_management,
             'auto_manage_stock' => $this->auto_manage_stock,
-            'variant_attributes' => $this->variant_attributes,
-            'allow_variants' => $this->allow_variants,
-            'allow_downloads' => $this->allow_downloads,
-            'show_on_store' => $this->show_on_store,
-            'is_new' => $this->is_new,
-            'is_featured' => $this->is_featured,
-            'parent_product_id' => $this->parent_product_id,
+            'stock_quantity' => $this->stock_quantity,
 
-            /*  Attributes  */
-            'on_sale' => $this->on_sale,
-            'unit_price' => $this->unit_price,
-            'unit_sale_discount' => $this->unit_sale_discount,
+            /*  Ownership Management  */
+            'parent_product_id' => $this->parent_product_id,
+            'user_id' => $this->user_id,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+
+            /*  Attributes  */
+            '_attributes' => [
+                'on_sale' => $this->on_sale,
+                'unit_price' => $this->unit_price,
+                'unit_profit' => $this->unit_profit,
+                'unit_sale_discount' => $this->unit_sale_discount
+            ],
 
             /*  Resource Links */
             '_links' => [
@@ -52,12 +68,19 @@ class Product extends JsonResource
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
 
-                /*
-                //  Link to current resource
                 'self' => [
-                    'href' => route('product', ['product_id' => $this->id]),
+                    'href' => route('product-show', ['product_id' => $this->id]),
                     'title' => 'This product',
                 ],
+
+                //  Link to the product locations
+                'bos:locations' => [
+                    'href' => route('product-locations', ['product_id' => $this->id]),
+                    'title' => 'The product locations'
+                ],
+
+                /*
+                //  Link to current resource
 
                 //  Link to the product variations
                 'bos:variations' => [
@@ -68,6 +91,7 @@ class Product extends JsonResource
                 */
             ],
 
+            /*  Embedded  */
             '_embedded' => [
                 'variables' => $this->whenLoaded('variables'),
             ],

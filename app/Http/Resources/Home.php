@@ -85,14 +85,26 @@ class Home extends JsonResource
 
                 //  Link to stores resources (Used to create new store resource)
                 'bos:stores' => [
-                    'href' => route('store-create'),
+                    'href' => route('stores'),
                     'title' => 'Get or create stores',
                 ],
 
                 //  Link to locations resources (Used to create new location resource)
                 'bos:locations' => [
-                    'href' => route('store-create'),
+                    'href' => route('locations'),
                     'title' => 'Create locations',
+                ],
+
+                //  Link to orders resources (Used to create new order resource)
+                'bos:orders' => [
+                    'href' => route('orders'),
+                    'title' => 'Create orders',
+                ],
+
+                //  Link to products resources (Used to create new product resource)
+                'bos:products' => [
+                    'href' => route('products'),
+                    'title' => 'Create products',
                 ],
 
                 //  Link to subscription plans resources (Used to get subscription plans)
@@ -107,6 +119,23 @@ class Home extends JsonResource
                     'title' => 'Get payment methods',
                 ],
 
+                //  Link to product types resources (Used to get product types)
+                'bos:product_types' => [
+                    'href' => route('product-types'),
+                    'title' => 'Get product types',
+                ],
+
+                //  Link to address types resources (Used to get address types)
+                'bos:address_types' => [
+                    'href' => route('address-types'),
+                    'title' => 'Get address types',
+                ],
+
+                //  Link to product types resources (Used to get product types)
+                'bos:cart_calculate' => [
+                    'href' => route('cart-calculate'),
+                    'title' => 'Calculate cart',
+                ],
 
             ],
 

@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use Illuminate\Database\Eloquent\Builder;
 use App\Http\Resources\Address as AddressResource;
 use App\Http\Resources\Addresses as AddressesResource;
 
@@ -132,6 +133,89 @@ trait AddressTraits
             throw($e);
 
         }
+    }
+
+    /**
+     *  This method returns a list of addresses
+     */
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data (CommanTraits)
+            $this->getResourcesValidation($data);
+
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
+
+                //  Set the addresses to this eloquent builder
+                $addresses = $builder;
+
+            }else{
+
+                //  Get the addresses
+                $addresses = \App\Address::latest();
+
+            }
+
+            //  Filter the addresses
+            $addresses = $this->filterResourcesByType($data, $addresses);
+
+            //  Return addresses
+            return $this->collectionResponse($data, $addresses, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the addresses by type
+     */
+    public function filterResourcesByType($data = [], $addresses)
+    {
+        //  Set the statuses to an empty array
+        $selected_filters = [];
+
+        //  Set the filters e.g ["work", "home", "friend", ...] or "work,home,friend, ..."
+        $filters = $data['type'] ?? null;
+
+        //  If the filters are provided as String format e.g "work,home,friend"
+        if( is_string($filters) ){
+
+            //  Set the statuses to the exploded Array ["work", "home", "friend"]
+            $selected_filters = explode(',', $filters);
+
+        }elseif( is_array($filters) ){
+
+            //  Set the statuses to the given Array ["work", "home", "friend"]
+            $selected_filters = $filters;
+
+        }
+
+        //  Clean-up each filter
+        foreach ($selected_filters as $key => $filter) {
+
+            //  Convert " work " to "Work"
+            $selected_filters[$key] = ucfirst(strtolower(trim($filter)));
+
+        }
+
+        if ( $addresses && count($selected_filters) ) {
+
+            $addresses = $addresses->whereHas('addressType', function (Builder $query) use ($selected_filters){
+                $query->whereIn('name', $selected_filters);
+            });
+
+        }
+
+        //  Return the addresses
+        return $addresses;
     }
 
     /**

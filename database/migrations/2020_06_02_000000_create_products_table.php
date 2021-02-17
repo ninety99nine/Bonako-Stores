@@ -14,28 +14,36 @@ class CreateProductsTable extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->increments('id');
 
-            /*  Product Details  */
+            /*  Product Management  */
             $table->string('name')->nullable();
             $table->string('description', 500)->nullable();
-            $table->boolean('active')->nullable()->default(false);
-            $table->tinyInteger('arrangement')->nullable();
-            $table->string('type')->nullable();
-            $table->float('cost_per_item')->nullable();
-            $table->float('unit_regular_price')->nullable();
-            $table->float('unit_sale_price')->nullable();
+            $table->boolean('show_description')->default(false);
             $table->string('sku')->nullable();
             $table->string('barcode')->nullable();
-            $table->unsignedInteger('stock_quantity')->default(0);
-            $table->boolean('allow_stock_management')->default(1);
-            $table->boolean('auto_manage_stock')->default(1);
+            $table->boolean('visible')->default(true);
+            $table->unsignedTinyInteger('product_type_id')->default(1);
+
+            /*  Variation Management  */
+            $table->boolean('allow_variants')->default(false);
             $table->json('variant_attributes')->nullable();
-            $table->boolean('allow_variants')->default(0);
-            $table->boolean('allow_downloads')->default(0);
-            $table->boolean('show_on_store')->default(1);
-            $table->boolean('is_new')->default(0);
-            $table->boolean('is_featured')->default(0);
+
+            /*  Pricing Management  */
+            $table->float('unit_regular_price')->nullable();
+            $table->float('unit_sale_price')->nullable();
+            $table->float('unit_cost')->nullable();
+
+            /*  Quantity Management  */
+            $table->boolean('allow_multiple_quantity_per_order')->default(true);
+            $table->boolean('allow_maximum_quantity_per_order')->default(true);
+            $table->unsignedTinyInteger('maximum_quantity_per_order')->default(5);
+
+            /*  Stock Management  */
+            $table->boolean('allow_stock_management')->default(false);
+            $table->boolean('auto_manage_stock')->default(true);
+            $table->unsignedInteger('stock_quantity')->default(100);
+
+            /*  Ownership Management  */
             $table->unsignedInteger('parent_product_id')->nullable();
-            $table->unsignedInteger('location_id')->nullable();
             $table->unsignedInteger('user_id')->nullable();
 
             /*  Timestamps  */

@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use DB;
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use App\Http\Resources\Location as LocationResource;
 use App\Http\Resources\Locations as LocationsResource;
 
@@ -166,7 +167,7 @@ trait LocationTraits
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
-            //  Validate the data
+            //  Validate the data (CommanTraits)
             $this->getResourcesValidation($data);
 
             //  If we already have an eloquent builder defined
@@ -239,59 +240,104 @@ trait LocationTraits
     }
 
     /**
-     *  This method returns a list of location users
+     *  This method returns location totals
      */
-    public function getResourceUsers($data = [], $paginate = true, $convert_to_api_format = true)
+    public function getResourceTotals($data = [], $user)
     {
         try {
 
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
-            //  Set the pagination limit e.g 15
-            $limit = $data['limit'] ?? null;
+            return [
+                'users' => $this->getResourceUserTotals($data),
+                'products' => $this->getResourceProductTotals($data),
+                'orders' => [
+                    'sent' => $this->getResourceOrderTotals(array_merge(['type' => 'sent']), $user),
+                    'received' => $this->getResourceOrderTotals(array_merge(['type' => 'received']), $user),
+                ]
 
-            //  Set the search term e.g "John"
-            $search_term = $data['search'] ?? null;
+            ];
 
-            //  Validate the data
-            $this->getResourcesValidation($data);
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns location user totals
+     */
+    public function getResourceUserTotals($data = [])
+    {
+        try {
+
+            //  Get location users
+            $users = $this->getResourceUsers($data, null);
+
+            //  Return location user totals
+            return (new \App\User())->getResourceTotals($data, $users);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns location order totals
+     */
+    public function getResourceOrderTotals($data = [], $user)
+    {
+        try {
+
+            //  Get location orders
+            $orders = $this->getResourceOrders($data, $user, null);
+
+            //  Return location order totals
+            return (new \App\Order())->getResourceTotals($data, $orders);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns location product totals
+     */
+    public function getResourceProductTotals($data = [])
+    {
+        try {
+
+            //  Get location products
+            $products = $this->getResourceProducts($data, null);
+
+            //  Return location product totals
+            return (new \App\Product())->getResourceTotals($data, $products);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of location users
+     */
+    public function getResourceUsers($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
 
             //  Get the users
-            $users = $this->users()->latest();
+            $users = $this->users();
 
-            //  If we need to search for specific users
-            if (!empty($search_term)) {
-
-                $users = $users->search($search_term);
-
-            }
-
-            //  If we should paginate the collection
-            if( $paginate === true ){
-
-                //  Return the paginated users
-                $users = $users->paginate($limit);
-
-            }else{
-
-                //  Return the users
-                $users = $users->get();
-
-            }
-
-            //  If we should convert the collection to an API Readable Format
-            if( $convert_to_api_format === true ){
-
-                //  Convert to API Readable Format
-                return (new \App\User)->convertToApiFormat($users);
-
-            }else{
-
-                //  Return users
-                return $users;
-
-            }
+            //  Return a list of location users
+            return (new \App\User())->getResources($data, $users, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 
@@ -361,26 +407,6 @@ trait LocationTraits
     }
 
     /**
-     *  This method returns location received order totals
-     */
-    public function getResourceOrderTotals($data = [], $user)
-    {
-        try {
-
-            //  Get location orders
-            $orders = $this->getResourceOrders($data = [], $user, false, false);
-
-            //  Return location order totals
-            return (new \App\Order())->getResourceTotals($data, $orders);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
      *  This method returns a list of location coupons
      */
     public function getResourceCoupons($data = [], $paginate = true, $convert_to_api_format = true)
@@ -396,7 +422,7 @@ trait LocationTraits
             //  Set the search term e.g "save10"
             $search_term = $data['search'] ?? null;
 
-            //  Validate the data
+            //  Validate the data (CommanTraits)
             $this->getResourcesValidation($data);
 
             //  Get the coupons
@@ -449,53 +475,11 @@ trait LocationTraits
     {
         try {
 
-            //  Extract the Request Object data (CommanTraits)
-            $data = $this->extractRequestData($data);
-
-            //  Set the pagination limit e.g 15
-            $limit = $data['limit'] ?? null;
-
-            //  Set the search term e.g "Combo 1"
-            $search_term = $data['search'] ?? null;
-
-            //  Validate the data
-            $this->getResourcesValidation($data);
-
             //  Get the products
-            $products = $this->products()->latest();
+            $products = $this->products();
 
-            //  If we need to search for specific products
-            if (!empty($search_term)) {
-
-                $products = $products->search($search_term);
-
-            }
-
-            //  If we should paginate the collection
-            if( $paginate === true ){
-
-                //  Return the paginated products
-                $products = $products->paginate($limit);
-
-            }else{
-
-                //  Return the products
-                $products = $products->get();
-
-            }
-
-            //  If we should convert the collection to an API Readable Format
-            if( $convert_to_api_format === true ){
-
-                //  Convert to API Readable Format
-                return (new \App\Product)->convertToApiFormat($products);
-
-            }else{
-
-                //  Return products
-                return $products;
-
-            }
+            //  Return a list of location products
+            return (new \App\Product())->getResources($data, $products, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 
@@ -520,7 +504,7 @@ trait LocationTraits
             //  Set the search term e.g "Festive Combo"
             $search_term = $data['search'] ?? null;
 
-            //  Validate the data
+            //  Validate the data (CommanTraits)
             $this->getResourcesValidation($data);
 
             //  Get the instant carts
@@ -569,75 +553,120 @@ trait LocationTraits
     /**
      *  This method updates the arrangement of products in the current location
      */
-    public function updateResourceProductArrangement($data = [])
+    public function arrangeResourceProducts($data = [])
     {
         try {
 
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
-            //  Set the variables
-            $ids = [];  $cases = [];  $params = [];
+            //  Set the product arrangements
+            $product_arrangements = $data['product_arrangements'] ?? [];
 
             //  Get the products assigned to this location (Products must not be variations)
-            $products = collect($this->products()->isNotVariation()->get())->toArray();
+            $products = collect( $this->products()->get() )->toArray();
 
-            //  Get the data product arrangement
-            $product_arrangements = $data['product_arrangements'];
+            //  Set the product arrangement in correct assending order (Remove invalid arrangements)
+            $product_arrangements =
+                collect($product_arrangements)->filter(function ($product) {
+
+                    //  Must have an id
+                    return isset($product['id']) && !empty($product['id']) &&
+
+                        //  Must have an arrangement
+                        isset($product['arrangement']) && !empty($product['arrangement']);
+
+                //  Order by arrangement
+                })->sortBy('arrangement');
 
             //  Foreach product we must arrange
             foreach ($product_arrangements as $key => $product_arrangement) {
 
                 //  Set the id (i.e Target)
-                $id = $product_arrangement['id'];
+                $id = $product_arrangement['id'] ?? null;
 
                 //  Set the arrangement (i.e Position)
-                $arrangement = $product_arrangement['arrangement'];
+                $arrangement = $product_arrangement['arrangement'] ?? null;
 
-                $cases[] = "WHEN {$id} then ?";
-                $params[] = $arrangement;
-                $ids[] = $id;
+                //  Foreach location product
+                foreach($products as $key => $product){
 
-                //  Remove from the products
-                $products = collect($products)->reject(function ($product) use ($id){
-                    return $product['id'] == $id;
-                });
+                    //  If the location product matches the product we must arrange
+                    if( $product['id'] === $id ){
+
+                        //  Remove the location product from its current arrangement
+                        unset($products[$key]);
+
+                        //  Add the location product to its new arrangement
+                        array_splice($products, $arrangement - 1, 0, [$product]);
+
+                    }
+
+                }
 
             }
 
-            //  Count how many products we have arranged
-            $total_product_arrangements = count($product_arrangements);
+            //  Set the arrangements
+            $arrangements = [];
 
-            //  Foreach product we did not arrange
+            //  Foreach of the location products
             foreach ($products as $key => $product) {
 
-                $id = $product['id'];
-                $arrangement = $total_product_arrangements + ($key + 1);
+                //  Set the location product arrangement
+                $arrangement = ($key + 1);
 
-                $cases[] = "WHEN {$id} then ?";
-                $params[] = $arrangement;
-                $ids[] = $id;
+                //  Convert the product to an Object
+                $product = (Object) $product;
+
+                //  Set the location product as the next product arrangement
+                $arrangement = (new \App\Product())->getResourceArrangementTemplate($product, $this, $arrangement);
+
+                //  Add this arrangement to the list of arrangements
+                array_push($arrangements, $arrangement);
+
+            }
+
+            //  If we have any arrangements
+            if( count($arrangements) ){
+
+                //  Delete previously assigned location products
+                DB::table('product_allocations')->where('owner_id', $this->id)->where('owner_type', $this->resource_type)->delete();
+
+                //  Assign products to locations
+                DB::table('product_allocations')->insert($arrangements);
 
             }
 
-            $ids = implode(',', $ids);
-            $cases = implode(' ', $cases);
-
-            if (!empty($ids)) {
-
-                /**
-                 *  This logic allows us to run a single query to update multiple products
-                 *  with different values of their arrangement for a given location
-                 */
-                DB::update("UPDATE products SET `arrangement` = CASE `id` {$cases} END WHERE `id` in ({$ids})", $params);
-
-            }
+            //  Return a list of location products
+            return $this->getResourceProducts($data);
 
         } catch (\Exception $e) {
 
             throw($e);
 
         }
+
+    }
+
+    /**
+     *  This method returns a true/false status if the given user marked as favourite
+     */
+    public function getResourceFavouriteStatus($user = null)
+    {
+        //  Retrieve the User ID
+        $user_id = ($user instanceof \App\User) ? $user->id : auth('api')->user()->id;
+
+        //  Set the search
+        $search = [
+            'user_id' => $user_id,
+            'location_id' => $this->id
+        ];
+
+        //  Check if the user already marked this location as a favourite
+        $status = DB::table('favourites')->where($search)->exists();
+
+        //  Return the status
+        return ['status' => $status];
 
     }
 
@@ -739,6 +768,7 @@ trait LocationTraits
                     'type' => $type,
                     'user_id' => $user_id,
                     'location_id' => $this->id,
+                    'default_location' => 1,
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
                 ];
@@ -876,36 +906,6 @@ trait LocationTraits
                 }
 
             }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method validates fetching multiple resources
-     */
-    public function getResourcesValidation($data = [])
-    {
-        try {
-
-            //  Set validation rules
-            $rules = [
-                'limit' => 'sometimes|required|numeric|min:1|max:100',
-            ];
-
-            //  Set validation messages
-            $messages = [
-                'limit.required' => 'Enter a valid limit containing only digits e.g 50',
-                'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
-                'limit.min' => 'The limit attribute must be a value between 1 and 100',
-                'limit.max' => 'The limit attribute must be a value between 1 and 100',
-            ];
-
-            //  Method executed within CommonTraits
-            $this->resourceValidation($data, $rules, $messages);
 
         } catch (\Exception $e) {
 

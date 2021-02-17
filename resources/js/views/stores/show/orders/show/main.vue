@@ -1,350 +1,406 @@
 <template>
 
-    <Row :gutter="12">
+    <Row class="mt-4">
 
-        <Col :span="24" class="my-5">
+        <Col :span="22" :offset="1">
 
-            <!-- Order #, Statuses & Watch Video -->
             <Row :gutter="12">
 
-                <Col :span="12">
-
-                    <div class="d-flex" :style="{ alignItems: 'flex-end' }">
-
-                        <!-- Back Button -->
-                        <Button type="default" size="default" class="mr-4" @click.native="closeOrder()">
-                            <Icon type="md-arrow-back" class="mr-1" :size="20" />
-                            <span>Back</span>
-                        </Button>
-
-                        <span :style="{ fontSize: 'x-large', lineHeight: 'initial' }" :class="['font-weight-bold', 'mr-4']">
-                            Order #{{ order.number }}
-                        </span>
-
-                        <span :class="['text-muted']">{{ createdDateTime }}</span>
-
-                    </div>
-
-                </Col>
-
-                <Col :span="6">
-
-                    <div class="d-flex" :style="{ alignItems: 'flex-end' }">
-                        <statusTag :status="status"></statusTag>
-                        <statusTag :status="paymentStatus"></statusTag>
-                        <statusTag :status="fulfillmentStatus"></statusTag>
-                    </div>
-
-                </Col>
-
-                <Col :span="6" class="clearfix">
-
-                    <!-- Watch Video Button -->
-                    <Button type="primary" size="default" @click.native="fetchStores()" :class="['float-right']">
-                        <Icon type="ios-play-outline" class="mr-1" :size="20" />
-                        <span>Watch Video</span>
-                    </Button>
-
-                </Col>
-
-            </Row>
-
-        </Col>
-
-        <Col :span="16">
-
-            <Card class="mb-4">
-
-                <div class="clearfix">
-                    <span :class="['float-left', 'font-weight-bold', 'd-block', 'my-3']"
-                          :style="{ fontSize: 'large', lineHeight: 'initial' }">
-                        Cart Items
-                    </span>
-
-                    <!-- Fulfill Button -->
-                    <Button v-if="itemLinesData.length && !isFulfilled" type="success" size="default" :class="['float-right']" @click.native="closeOrder()">
-                        <Icon type="md-checkbox-outline" class="mr-1" :size="20" />
-                        <span>Fulfil</span>
-                    </Button>
-
-                    <!-- Edit Button -->
-                    <Button v-if="itemLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
-                        <Icon type="ios-create-outline" class="mr-1" :size="20" />
-                        <span>Edit</span>
-                    </Button>
-
-                </div>
-
-                <Table :columns="itemLineColumns" :data="itemLinesData" :loading="isLoading"
-                        no-data-text="No items found" :style="{ overflow: 'visible' }">
-
-                    <span slot-scope="{ row, index }" slot="name">
-                        {{ row.name }}
-                    </span>
-
-                    <span slot-scope="{ row, index }" slot="price">
-                        {{ formatPrice(row.unit_regular_price) }}
-                    </span>
-
-                    <span slot-scope="{ row, index }" slot="quantity">
-                        {{ row.quantity }}
-                    </span>
-
-                    <span slot-scope="{ row, index }" slot="discount" :class="['text-danger']">
-                        {{ row.sale_discount_total > 0 ? '- ' : '' }}{{ formatPrice(row.sale_discount_total) }}
-                    </span>
-
-                    <span slot-scope="{ row, index }" slot="grand_total">
-                        {{ formatPrice(row.grand_total) }}
-                    </span>
-
-                </Table>
-
-                <Row>
-
-                    <Col :offset="14" :span="6" :class="['bg-light']">
-
-                        <ul :style="{ listStyle: 'none', lineHeight: '2em', textAlign: 'right' }">
-                            <li :class="['border-bottom', 'my-2']">
-                                <span :class="['font-weight-bold', 'mr-4']">Sub Total:</span>
-                            </li>
-                            <li>
-                                <span :class="['mr-4']">Coupon Discount:</span>
-                            </li>
-                            <li>
-                                <span :class="['mr-4']">Sale Discount:</span>
-                            </li>
-                            <li :class="['border-bottom']">
-                                <span :class="['mr-4']">Delivery Fee:</span>
-                            </li>
-                            <li :style="{ borderBottom: 'double' }" class="py-2">
-                                <span :class="['font-weight-bold', 'mr-4']">Grand Total:</span>
-                            </li>
-                        </ul>
-
-                    </Col>
-
-                    <Col :span="4" :class="['bg-light']">
-
-                        <ul :style="{ listStyle: 'none', lineHeight: '2em' }">
-                            <li :class="['border-bottom', 'my-2']">
-                                <span :class="['font-weight-bold']">{{ formatPrice(order._embedded.active_cart.sub_total) }}</span>
-                            </li>
-                            <li>
-                                <span :class="['text-danger']">
-                                    {{ order._embedded.active_cart.coupon_total > 0 ? '-' : '' }}
-                                    {{ formatPrice(order._embedded.active_cart.coupon_total) }}
-                                </span>
-                            </li>
-                            <li>
-                                <span :class="['text-danger']">
-                                    {{ order._embedded.active_cart.sale_discount_total > 0 ? '-' : '' }}
-                                    {{ formatPrice(order._embedded.active_cart.sale_discount_total) }}
-                                </span>
-                            </li>
-                            <li :class="['text-success', 'border-bottom']">
-                                    {{ order._embedded.active_cart.delivery_fee > 0 ? '+' : '' }}
-                                    {{ formatPrice(order._embedded.active_cart.delivery_fee) }}
-                            </li>
-                            <li :style="{ borderBottom: 'double' }" class="py-2">
-                                <span :class="['font-weight-bold']">{{ formatPrice(order._embedded.active_cart.grand_total) }}</span>
-                            </li>
-                        </ul>
-
-                    </Col>
-
-                </Row>
-
-            </Card>
-
-            <Card class="mb-4">
-
-                <div class="clearfix">
-                    <span :class="['float-left', 'font-weight-bold', 'd-block', 'my-3']"
-                          :style="{ fontSize: 'large', lineHeight: 'initial' }">
-                        Coupons Applied
-                    </span>
-
-                    <!-- Edit Button -->
-                    <Button v-if="couponLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
-                        <Icon type="ios-create-outline" class="mr-1" :size="20" />
-                        <span>Edit</span>
-                    </Button>
-
-                </div>
-
-                <Table :columns="couponLineColumns" :data="couponLinesData" :loading="isLoading"
-                        no-data-text="No coupons found" :style="{ overflow: 'visible' }">
-
-                    <span slot-scope="{ row, index }" slot="name">
-                        {{ row.name }}
-                    </span>
-
-                    <span slot-scope="{ row, index }" slot="type">
-                        {{ row.is_fixed_rate ? 'Fixed' : row.is_percentage_rate ? 'Percentage' : '' }}
-                    </span>
-
-                    <span slot-scope="{ row, index }" slot="rate">
-                        {{ row.is_fixed_rate ? currenySymbol+row.fixed_rate : row.is_percentage_rate ? row.percentage_rate+'%' : '' }}
-                    </span>
-
-                </Table>
-
-            </Card>
-
-            <Card class="mb-4">
-
-                <div>
-                    <span :class="['font-weight-bold', 'd-block', 'my-3']"
-                          :style="{ fontSize: 'large', lineHeight: 'initial' }">
-                        Transaction
-                    </span>
-
-                </div>
-
-            </Card>
-
-            <Card>
-
-                <div>
-                    <span :class="['font-weight-bold', 'd-block', 'my-3']"
-                          :style="{ fontSize: 'large', lineHeight: 'initial' }">
-                        History
-                    </span>
-
-                </div>
-
-            </Card>
-
-        </Col>
-
-        <Col :span="8" class="clearfix">
-
-            <Card v-if="customer" class="cursor-pointer mb-2">
-
-                <span :class="['font-weight-bold', 'd-block', 'mb-3']"
-                        :style="{ fontSize: 'large', lineHeight: 'initial' }">
-                    Customer
-                </span>
-
-                <div :class="['align-items-center', 'd-flex']">
-                    <Avatar icon="ios-person" :style="{ background: '#19be6b' }" class="mr-2" />
-                    <p class="mr-2">{{ customerName }}</p>
-                    <p>
-                        <Icon type="ios-call-outline" class="mr-1" :size="20" />
-                        <span>{{ customer.mobile_number }}</span>
-                    </p>
-                </div>
-
-                <div class="clearfix">
-
-                    <!-- View Button -->
-                    <Button type="default" size="default" :class="['float-right']" @click.native="closeOrder()">
-                        <Icon type="md-eye" class="mr-1" :size="20" />
-                        <span>View</span>
-                    </Button>
-
-                </div>
-
-            </Card>
-
-            <Card v-if="deliveryLine" class="cursor-pointer mb-2">
-
-                <span :class="['font-weight-bold', 'd-block', 'mb-3']"
-                        :style="{ fontSize: 'large', lineHeight: 'initial' }">
-                    Delivery Information
-                </span>
-
-                <div class="d-flex">
-                    <Avatar icon="ios-pin" :style="{ background: '#19be6b' }" class="mr-2" />
-                    <div class="w-100">
-
-                        <p v-if="deliveryLine.name && (deliveryLine.name != customerName)">
-                            <span class="font-weight-bold">Name: </span><span>{{ deliveryLine.name }}</span>
-                        </p>
-
-                        <p v-if="deliveryLine.mobile_number && (deliveryLine.mobile_number != customer.mobile_number)">
-                            <span class="font-weight-bold">Mobile: </span>{{ deliveryLine.mobile_number }}<span></span>
-                        </p>
-
-                        <Divider class="my-2"></Divider>
-
-                        <p v-if="deliveryLine.physical_address && deliveryType == 'delivery'">
-                            <span class="font-weight-bold">Address: </span>{{ deliveryLine.physical_address }}<span></span>
-                        </p>
-
-                        <div class="d-flex">
-
-                            <p v-if="deliveryLine.day" class="mr-2">
-                                <span class="font-weight-bold">Day: </span>{{ deliveryLine.day }}<span></span>
-                            </p>
-
-                            <p v-if="deliveryLine.time">
-                                <span class="font-weight-bold">Time: </span>{{ deliveryLine.time }}<span></span>
-                            </p>
-
-                        </div>
-
-                        <Divider v-if="deliveryLine.destination" class="my-2"></Divider>
-
-                        <p v-if="deliveryLine.destination">
-                            <span class="font-weight-bold">Destination: </span>{{ deliveryLine.destination }}<span></span>
-                        </p>
-
-                    </div>
-                </div>
-
-            </Card>
-
-            <!-- If we are loading, Show Loader -->
-            <Loader v-if="isLoadingReceivedLocation" class="mb-2"></Loader>
-
-            <Card v-else class="cursor-pointer mb-2">
-
-                <Poptip v-if="receivedLocation" trigger="hover" :content="receivedLocationPoptipContent"
-                        word-wrap class="poptip-w-100">
-
-                    <div :class="['align-items-center', 'd-flex']">
-
-                        <span :class="['font-weight-bold', 'mr-2']"
-                              :style="{ fontSize: 'medium', lineHeight: 'initial' }">
-                            Received Location
-                        </span>
-
-                        <Tag color="success">{{ receivedLocation.name }}</Tag>
-
-                    </div>
-
-                </Poptip>
-
-            </Card>
-
-            <Card v-if="isReceivingLocation" class="cursor-pointer mb-2">
-
-                <span :class="['font-weight-bold', 'd-block', 'mb-3']"
-                        :style="{ fontSize: 'medium', lineHeight: 'initial' }">
-                    Shared Locations
-                </span>
-
-                <Poptip v-if="availableSharedLocations" trigger="hover" content="Share this order with other locations" word-wrap class="poptip-w-100">
+                <Col :span="24" :class="['border-bottom-dashed', 'mb-4', 'mt-3', 'pb-4']">
 
                     <!-- If we are loading, Show Loader -->
-                    <Loader v-if="isLoadingSharedLocations" class="mb-2"></Loader>
+                    <Loader v-if="isLoadingOrder" class="mb-2"></Loader>
 
-                    <Select v-else v-model="selectedSharedLocationIds" :loading="isUpdatingSharedLocations" size="large" class="w-100"
-                            multiple clearable prefix="ios-pin" placeholder="Select locations" @on-select="updateSharedLocations">
-                        <Option v-for="(location, index) in availableSharedLocations"
-                                :value="location.id" :key="index">{{ location.name }}</Option>
-                    </Select>
+                    <!-- Order #, Statuses & Watch Video Button -->
+                    <Row v-else-if="!isLoadingOrder && localOrder" :gutter="12">
 
-                </Poptip>
+                        <Col :span="12">
 
-                <!-- Error Message Alert -->
-                <Alert v-else type="info" class="p-2">
-                    No locations found
-                </Alert>
+                            <div class="d-flex" :style="{ alignItems: 'flex-end' }">
 
-            </Card>
+                                <!-- Back Button -->
+                                <Button type="default" size="default" class="mr-4" @click.native="closeOrder()">
+                                    <Icon type="md-arrow-back" class="mr-1" :size="20" />
+                                    <span>Back</span>
+                                </Button>
+
+                                <span :style="{ fontSize: 'x-large', lineHeight: 'initial' }" :class="['font-weight-bold', 'mr-4']">
+                                    Order #{{ localOrder.number }}
+                                </span>
+
+                                <span :class="['text-muted']">{{ createdDateTime }}</span>
+
+                            </div>
+
+                        </Col>
+
+                        <Col :span="6">
+
+                            <div :class="['d-flex', 'mt-1']" :style="{ alignItems: 'flex-end' }">
+                                <statusTag :status="status"></statusTag>
+                                <statusTag :status="paymentStatus"></statusTag>
+                                <statusTag :status="fulfillmentStatus"></statusTag>
+                            </div>
+
+                        </Col>
+
+                        <Col :span="6" class="clearfix">
+
+                            <!-- Watch Video Button -->
+                            <Button type="primary" size="default" @click.native="fetchStores()" :class="['float-right']">
+                                <Icon type="ios-play-outline" class="mr-1" :size="20" />
+                                <span>Watch Video</span>
+                            </Button>
+
+                        </Col>
+
+                    </Row>
+
+                    <!-- If we are not loading and don't have the order -->
+                    <Alert v-else-if="!isLoadingOrder && !localOrder" type="warning" class="mx-5" show-icon>
+                        Order Not Found
+                        <template slot="desc">
+                        We could not get the order, try refreshing your browser. It's also possible that this order has been deleted.
+                        </template>
+                    </Alert>
+
+                </Col>
+
+                <!-- If we are not loading and have the order -->
+                <template v-if="!isLoadingOrder && localOrder">
+
+                    <Col :span="16">
+
+                        <!-- Error Message Alert -->
+                        <Alert type="warning" show-icon>Pending Payment</Alert>
+
+                        <!-- Cart Items, Fulfil Button, Edit Button -->
+                        <Card class="mb-4">
+
+                            <div class="clearfix">
+                                <span :class="['float-left', 'font-weight-bold', 'd-block', 'my-3']"
+                                    :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                                    Cart Items
+                                </span>
+
+                                <!-- Fulfill Button -->
+                                <Button v-if="itemLinesData.length && !isFulfilled" type="success" size="default" :class="['float-right']" @click.native="handleOpenVerifyOrderDeliveryModal()">
+                                    <Icon type="md-checkbox-outline" class="mr-1" :size="20" />
+                                    <span>Fulfil</span>
+                                </Button>
+
+                                <!-- Fulfill Button -->
+                                <Button v-if="itemLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="handleOpenVerifyOrderDeliveryModal()">
+                                    <Icon type="md-checkbox-outline" class="mr-1" :size="20" />
+                                    <span>Request Payment</span>
+                                </Button>
+
+                                <!-- Edit Button -->
+                                <Button v-if="itemLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
+                                    <Icon type="ios-create-outline" class="mr-1" :size="20" />
+                                    <span>Edit</span>
+                                </Button>
+
+                            </div>
+
+                            <Table :columns="itemLineColumns" :data="itemLinesData"
+                                    no-data-text="No items found" :style="{ overflow: 'visible' }">
+
+                                <span slot-scope="{ row, index }" slot="name">
+                                    {{ row.name }}
+                                </span>
+
+                                <span slot-scope="{ row, index }" slot="price">
+                                    {{ formatPrice(row.unit_regular_price) }}
+                                </span>
+
+                                <span slot-scope="{ row, index }" slot="quantity">
+                                    {{ row.quantity }}
+                                </span>
+
+                                <span slot-scope="{ row, index }" slot="discount" :class="['text-danger']">
+                                    {{ row.sale_discount_total > 0 ? '- ' : '' }}{{ formatPrice(row.sale_discount_total) }}
+                                </span>
+
+                                <span slot-scope="{ row, index }" slot="grand_total">
+                                    {{ formatPrice(row.grand_total) }}
+                                </span>
+
+                            </Table>
+
+                            <Row>
+
+                                <Col :offset="14" :span="6" :class="['bg-light']">
+
+                                    <ul :style="{ listStyle: 'none', lineHeight: '2em', textAlign: 'right' }">
+                                        <li :class="['border-bottom', 'my-2']">
+                                            <span :class="['font-weight-bold', 'mr-4']">Sub Total:</span>
+                                        </li>
+                                        <li>
+                                            <span :class="['mr-4']">Coupon Discount:</span>
+                                        </li>
+                                        <li>
+                                            <span :class="['mr-4']">Sale Discount:</span>
+                                        </li>
+                                        <li :class="['border-bottom']">
+                                            <span :class="['mr-4']">Delivery Fee:</span>
+                                        </li>
+                                        <li :style="{ borderBottom: 'double' }" class="py-2">
+                                            <span :class="['font-weight-bold', 'mr-4']">Grand Total:</span>
+                                        </li>
+                                    </ul>
+
+                                </Col>
+
+                                <Col :span="4" :class="['bg-light']">
+
+                                    <ul :style="{ listStyle: 'none', lineHeight: '2em' }">
+                                        <li :class="['border-bottom', 'my-2']">
+                                            <span :class="['font-weight-bold']">{{ formatPrice(subTotal) }}</span>
+                                        </li>
+                                        <li>
+                                            <span :class="['text-danger']">
+                                                {{ couponTotal > 0 ? '-' : '' }}
+                                                {{ formatPrice(couponTotal) }}
+                                            </span>
+                                        </li>
+                                        <li>
+                                            <span :class="['text-danger']">
+                                                {{ saleDiscountTotal > 0 ? '-' : '' }}
+                                                {{ formatPrice(saleDiscountTotal) }}
+                                            </span>
+                                        </li>
+                                        <li :class="['text-success', 'border-bottom']">
+                                            {{ deliveryFee > 0 ? '+' : '' }}
+                                            {{ formatPrice(deliveryFee) }}
+                                        </li>
+                                        <li :style="{ borderBottom: 'double' }" class="py-2">
+                                            <span :class="['font-weight-bold']">
+                                                {{ formatPrice(grandTotal) }}
+                                            </span>
+                                        </li>
+                                    </ul>
+
+                                </Col>
+
+                            </Row>
+
+                        </Card>
+
+                        <!-- Coupons Applied, Edit Button -->
+                        <Card class="mb-4">
+
+                            <div class="clearfix">
+                                <span :class="['float-left', 'font-weight-bold', 'd-block', 'my-3']"
+                                    :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                                    Coupons Applied
+                                </span>
+
+                                <!-- Edit Button -->
+                                <Button v-if="couponLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
+                                    <Icon type="ios-create-outline" class="mr-1" :size="20" />
+                                    <span>Edit</span>
+                                </Button>
+
+                            </div>
+
+                            <Table :columns="couponLineColumns" :data="couponLinesData"
+                                    no-data-text="No coupons found" :style="{ overflow: 'visible' }">
+
+                                <span slot-scope="{ row, index }" slot="name">
+                                    {{ row.name }}
+                                </span>
+
+                                <span slot-scope="{ row, index }" slot="type">
+                                    {{ row.is_fixed_rate ? 'Fixed' : row.is_percentage_rate ? 'Percentage' : '' }}
+                                </span>
+
+                                <span slot-scope="{ row, index }" slot="rate">
+                                    {{ row.is_fixed_rate ? currenySymbol+row.fixed_rate : row.is_percentage_rate ? row.percentage_rate+'%' : '' }}
+                                </span>
+
+                            </Table>
+
+                        </Card>
+
+                        <!-- Transaction -->
+                        <Card class="mb-4">
+
+                            <div>
+                                <span :class="['font-weight-bold', 'd-block', 'my-3']"
+                                    :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                                    Transaction
+                                </span>
+
+                            </div>
+
+                        </Card>
+
+                        <!-- History -->
+                        <Card>
+
+                            <div>
+                                <span :class="['font-weight-bold', 'd-block', 'my-3']"
+                                    :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                                    History
+                                </span>
+
+                            </div>
+
+                        </Card>
+
+                    </Col>
+
+                    <Col :span="8" class="clearfix">
+
+                        <!-- Customer -->
+                        <Card v-if="customer" class="cursor-pointer mb-2">
+
+                            <span :class="['font-weight-bold', 'd-block', 'mb-3']"
+                                    :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                                Customer
+                            </span>
+
+                            <div :class="['align-items-center', 'd-flex']">
+                                <Avatar icon="ios-person" :style="{ background: '#19be6b' }" class="mr-2" />
+                                <p class="mr-2">{{ customerName }}</p>
+                                <p>
+                                    <Icon type="ios-call-outline" class="mr-1" :size="20" />
+                                    <span>{{ customer.mobile_number }}</span>
+                                </p>
+                            </div>
+
+                            <div class="clearfix">
+
+                                <!-- View Button -->
+                                <Button type="default" size="default" :class="['float-right']" @click.native="closeOrder()">
+                                    <Icon type="md-eye" class="mr-1" :size="20" />
+                                    <span>View</span>
+                                </Button>
+
+                            </div>
+
+                        </Card>
+
+                        <!-- Delivery Information -->
+                        <Card v-if="deliveryLine" class="cursor-pointer mb-2">
+
+                            <span :class="['font-weight-bold', 'd-block', 'mb-3']"
+                                    :style="{ fontSize: 'large', lineHeight: 'initial' }">
+                                Delivery Information
+                            </span>
+
+                            <div class="d-flex">
+                                <Avatar icon="ios-pin" :style="{ background: '#19be6b' }" class="mr-2" />
+                                <div class="w-100">
+
+                                    <p v-if="deliveryLine.name && (deliveryLine.name != customerName)">
+                                        <span class="font-weight-bold">Name: </span><span>{{ deliveryLine.name }}</span>
+                                    </p>
+
+                                    <p v-if="deliveryLine.mobile_number && (deliveryLine.mobile_number != customer.mobile_number)">
+                                        <span class="font-weight-bold">Mobile: </span>{{ deliveryLine.mobile_number }}<span></span>
+                                    </p>
+
+                                    <Divider class="my-2"></Divider>
+
+                                    <p v-if="deliveryLine.physical_address && deliveryType == 'delivery'">
+                                        <span class="font-weight-bold">Address: </span>{{ deliveryLine.physical_address }}<span></span>
+                                    </p>
+
+                                    <div class="d-flex">
+
+                                        <p v-if="deliveryLine.day" class="mr-2">
+                                            <span class="font-weight-bold">Day: </span>{{ deliveryLine.day }}<span></span>
+                                        </p>
+
+                                        <p v-if="deliveryLine.time">
+                                            <span class="font-weight-bold">Time: </span>{{ deliveryLine.time }}<span></span>
+                                        </p>
+
+                                    </div>
+
+                                    <Divider v-if="deliveryLine.destination" class="my-2"></Divider>
+
+                                    <p v-if="deliveryLine.destination">
+                                        <span class="font-weight-bold">Destination: </span>{{ deliveryLine.destination }}<span></span>
+                                    </p>
+
+                                </div>
+                            </div>
+
+                        </Card>
+
+                        <!-- If we are loading, Show Loader -->
+                        <Loader v-if="isLoadingReceivedLocation" class="mb-2"></Loader>
+
+                        <!-- Received Location -->
+                        <Card v-else class="cursor-pointer mb-2">
+
+                            <Poptip v-if="receivedLocation" trigger="hover" :content="receivedLocationPoptipContent"
+                                    word-wrap class="poptip-w-100">
+
+                                <div :class="['align-items-center', 'd-flex']">
+
+                                    <span :class="['font-weight-bold', 'mr-2']"
+                                        :style="{ fontSize: 'medium', lineHeight: 'initial' }">
+                                        Received Location
+                                    </span>
+
+                                    <Tag color="success">{{ receivedLocation.name }}</Tag>
+
+                                </div>
+
+                            </Poptip>
+
+                        </Card>
+
+                        <!-- Shared Locations -->
+                        <Card v-if="isReceivingLocation" class="cursor-pointer mb-2">
+
+                            <span :class="['font-weight-bold', 'd-block', 'mb-3']"
+                                    :style="{ fontSize: 'medium', lineHeight: 'initial' }">
+                                Shared Locations
+                            </span>
+
+                            <Poptip v-if="availableSharedLocations" trigger="hover" content="Share this order with other locations" word-wrap class="poptip-w-100">
+
+                                <!-- If we are loading, Show Loader -->
+                                <Loader v-if="isLoadingSharedLocations" class="mb-2"></Loader>
+
+                                <Select v-else v-model="selectedSharedLocationIds" :loading="isUpdatingSharedLocations" size="large" class="w-100"
+                                        multiple clearable prefix="ios-pin" placeholder="Select locations" @on-select="updateSharedLocations">
+                                    <Option v-for="(location, index) in availableSharedLocations"
+                                            :value="location.id" :key="index">{{ location.name }}</Option>
+                                </Select>
+
+                            </Poptip>
+
+                            <!-- Error Message Alert -->
+                            <Alert v-else type="info" class="p-2">
+                                No locations found
+                            </Alert>
+
+                        </Card>
+
+                        <!--
+                            MODAL TO VERIFY ORDER DELIVERY
+                        -->
+                        <template v-if="isOpenVerifyOrderDeliveryModal">
+
+                            <verifyOrderDeliveryModal
+                                :order="order"
+                                @verified="handleVerifiedOrder"
+                                @visibility="isOpenVerifyOrderDeliveryModal = $event">
+                            </verifyOrderDeliveryModal>
+
+                        </template>
+
+                    </Col>
+
+                </template>
+
+            </Row>
 
         </Col>
 
@@ -354,6 +410,7 @@
 
 <script>
 
+    import verifyOrderDeliveryModal from './../components/verifyOrderDeliveryModal.vue';
     import Loader from './../../../../../components/_common/loaders/default.vue';
     import statusTag from './../components/statusTag.vue';
     import moment from 'moment';
@@ -375,12 +432,13 @@
             order: {
                 type: Object,
                 default: null
-            },
+            }
         },
-        components: { Loader, statusTag },
+        components: { Loader, statusTag, verifyOrderDeliveryModal },
         data () {
             return {
-                isLoading: false,
+                isLoadingOrder: false,
+                localOrder: this.order,
                 itemLineColumns: [
                     {
                         title: 'Name',
@@ -418,8 +476,7 @@
                         slot: 'rate'
                     }
                 ],
-                itemLinesData: this.order._embedded.active_cart._embedded.item_lines,
-                couponLinesData: this.order._embedded.active_cart._embedded.coupon_lines,
+                isOpenVerifyOrderDeliveryModal: false,
                 isLoadingReceivedLocation: false,
                 isUpdatingSharedLocations: false,
                 isLoadingSharedLocations: false,
@@ -428,49 +485,87 @@
                 sharedLocations: [],
             }
         },
+        watch: {
+            //  If the route changes
+            $route (newVal, oldVal) {
+
+                //  Prepare the order
+                this.prepareOrder();
+
+            }
+        },
         computed: {
             status(){
-                return this.order._embedded.status
+                return (this.localOrder._embedded.status || {});
             },
             paymentStatus(){
-                return this.order._embedded.payment_status
+                return (this.localOrder._embedded.payment_status || {});
             },
             fulfillmentStatus(){
-                return this.order._embedded.fulfillment_status
+                return (this.localOrder._embedded.fulfillment_status || {});
             },
             isPaid(){
-                return this.order._attributes.is_paid
+                return this.localOrder._attributes.is_paid
             },
             isFulfilled(){
-                return this.order._attributes.is_fulfilled
+                return this.localOrder._attributes.is_fulfilled
+            },
+            activeCart(){
+                return (this.localOrder._embedded.active_cart || {});
+            },
+            subTotal(){
+                return (this.activeCart.sub_total || 0);
+            },
+            couponTotal(){
+                return (this.activeCart.coupon_total || 0);
+            },
+            saleDiscountTotal(){
+                return (this.activeCart.sale_discount_total || 0);
+            },
+            deliveryFee(){
+                return (this.activeCart.delivery_fee || 0);
+            },
+            grandTotal(){
+                return (this.activeCart.grand_total || 0);
+            },
+            itemLinesData(){
+                return ((this.activeCart._embedded || {}).item_lines || []);
+            },
+            couponLinesData(){
+                return ((this.activeCart._embedded || {}).coupon_lines || []);
             },
             moment: function () {
                 return moment();
             },
             createdDateTime(){
-                return moment(this.order.created_at).format('MMM DD, YYYY')
-                       +' at '+moment(this.order.created_at).format('h:mma');
+                return moment(this.localOrder.created_at).format('MMM DD, YYYY')
+                       +' at '+moment(this.localOrder.created_at).format('h:mma');
             },
             currenySymbol(){
-                return this.order._embedded.active_cart._embedded.currency.symbol;
+                return (((this.activeCart._embedded || {}).currency || {}).symbol || '');
             },
             customer(){
-                return (this.order._embedded.customer || {});
+                return (this.localOrder._embedded.customer || {});
             },
             customerName(){
                 return this.customer._attributes.name;
             },
             deliveryLine(){
-                return (this.order._embedded.delivery_line || {});
+                return (this.localOrder._embedded.delivery_line || {});
             },
             deliveryType(){
                 return this.deliveryLine.delivery_type;
             },
+            orderUrl(){
+                if( this.$route.params.order_url ){
+                    return decodeURIComponent(this.$route.params.order_url);
+                }
+            },
             receivedLocationUrl(){
-                return this.order['_links']['bos:received-location'].href;
+                return this.localOrder ? this.localOrder['_links']['bos:received-location'].href : null;
             },
             sharedLocationsUrl(){
-                return this.order['_links']['bos:shared-locations'].href;
+                return this.localOrder ? this.localOrder['_links']['bos:shared-locations'].href : null;
             },
             availableSharedLocations(){
                 return this.assignedLocations.filter((location) => {
@@ -483,16 +578,84 @@
             receivedLocationPoptipContent(){
                 return (this.isReceivingLocation)
                     ? 'This order was received on this location ('+this.receivedLocation.name+')'
-                        : 'This order was shared from '.this.receivedLocation.name;
+                        : 'This order was shared from '+this.receivedLocation.name;
             },
         },
         methods: {
             closeOrder(){
-                this.$emit('close');
+
+                //  If we have the order Url
+                if( this.orderUrl ){
+
+                    /** Note that using router.push() or router.replace() does not allow us to make a
+                     *  page refresh when visiting routes. This is undesirable at this moment since our
+                     *  parent component contains the <router-view />. When the page does not refresh,
+                     *  the <router-view /> is not able to receice the nested components defined in the
+                     *  route.js file. This means that we are then not able to render the nested
+                     *  components and present them. To counter this issue we must construct the
+                     *  href and use "window.location.href" to make a hard page refresh.
+                     */
+
+                    var storeUrl = this.store['_links']['self'].href;
+
+                    //  Set the route to view store orders
+                    var route = {
+                            name: 'show-store-orders',
+                            params: {
+                                store_url: encodeURIComponent(storeUrl)
+                            }
+                        };
+
+                    //  Contruct the full path url
+                    var href = window.location.origin + "/" + VueInstance.$router.resolve(route).href
+
+                    //  Visit the url
+                    window.location.href = href;
+
+                }else{
+
+                    this.$emit('close');
+
+                }
             },
-            formatPrice(money, symbol) {
+            formatPrice(money) {
                 let val = (money/1).toFixed(2).replace(',', '.');
                 return this.currenySymbol + val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            },
+            /** Note the use of "async" and "await". This helps us to perform the
+             *  api call and wait for the response before we continue any futher
+             */
+            async fetchOrder() {
+
+                //  Hold constant reference to the current Vue instance
+                const self = this;
+
+                //  Start loader
+                self.isLoadingOrder = true;
+
+                //  Use the api call() function, refer to api.js
+                await api.call('get', this.orderUrl)
+                    .then(({data}) => {
+
+                        //  Console log the data returned
+                        console.log(data);
+
+                        //  Get the order
+                        self.localOrder = data || null;
+
+                        //  Stop loader
+                        self.isLoadingOrder = false;
+
+                    })
+                    .catch(response => {
+
+                        //  Log the responce
+                        console.error(response);
+
+                        //  Stop loader
+                        self.isLoadingOrder = false;
+
+                    });
             },
             fetchReceivedLocation() {
 
@@ -629,14 +792,38 @@
 
                 });
             },
+            handleOpenVerifyOrderDeliveryModal(){
+                this.isOpenVerifyOrderDeliveryModal = true;
+            },
+            handleVerifiedOrder(order){
+                this.localOrder = _.cloneDeep(Object.assign({}, order));
+                this.$emit('verified', order);
+            },
+            /** Note the use of "async" and "await". This helps us to perform the
+             *  api call and wait for the response before we continue any futher
+             */
+            async prepareOrder(){
+
+                //  If we have the order Url
+                if( this.orderUrl ){
+
+                    //  Fetch the order
+                    await this.fetchOrder();
+
+                }
+
+                //  Fetch the received location
+                this.fetchReceivedLocation();
+
+                //  Fetch the shared locations
+                this.fetchSharedLocations();
+
+            }
         },
         created(){
 
-            //  Fetch the received location
-            this.fetchReceivedLocation();
-
-            //  Fetch the shared locations
-            this.fetchSharedLocations();
+            //  Prepare the order
+            this.prepareOrder();
 
         }
     }

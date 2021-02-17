@@ -47,15 +47,49 @@ class HomeController extends Controller
         }
     }
 
+    public function getProductTypes()
+    {
+        try {
+
+            //  Get the product types
+            $product_types = \App\ProductType::paginate();
+
+            //  Return an API Readable Format of the ProductType Instance
+            return ( new \App\ProductType() )->convertToApiFormat($product_types);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getAddressTypes()
+    {
+        try {
+
+            //  Get the address types
+            $address_types = \App\AddressType::paginate();
+
+            //  Return an API Readable Format of the AddressType Instance
+            return ( new \App\AddressType() )->convertToApiFormat($address_types);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function getPaymentMethods()
     {
         try {
 
             //  Get the payment methods
-            $Payment_method = \App\PaymentMethod::paginate();
+            $payment_method = \App\PaymentMethod::paginate();
 
             //  Return an API Readable Format of the PaymentMethod Instance
-            return ( new \App\PaymentMethod() )->convertToApiFormat($Payment_method);
+            return ( new \App\PaymentMethod() )->convertToApiFormat($payment_method);
 
         } catch (\Exception $e) {
 

@@ -136,10 +136,7 @@ class Order extends Model
      */
     public function scopeRequireRating($query, $user = null)
     {
-        $user = $user ?? auth()->user();
-
-        return $query->where('customer_id', $user->id)
-                     ->where('request_customer_rating_at', '<=', \Carbon\Carbon::now());
+        return $query->userIsCustomer($user)->where('request_customer_rating_at', '<=', \Carbon\Carbon::now());
     }
 
     /**

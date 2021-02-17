@@ -113,6 +113,20 @@ class OrderController extends Controller
         }
     }
 
+    public function getOrderStore($order_id)
+    {
+        try {
+
+            //  Return the order received location
+            return (new Order())->getResource($order_id)->getResourceStore();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function updateOrderSharedLocations(Request $request, $order_id)
     {
         try {

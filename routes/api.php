@@ -21,8 +21,13 @@ Route::get('/exception', function(){
 //  API Home
 Route::get('/', 'Api\HomeController@home')->name('api-home');
 Route::get('/currencies', 'Api\HomeController@getCurrencies')->name('currencies');
+Route::get('/product-types', 'Api\HomeController@getProductTypes')->name('product-types');
+Route::get('/address-types', 'Api\HomeController@getAddressTypes')->name('address-types');
 Route::get('/payment-methods', 'Api\HomeController@getPaymentMethods')->name('payment-methods');
 Route::get('/subscription-plans', 'Api\HomeController@getSubscriptionPlans')->name('subscription-plans');
+
+
+
 
 //  Auth Routes
 Route::namespace('Api')->prefix('auth')->group(function () {
@@ -52,9 +57,6 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::get('/', 'UserController@getUser')->name('profile');
 
         Route::get('/stores', 'UserController@getUserStores')->name('stores');
-        Route::get('/stores?type=shared', 'UserController@getUserStores')->name('shared-stores');
-        Route::get('/stores?type=created', 'UserController@getUserStores')->name('created-stores');
-        Route::get('/stores?type=favourite', 'UserController@getUserStores')->name('favourite-stores');
 
         //  Single store    /api/me/store/{store_id}   name => my-store
         Route::get('/stores/{store_id}', 'UserController@getUserStore')->name('store');
@@ -69,15 +71,10 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             //  Single Location    /api/me/store/{store_id}/locations   name => my-store-locations
             Route::get('/locations/{location_id}', 'UserController@getUserStoreLocation')->name('location');
 
-            //  Single location resources    /api/me/store/{store_id}/locations/{location_id}   name => my-store-location-*
-            Route::prefix('locations/{location_id}')->name('location-')->group(function () {
-
-                Route::get('/orders', 'UserController@getUserStoreLocationOrders')->name('orders');
-                Route::get('/order-totals', 'UserController@getUserStoreLocationOrderTotals')->name('order-totals');
-
-            });
-
         });
+
+        Route::get('/addresses', 'UserController@getUserAddresses')->name('addresses');
+        Route::post('/addresses', 'UserController@createUserAddress')->name('addresses-create');
 
     });
 
@@ -118,16 +115,20 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::put('/', 'LocationController@updateLocation')->name('update')->where('location_id', '[0-9]+');
             Route::delete('/', 'LocationController@deleteLocation')->name('delete')->where('location_id', '[0-9]+');
 
+            Route::get('/totals', 'LocationController@getLocationTotals')->name('totals');
+
             Route::get('/users', 'LocationController@getLocationUsers')->name('users');
 
             Route::get('/orders', 'LocationController@getLocationOrders')->name('orders');
-            Route::get('/order-totals', 'LocationController@getLocationOrderTotals')->name('order-totals');
 
             Route::get('/coupons', 'LocationController@getLocationCoupons')->name('coupons');
             Route::get('/products', 'LocationController@getLocationProducts')->name('products');
             Route::get('/instant-carts', 'LocationController@getLocationInstantCarts')->name('instant-carts');
 
+            Route::get('/favourite-status', 'LocationController@getLocationFavouriteStatus')->name('favourite-status');
             Route::post('/toggle-favourite', 'LocationController@toggleLocationAsFavourite')->name('toggle-favourite');
+
+            Route::post('/product-arrangement', 'LocationController@arrangeLocationProducts')->name('product-arrangement');
 
         });
 
@@ -159,11 +160,47 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::get('/received-location', 'OrderController@getOrderReceivedLocation')->name('received-location');
             Route::post('/shared-locations', 'OrderController@updateOrderSharedLocations')->name('update-shared-locations');
 
+            Route::get('/store', 'OrderController@getOrderStore')->name('store');
+
             Route::put('/resend-delivery-confirmation-code', 'OrderController@resendOrderDeliveryConfirmationCode')
                       ->name('resend-delivery-confirmation-code');
 
         });
 
+    });
+
+    //  Product Resource Routes
+    Route::prefix('products')->group(function () {
+
+        Route::get('/', 'ProductController@getProducts')->name('products');
+        Route::post('/', 'ProductController@createProduct')->name('product-create');
+
+        //  Single product resources    /api/products/{product_id}   name => product-*
+        Route::prefix('/{product_id}')->name('product-')->group(function () {
+
+            Route::get('/', 'ProductController@getProduct')->name('show')->where('product_id', '[0-9]+');
+            Route::put('/', 'ProductController@updateProduct')->name('update')->where('product_id', '[0-9]+');
+            Route::get('/locations', 'ProductController@getProductLocations')->name('locations');
+
+        });
+
+    });
+
+    //  Shortcode Resource Routes
+    Route::prefix('shortcodes')->group(function () {
+
+        //  Single shortcode resources    /api/shortcodes/{code}   name => shortcode-*
+        Route::prefix('/{code}')->name('shortcode-')->group(function () {
+
+            Route::get('/search', 'ShortcodeController@searchShortcode')->name('show')->where('product_id', '[0-9]+');
+
+        });
+
+    });
+
+    //  Cart Resource Routes
+    Route::prefix('cart')->group(function () {
+        Route::post('/calculator', 'CartController@calculateCart')->name('cart-calculate');
     });
 
     /*
@@ -255,8 +292,4 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::put('/{instant_cart_id}', 'InstantCartController@updateInstantCart')->name('instant-cart-update')->where('instant_cart_id', '[0-9]+');
     });
     */
-    //  Cart Resource Routes
-    Route::prefix('cart')->group(function () {
-        Route::post('/', 'CartController@calculateCart')->name('cart-calculator');
-    });
 });

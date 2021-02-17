@@ -34,21 +34,8 @@ class LocationController extends Controller
     {
         try {
 
-            //  Get the location
-            $location = \App\Location::where('id', $location_id)->first() ?? null;
-
-            //  Check if the location exists
-            if ($location) {
-
-                //  Return the updated location
-                return $location->updateResource($request, $this->user)->convertToApiFormat();
-
-            } else {
-
-                //  Not Found
-                return help_resource_not_found();
-
-            }
+            //  Return the updated location
+            return (new Location())->getResource($location_id)->updateResource($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 
@@ -99,6 +86,20 @@ class LocationController extends Controller
         }
     }
 
+    public function getLocationTotals(Request $request, $location_id)
+    {
+        try {
+
+            //  Return location totals
+            return (new Location())->getResource($location_id)->getResourceTotals($request, $this->user);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function getLocationUsers(Request $request, $location_id)
     {
         try {
@@ -119,20 +120,6 @@ class LocationController extends Controller
 
             //  Return a list of location orders
             return (new Location())->getResource($location_id)->getResourceOrders($request, $this->user);
-
-        } catch (\Exception $e) {
-
-            return help_handle_exception($e);
-
-        }
-    }
-
-    public function getLocationOrderTotals(Request $request, $location_id)
-    {
-        try {
-
-            //  Return location order totals
-            return (new Location())->getResource($location_id)->getResourceOrderTotals($request, $this->user);
 
         } catch (\Exception $e) {
 
@@ -183,12 +170,40 @@ class LocationController extends Controller
         }
     }
 
+    public function getLocationFavouriteStatus(Request $request, $location_id)
+    {
+        try {
+
+            //  Toggle location as favourite
+            return (new Location())->getResource($location_id)->getResourceFavouriteStatus($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function toggleLocationAsFavourite(Request $request, $location_id)
     {
         try {
 
             //  Toggle location as favourite
             return (new Location())->getResource($location_id)->toggleResourceAsFavourite($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function arrangeLocationProducts(Request $request, $location_id)
+    {
+        try {
+
+            //  Arrange location products
+            return (new Location())->getResource($location_id)->arrangeResourceProducts($request);
 
         } catch (\Exception $e) {
 

@@ -12,21 +12,22 @@
                 <!-- Subscription Countdown timer -->
                 <transition name="slide-right-fade">
 
-                    <countdown v-if="subscriptionExpiryTime" :datetime="subscriptionExpiryTime"
-                               :title="'Subscription #'+subscriptionId+':' " position="right" :humanize="true">
+                    <countdown v-if="hasSubscribed" :datetime="subscriptionExpiryTime"
+                               :title="'Subscription #'+subscriptionId+':' " position="right"
+                               :humanize="true" @expired="handleSubscriptionExpiryStatus()">
                     </countdown>
+
+                    <small v-else :style="{ position: 'absolute', right: '0' }"
+                            :class="['font-weight-bold', 'text-danger', 'border-bottom-dashed']">No subscription</small>
 
                 </transition>
 
                 <div class="d-flex pb-2">
 
                     <!-- Store Image -->
-                    <Avatar shape="square" :style="avatarStyles">
-
-                        <!-- Note: "firstLetter" filter is registered as a custom mixin -->
-                        <span class="font-weight-bold">{{ store.name | firstLetter }}</span>
-
-                    </Avatar>
+                    <div :class="['ivu-avatar', 'ivu-avatar-square', 'ivu-avatar-default']" :style="avatarStyles">
+                        <span class="font-weight-bold">{{ store.name | firstLetter}}</span>
+                    </div>
 
                     <!-- Store Name -->
                     <span class="cut-text font-weight-bold mt-2 ml-2">{{ store.name }}</span>
@@ -38,75 +39,84 @@
                     <!-- If we are loading, Show Loader -->
                     <Loader v-show="isLoading" class="mt-2">Loading...</Loader>
 
-                    <div v-if="!hasSubscribed">
+                    <template v-if="!isLoading">
 
-                        <template v-if="hasPaymentShortCode">
+                        <div v-if="!hasSubscribed">
 
-                            <div :class="['bg-light', 'rounded-pill', 'px-3', 'py-1']">
+                            <template v-if="hasPaymentShortCode">
 
-                                <span>Dial to pay: </span>
-                                <span :class="['text-primary', 'font-weight-bold']">{{ paymentShortCode.dialing_code }}</span>
+                                <div :class="['bg-light', 'rounded-pill', 'px-3', 'py-1']">
 
-                                <!-- Show the short code details -->
-                                <Poptip trigger="hover" word-wrap width="300">
+                                    <span>Dial to pay: </span>
+                                    <span :class="['text-primary', 'font-weight-bold']">{{ paymentShortCode.dialing_code }}</span>
 
-                                    <div slot="content" class="py-2" :style="{ lineHeight: 'normal' }">
-                                        <p>Dial <span class="text-primary">{{ paymentShortCode.dialing_code }}</span> to pay for your store</p>
-                                    </div>
+                                    <!-- Show the short code details -->
+                                    <Poptip trigger="hover" word-wrap width="300">
 
-                                    <!-- Show the info icon -->
-                                    <Icon type="ios-information-circle-outline" :size="16" />
+                                        <div slot="content" class="py-2" :style="{ lineHeight: 'normal' }">
+                                            <p>Dial <span class="text-primary">{{ paymentShortCode.dialing_code }}</span> to pay for your store</p>
+                                        </div>
 
-                                </Poptip>
+                                        <!-- Show the info icon -->
+                                        <Icon type="ios-information-circle-outline" :size="16" />
 
-                            </div>
+                                    </Poptip>
 
-                            <!-- Payment Short Code Countdown timer -->
-                            <transition name="slide-right-fade">
+                                </div>
 
-                                <countdown v-if="paymentShortCodeExpiryTime" :datetime="paymentShortCodeExpiryTime" position="right" class="mr-2 mt-2"></countdown>
+                                <!-- Payment Short Code Countdown timer -->
+                                <transition name="slide-right-fade">
 
-                            </transition>
+                                    <countdown v-if="paymentShortCodeExpiryTime" :datetime="paymentShortCodeExpiryTime"
+                                                position="right" class="mr-2 mt-2" @expired="handlePaymentShortcodeExpiryStatus()">
+                                    </countdown>
 
-                        </template>
+                                </transition>
+
+                            </template>
+
+                            <template v-else>
+
+                                <!-- Pay Now Button -->
+                                <span :class="['bg-light', 'rounded-pill', 'd-inline-block', 'px-3', 'py-1', 'mt-1']">Subscribe to get your store online</span>
+
+                                <!-- Pay Now Button -->
+                                <Button v-if="!isLoading" type="success" class="float-right" @click.native.stop="generatePaymentShortcode()">Pay now</Button>
+
+                            </template>
+
+                        </div>
 
                         <template v-else>
 
-                            <!-- Pay Now Button -->
-                            <Button v-if="!isLoading" type="success" class="float-right" @click.native.stop="generatePaymentShortcode()">Pay now</Button>
+                            <span class="d-inline-block mr-2">
+
+                                <Badge :text="statusText" :status="status"></Badge>
+
+                                <!-- If we are offline and have a reason provided -->
+                                <Poptip v-if="!store.online && store.offline_message" trigger="hover" :content="store.offline_message" word-wrap width="300">
+                                    <!-- Show the info icon with the information of why we are offline -->
+                                    <Icon type="ios-information-circle-outline" :size="16" />
+                                </Poptip>
+
+                            </span>
+
+                            <span class="d-inline-block">
+
+                                <!-- Locations Button -->
+                                <Button type="dashed" size="small" class="text-primary" @click.native.stop="navigateToViewStoreLocations()">
+                                    {{ numberOfLocations }} {{ numberOfLocations == 1 ? ' Location' : ' Locations' }}
+                                </Button>
+
+                            </span>
 
                         </template>
-
-                    </div>
-
-                    <template v-else>
-
-                        <span class="d-inline-block mr-2">
-
-                            <Badge :text="statusText" :status="status"></Badge>
-
-                            <!-- If we are offline and have a reason provided -->
-                            <Poptip v-if="!store.online && store.offline_message" trigger="hover" :content="store.offline_message" word-wrap width="300">
-                                <!-- Show the info icon with the information of why we are offline -->
-                                <Icon type="ios-information-circle-outline" :size="16" />
-                            </Poptip>
-
-                        </span>
-
-                        <span class="d-inline-block">
-
-                            <!-- Locations Button -->
-                            <Button type="dashed" size="small" class="text-primary" @click.native.stop="navigateToViewStoreLocations()">
-                                {{ numberOfLocations }} {{ numberOfLocations == 1 ? ' Location' : ' Locations' }}
-                            </Button>
-
-                        </span>
 
                     </template>
 
                 </div>
 
-                <transition name="slide-right-fade">
+                <transition v-if="!isLoading" name="slide-right-fade">
 
                     <div v-show="isHovering" class="clearfix">
 
@@ -232,25 +242,13 @@
                 return ['sce-mini-card-body', 'py-2', 'pl-2', 'pr-5', 'mb-3'];
             },
             hexColor(){
-                /** Note that vue does not allow us to use filters inside the component props
-                 *  e.g :style="{ background: (myProperty | Filter) }" or directly inside
-                 *  computed properties e.g return (myProperty | Filter). We can only use
-                 *  filters inside interpolations e.g {{ myProperty | Filter }}, and you
-                 *  can't use interpolations as attributes e.g
-                 *
-                 *  :style="{ background: {{ (myProperty | Filter) }} }"
-                 *
-                 *  To overcome this challenge we need to access the filter method directly
-                 *  by accessing the current component Vue Instance then pass the data to
-                 *  the filter method.
-                 */
-                return this.$options.filters.firstLetterColor(this.store.name);
+                return this.store.hex_color;
             },
             avatarStyles(){
                 return {
-                    border: '1px solid ' + this.hexColor + ' !important',
-                    background: this.hexColor + '20 !important',
-                    color: this.hexColor + ' !important',
+                    border: '1px solid #' + this.hexColor + ' !important',
+                    background: '#' + this.hexColor + '20 !important',
+                    color: '#'+this.hexColor + ' !important',
                 }
             },
             statusText(){
@@ -289,6 +287,18 @@
                     this.$router.push({ name: 'show-locations', params: { store_url: this.encodedStoreUrl } });
 
                 }
+
+            },
+            handleSubscriptionExpiryStatus(){
+
+                //  Refetch the store
+                this.getStore();
+
+            },
+            handlePaymentShortcodeExpiryStatus(){
+
+                //  Refetch the store
+                this.getStore();
 
             },
             generatePaymentShortcode(){

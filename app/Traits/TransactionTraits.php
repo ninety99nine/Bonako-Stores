@@ -80,7 +80,7 @@ trait TransactionTraits
             if ( $this->transaction ) {
 
                 //  Generate a new transaction number
-                $this->generateResourceNumber();
+                $this->transaction = $this->transaction->generateResourceNumber();
 
                 //  If we have an owning model
                 if( $model ){
@@ -118,13 +118,13 @@ trait TransactionTraits
              *  Get the transaction id, and Pad the left side with leading "0"
              *  e.g 123 = 00123, 1234 = 01234, 12345 = 12345
              */
-            $number = str_pad($this->transaction->id, 5, 0, STR_PAD_LEFT);
+            $number = str_pad($this->id, 5, 0, STR_PAD_LEFT);
 
             //  Set the unique transaction number
-            $this->transaction->update(['number' => $number]);
+            $this->update(['number' => $number]);
 
-            //  Update the resource
-            $this->transaction = $this->fresh();
+            //  Return fresh instance
+            return $this->fresh();
 
         } catch (\Exception $e) {
 

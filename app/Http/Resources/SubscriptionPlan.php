@@ -18,6 +18,7 @@ class SubscriptionPlan extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'type' => $this->type,
             'description' => $this->description,
             'frequency' => $this->frequency,
             'duration' => $this->duration,

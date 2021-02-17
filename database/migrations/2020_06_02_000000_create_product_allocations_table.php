@@ -17,12 +17,12 @@ class CreateProductAllocationsTable extends Migration
             $table->unsignedInteger('product_id');
             $table->unsignedInteger('owner_id');
             $table->string('owner_type');
-            $table->tinyInteger('arrangement');
-            $table->tinyInteger('quantity');
+            $table->tinyInteger('arrangement')->nullable();
+            $table->tinyInteger('quantity')->nullable();
 
             /*  Timestamps  */
             $table->timestamps();
-            
+
         });
     }
 

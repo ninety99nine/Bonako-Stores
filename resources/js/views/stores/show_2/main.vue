@@ -34,14 +34,14 @@
                         </template>
 
                     </Breadcrumb>
-                    
+
                 </Col>
 
                 <Col :span="4">
 
                     <!-- If the store exists -->
                     <span v-if="store">
-                        
+
                         <!-- Show the store details as a hoverable Poptip -->
                         <Poptip trigger="hover" word-wrap width="300">
 
@@ -56,11 +56,11 @@
 
                             <!-- Show the info icon -->
                             <Icon type="ios-information-circle-outline" :size="16" />
-                        
+
                         </Poptip>
 
                     </span>
-                    
+
                 </Col>
 
                 <Col :span="4" class="clearfix">
@@ -69,11 +69,11 @@
                          If we have unsaved changes then show the green ripple effect and allow the button to be clickable
                          otherwise turn off the ripple effect and disable the button
                      -->
-                    <basicButton v-if="store" :disabled="(!hasUnsavedChanges || isSavingChanges)" :loading="isSavingChanges" :ripple="(hasUnsavedChanges && !isSavingChanges)" 
+                    <basicButton v-if="store" :disabled="(!hasUnsavedChanges || isSavingChanges)" :loading="isSavingChanges" :ripple="(hasUnsavedChanges && !isSavingChanges)"
                                   type="success" size="large" class="float-right" @click.native="handleSaveChanges">
                         <span>{{ isSavingChanges ? 'Saving...' : 'Save Changes' }}</span>
                     </basicButton>
-                    
+
                 </Col>
 
             </Row>
@@ -114,7 +114,7 @@
                                 <span class="text-capitalize">{{ menuLink.name }}</span>
                             </MenuItem>
                         </Menu>
-                        
+
                     </template>
 
                     <!-- If we are not viewing a specific location -->
@@ -135,7 +135,7 @@
                                 <span class="text-capitalize">{{ menuLink.name }}</span>
                             </MenuItem>
                         </Menu>
-                        
+
                     </template>
 
                 </template>
@@ -144,8 +144,8 @@
 
             <!-- Content -->
             <Content>
-        
-                <!-- Place the custom route content here 
+
+                <!-- Place the custom route content here
                     We place the store views here. This includes views to show the store overview,
                     products, orders, locations, settings, and any more future views we may include.
 
@@ -167,23 +167,23 @@
                 -->
                 <template v-if="!isLoadingStore && !isLoadingLocation">
 
-                    <router-view :store="store" :location="location" :requestToSaveChanges="requestToSaveChanges" 
-                                @updatedStore="handleUpdatedStore" @unsavedChanges="handleUnsavedChanges" 
+                    <router-view :store="store" :location="location" :requestToSaveChanges="requestToSaveChanges"
+                                @updatedStore="handleUpdatedStore" @unsavedChanges="handleUnsavedChanges"
                                 @isSaving="handlesIsSaving"/>
 
                 </template>
-                    
+
             </Content>
 
         </Layout>
-                    
+
         <!-- If we are not loading and don't have the store -->
         <template v-else-if="!store">
 
             <Alert type="warning" class="m-5" show-icon>
                 Store Not Found
                 <template slot="desc">
-                We could not get your store, try refreshing your browser. It's also possible that this store has been deleted.
+                We could not get the store, try refreshing your browser. It's also possible that this store has been deleted.
                 </template>
             </Alert>
 
@@ -349,18 +349,18 @@
             navigateToStoreLink(linkName){
 
                 /** Note that using router.push() or router.replace() does not allow us to make a
-                 *  page refresh when visiting routes. This is undesirable at this moment since our 
-                 *  current component contains the <router-view />. When the page does not refresh, 
-                 *  the <router-view /> is not able to receice the nested components defined in the 
-                 *  route.js file. This means that we are then not able to render the nested 
-                 *  components and present them. To counter this issue we must construct the 
+                 *  page refresh when visiting routes. This is undesirable at this moment since our
+                 *  current component contains the <router-view />. When the page does not refresh,
+                 *  the <router-view /> is not able to receice the nested components defined in the
+                 *  route.js file. This means that we are then not able to render the nested
+                 *  components and present them. To counter this issue we must construct the
                  *  href and use "window.location.href" to make a hard page refresh.
                  */
                 var storeUrl = this.store['_links']['self'].href;
 
                 //  Add the "menu" query to our current store route
-                var route = { name: linkName, params: { 
-                    store_url: encodeURIComponent(storeUrl) } 
+                var route = { name: linkName, params: {
+                    store_url: encodeURIComponent(storeUrl) }
                 };
 
                 //  Contruct the full path url
@@ -375,11 +375,11 @@
             navigateToLocationLink(linkName){
 
                 /** Note that using router.push() or router.replace() does not allow us to make a
-                 *  page refresh when visiting routes. This is undesirable at this moment since our 
-                 *  current component contains the <router-view />. When the page does not refresh, 
-                 *  the <router-view /> is not able to receice the nested components defined in the 
-                 *  route.js file. This means that we are then not able to render the nested 
-                 *  components and present them. To counter this issue we must construct the 
+                 *  page refresh when visiting routes. This is undesirable at this moment since our
+                 *  current component contains the <router-view />. When the page does not refresh,
+                 *  the <router-view /> is not able to receice the nested components defined in the
+                 *  route.js file. This means that we are then not able to render the nested
+                 *  components and present them. To counter this issue we must construct the
                  *  href and use "window.location.href" to make a hard page refresh.
                  */
                 var storeUrl = this.store['_links']['self'].href;
@@ -413,7 +413,7 @@
                     //  Use the api call() function, refer to api.js
                     api.call('get', this.storeUrl)
                         .then(({data}) => {
-                            
+
                             //  Console log the data returned
                             console.log(data);
 
@@ -425,8 +425,8 @@
 
                             self.$emit('changeHeading', self.store.name)
 
-                        })         
-                        .catch(response => { 
+                        })
+                        .catch(response => {
 
                             //  Log the responce
                             console.error(response);
@@ -451,7 +451,7 @@
                     //  Use the api call() function, refer to api.js
                     api.call('get', this.locationUrl)
                         .then(({data}) => {
-                            
+
                             //  Console log the data returned
                             console.log(data);
 
@@ -461,8 +461,8 @@
                             //  Stop loader
                             self.isLoadingLocation = false;
 
-                        })         
-                        .catch(response => { 
+                        })
+                        .catch(response => {
 
                             //  Log the responce
                             console.error(response);
@@ -486,7 +486,7 @@
                 this.fetchLocation();
 
             }
-            
+
         }
     }
 </script>

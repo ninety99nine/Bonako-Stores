@@ -76,6 +76,14 @@ trait StoreTraits
 
             }
 
+            //  If we have the "hex_color"
+            if( isset($template['hex_color']) ){
+
+                //  Remove the hex color hash symbol "#"
+                $template['hex_color'] = str_replace('#', '', $template['hex_color']);
+
+            }
+
             /**
              *  Create a new resource
              */
@@ -169,14 +177,14 @@ trait StoreTraits
     /**
      *  This method returns a list of stores
      */
-    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    public function getResources($data = [], $builder = null, $user = null, $paginate = true, $convert_to_api_format = true)
     {
         try {
 
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
-            //  Validate the data
+            //  Validate the data (CommanTraits)
             $this->getResourcesValidation($data);
 
             //  If we already have an eloquent builder defined
@@ -192,8 +200,8 @@ trait StoreTraits
 
             }
 
-            //  Filter the stores by search
-            $stores = $this->filterResourcesBySearch($data, $stores);
+            //  Filter the stores
+            $stores = $this->filterResources($data, $stores, $user);
 
             //  Return orders
             return $this->collectionResponse($data, $stores, $paginate, $convert_to_api_format);
@@ -206,16 +214,71 @@ trait StoreTraits
     }
 
     /**
+     *  This method filters the stores by search or status
+     */
+    public function filterResources($data = [], $stores, $user)
+    {
+        //  If we need to search for specific stores
+        if ( isset($data['search']) && !empty($data['search']) ) {
+
+            $stores = $this->filterResourcesBySearch($data, $stores);
+
+        }elseif ( isset($data['type']) && !empty($data['type']) ) {
+
+            $stores = $this->filterResourceStoresByType($data, $stores, $user);
+
+        }
+
+        //  Return the stores
+        return $stores;
+    }
+
+    /**
      *  This method filters the stores by search
      */
     public function filterResourcesBySearch($data = [], $stores)
     {
         //  Set the search term e.g "Store 1"
         $search_term = $data['search'] ?? null;
-        
+
         //  Return searched stores otherwise original stores
         return empty($search_term) ? $stores : $stores->search($search_term);
-        
+
+    }
+
+    /**
+     *  This method filters the stores by type
+     */
+    public function filterResourceStoresByType($data = [], $stores, $user)
+    {
+        //  Extract the Request Object data (CommanTraits)
+        $data = $this->extractRequestData($data);
+
+        //  Set the type e.g "created", "shared" or "favourite"
+        $type = $data['type'] ?? null;
+
+        //  If we want created stores
+        if ($type === 'created') {
+
+            //  Scope stores created by the user
+            $stores = $stores->asOwner($user->id);
+
+        //  If we want shared stores
+        } elseif ($type === 'shared') {
+
+            //  Scope stores shared with the user
+            $stores = $stores->asNonOwner($user->id);
+
+        //  If we want favourite stores
+        } elseif ($type === 'favourite') {
+
+            //  Scope stores favourated by the user
+            $stores = (new \App\Store)->asFavourite($user->id);
+
+        }
+
+        //  Return the stores
+        return $stores;
     }
 
     /**
@@ -427,7 +490,7 @@ trait StoreTraits
 
                     //  Set the user id on the data
                     'user_id' => $user_id,
-    
+
                 ]);
 
             }
@@ -864,36 +927,6 @@ trait StoreTraits
                 }
 
             }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method validates fetching multiple resources
-     */
-    public function getResourcesValidation($data = [])
-    {
-        try {
-
-            //  Set validation rules
-            $rules = [
-                'limit' => 'sometimes|required|numeric|min:1|max:100',
-            ];
-
-            //  Set validation messages
-            $messages = [
-                'limit.required' => 'Enter a valid limit containing only digits e.g 50',
-                'limit.regex' => 'Enter a valid limit containing only digits e.g 50',
-                'limit.min' => 'The limit attribute must be a value between 1 and 100',
-                'limit.max' => 'The limit attribute must be a value between 1 and 100',
-            ];
-
-            //  Method executed within CommonTraits
-            $this->resourceValidation($data, $rules, $messages);
 
         } catch (\Exception $e) {
 

@@ -32,7 +32,7 @@ class Store extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'online', 'offline_message', 'allow_sending_merchant_sms', 'user_id'
+        'name', 'online', 'offline_message', 'hex_color', 'allow_sending_merchant_sms', 'user_id'
     ];
 
     /*

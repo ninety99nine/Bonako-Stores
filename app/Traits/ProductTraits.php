@@ -2,11 +2,12 @@
 
 namespace App\Traits;
 
-use App\Http\Resources\Product as ProductResource;
-use App\Http\Resources\Products as ProductsResource;
 use DB;
+use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
+use App\Http\Resources\Product as ProductResource;
+use App\Http\Resources\Products as ProductsResource;
 
 trait ProductTraits
 {
@@ -46,56 +47,106 @@ trait ProductTraits
         }
     }
 
-    /** initiateCreate()
-     * 
+    /**
      *  This method creates a new product
      */
-    public function initiateCreate($request)
+    public function createResource($data = [], $user = null)
     {
         try {
 
-            //  Set the request variable
-            $this->request = $request;
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-            //  Validate the request
-            $validation_data = $request->validate([
-                'name' => 'required',
-            ]);
+            //  Validate the data
+            $this->createResourceValidation($data);
 
-            //  Set the template
-            $template = [
-                'arrangement' => 1,
-                'name' => $request->input('name'),
-                'type' => $request->input('type'),
-                'user_id' => auth('api')->user()->id,
-                'active' => $request->input('active'),
-                'store_id' => $request->input('store_id'),
-                'location_id' => $request->input('location_id'),
-                'description' => $request->input('description'),
-                'cost_per_item' => $request->input('cost_per_item'),
-                'unit_sale_price' => $request->input('unit_sale_price'),
-                'unit_regular_price' => $request->input('unit_regular_price'),
-                'variant_attributes' => $request->input('variant_attributes'),
-                'allow_stock_management' => $request->input('allow_stock_management'),
-                'auto_manage_stock' => $request->input('auto_manage_stock'),
-                'stock_quantity' => $request->input('stock_quantity'),
-                'barcode' => $request->input('barcode'),
-                'sku' => $request->input('sku'),
-            ];
+            //  Verify permissions
+            $this->createResourcePermission($user);
 
-            /*
-             *  Create new a product, then retrieve a fresh instance
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
+
+            //  If the current authenticated user is a Super Admin and the "user_id" is provided
+            if( auth('api')->user()->isSuperAdmin() && isset($data['user_id']) ){
+
+                //  Set the "user_id" provided as the user responsible for owning this resource
+                $template['user_id'] = $data['user_id'];
+
+            }else{
+
+                //  Set the current authenticated user as the user responsible for owning this resource
+                $template['user_id'] = auth('api')->user()->id;
+
+            }
+
+            /**
+             *  Create a new resource
              */
             $this->product = $this->create($template)->fresh();
 
             //  If created successfully
             if ($this->product) {
 
-                //  Rearrange the location products
-                $this->rearrangeProducts();
+                //  Re-arrange location products
+                $this->product->assignResourceToLocations($data);
+
+            }
+
+            //  Return a fresh instance
+            return $this->product->fresh();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method updates an existing product
+     */
+    public function updateResource($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Merge the existing data with the new data
+            $data = array_merge(collect($this)->only($this->getFillable())->toArray(), $data);
+
+            //  Verify permissions
+            $this->updateResourcePermission($user);
+
+            //  Validate the data
+            $this->updateResourceValidation($data);
+
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
+
+            //  Set the original user as the primary user responsible for creating this resource
+            $template['user_id'] = $this->user_id;
+
+            /**
+             *  Update the resource details
+             */
+            $updated = $this->update($template);
+
+            //  If updated successfully
+            if ($updated) {
+
+                //  Re-arrange location products
+                $this->assignResourceToLocations($data);
 
                 //  Return a fresh instance
-                return $this->product;
+                return $this->fresh();
+
+            }else{
+
+                //  Return original instance
+                return $this;
+
             }
 
         } catch (\Exception $e) {
@@ -105,41 +156,212 @@ trait ProductTraits
         }
     }
 
-    public function rearrangeProducts()
+    /**
+     *  This method returns a list of products
+     */
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
     {
         try {
 
-            if ($this->request->input('location_id')) {
-                
-                //  Get the location we want to place this product
-                $location = \App\Location::where('id', $this->request->input('location_id'))->first();
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-                //  Get the products that belong to this location except the new product
-                $products = collect($location->products()->where('id', '!=', $this->product->id)->get())->toArray();
-                
-                $ids = [];
-                $cases = [];
-                $params = [];
+            //  Validate the data (CommanTraits)
+            $this->getResourcesValidation($data);
 
-                foreach ($products as $key => $product) {
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
 
-                    $id = $product['id'];
-                    $arrangement = ($key + 2);
-    
-                    $cases[] = "WHEN {$id} then ?";
-                    $params[] = $arrangement;
-                    $ids[] = $id;
+                //  Set the products to this eloquent builder
+                $products = $builder;
 
-                }
+            }else{
 
-                $ids = implode(',', $ids);
-                $cases = implode(' ', $cases);
+                //  Get the products
+                $products = \App\Product::latest();
 
-                if (!empty($ids)) {
-                    
-                    DB::update("UPDATE products SET `arrangement` = CASE `id` {$cases} END WHERE `id` in ({$ids})", $params);
-                
-                }
+            }
+
+            //  Filter the products
+            $products = $this->filterResources($data, $products);
+
+            //  Return products
+            return $this->collectionResponse($data, $products, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of order totals
+     *
+     *  Note: $builder is an instance of the eloquent builder. In this
+     *  case the eloquent builder must represent an instance of orders
+     */
+    public function getResourceTotals($data = [], $builder)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the totals
+            $totals = [
+                'visibility' => [],
+                'total' => $builder->count()
+            ];
+
+            //  Set the status filters to calculate the totals
+            $filters = [
+                'visible', 'invisible'
+            ];
+
+            collect($filters)->map(function($filter) use (&$totals, $builder){
+
+                $data['visible'] = ($filter === 'visible') ? 1 : 0;
+
+                $totals['visibility'][$filter] = $this->filterResourcesByVisibility($data, clone $builder)->count();
+
+            })->toArray();
+
+            /**
+             *  Return the totals
+             *
+             *  Example result
+             *
+             *  [
+             *    "visibility" => [
+             *       "visible" => 1,
+             *       "invisible" => 0
+             *      ]
+
+             *  ]
+             */
+            return $totals;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the products by search or status
+     */
+    public function filterResources($data = [], $products)
+    {
+        //  If we need to search for specific products
+        if ( isset($data['search']) && !empty($data['search']) ) {
+
+            $products = $this->filterResourcesBySearch($data, $products);
+
+        }else{
+
+            //  Filter products by visibility
+            $products = $this->filterResourcesByVisibility($data, $products);
+
+            //  Filter products by promotion (On sale)
+            $products = $this->filterResourcesByOnSale($data, $products);
+
+        }
+
+        //  Return the products
+        return $products;
+    }
+
+    /**
+     *  This method filters the products by search
+     */
+    public function filterResourcesBySearch($data = [], $products)
+    {
+        //  Set the search term e.g "00123"
+        $search_term = $data['search'] ?? null;
+
+        //  Return searched products otherwise original products
+        return empty($search_term) ? $products : $products->search($search_term);
+
+    }
+
+    /**
+     *  This method filters the products by visibility
+     */
+    public function filterResourcesByVisibility($data = [], $products)
+    {
+        if( isset($data['visible']) && !is_null($data['visible']) ) {
+
+            //  Set the visible
+            $visible = $data['visible'];
+
+            //  If the visible is set to "true" or "1"
+            if( in_array($visible, [true, 1, '1']) ){
+
+                $products = $products->visible();
+
+            //  If the visible is set to "false" or "0"
+            }elseif( in_array($visible, [false, 0, '0']) ){
+
+                $products = $products->inVisible();
+
+            }
+
+        }
+
+        //  Return the products
+        return $products;
+    }
+
+    /**
+     *  This method filters the products by sale
+     */
+    public function filterResourcesByOnSale($data = [], $products)
+    {
+        if( isset($data['on_sale']) && !is_null($data['on_sale']) ) {
+
+            //  Set the onsale
+            $on_sale = $data['on_sale'];
+
+            //  If the on_sale is set to "true" or "1"
+            if( in_array($on_sale, [true, 1, '1']) ){
+
+                $products = $products->onSale();
+
+            //  If the on_sale is set to "false" or "0"
+            }elseif( in_array($on_sale, [false, 0, '0']) ){
+
+                $products = $products->notOnSale();
+
+            }
+
+        }
+
+        //  Return the products
+        return $products;
+    }
+
+    /**
+     *  This method returns a single product
+     */
+    public function getResource($id)
+    {
+        try {
+
+            //  Get the resource
+            $product = \App\Product::where('id', $id)->first() ?? null;
+
+            //  If exists
+            if ($product) {
+
+                //  Return product
+                return $product;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
 
             }
 
@@ -148,6 +370,142 @@ trait ProductTraits
             throw($e);
 
         }
+    }
+
+    /**
+     *  This method returns the product locations
+     */
+    public function getResourceLocations($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the product locations
+            $locations = $this->locations();
+
+            //  Return locations
+            return (new \App\Location())->collectionResponse($data, $locations, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method assigns the product to one or many locations.
+     *  The method also arranges the current product as well as
+     *  existing products in proper order for each location.
+     */
+    public function assignResourceToLocations($data)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the location id
+            $location_id = $data['location_id'] ?? null;
+
+            //  Set the location ids
+            $location_ids = $data['location_ids'] ?? [];
+
+            if( $location_id ){
+
+                array_push($location_ids, $location_id);
+
+            }
+
+            //  Get the locations matching the given ids
+            $locations = \App\Location::whereIn('id', $location_ids)
+                                      ->with('products')
+                                      ->distinct()
+                                      ->get();
+
+            //  Set the arrangements
+            $arrangements = [];
+
+            //  Foreach of the locations
+            foreach ($locations as $location) {
+
+                //  Set the product instance arrangement
+                $arrangement = 1;
+
+                //  Set this product instance as the first product arrangement
+                $arrangement = $this->getResourceArrangementTemplate($this, $location, $arrangement);
+
+                //  Add this arrangement to the list of arrangements
+                array_push($arrangements, $arrangement);
+
+                //  Filter products that do not match the current product
+                $products = collect($location->products)->filter(function($product) {
+                    return $product->id !== $this->id;
+                });
+
+                //  Foreach of the location products
+                foreach ($products as $key => $product) {
+
+                    //  Set the location product arrangement
+                    $arrangement = ($key + 2);
+
+                    //  Set the location product as the next product arrangement
+                    $arrangement = $this->getResourceArrangementTemplate($product, $location, $arrangement);
+
+                    //  Add this arrangement to the list of arrangements
+                    array_push($arrangements, $arrangement);
+
+                }
+
+            }
+
+            //  If we have any arrangements
+            if( count($arrangements) ){
+
+                //  Set the product ids
+                $product_ids = collect($arrangements)->map(function($arrangement){
+                    return $arrangement['product_id'];
+                });
+
+                //  Delete previously assigned location products
+                DB::table('product_allocations')->whereIn('product_id', $product_ids)->delete();
+
+                //  Assign products to locations
+                DB::table('product_allocations')->insert($arrangements);
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method creates the product to location assignment record template.
+     *  This record identifies the product as well as the location where the
+     *  product is assigned and its quantity. Note that the quantity value
+     *  is used for product allocations to model resources such as instant
+     *  carts and is not relevant for product allocations to locations.
+     */
+    public function getResourceArrangementTemplate($product, $location, $arrangement)
+    {
+        //  Set the product arrangement template
+        $template = [
+            'quantity' => null,
+            'product_id' => $product->id,
+            'arrangement' => $arrangement,
+
+            'owner_id' => $location->id,
+            'owner_type' => $location->resource_type,
+
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ];
+
+        //  Return the arrangement template
+        return $template;
+
     }
 
     /** initiateUpdate() method =>
@@ -399,4 +757,104 @@ trait ProductTraits
 
         }
     }
+
+    /**
+     *  This method checks permissions for creating a new resource
+     */
+    public function createResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to create the resource
+                if ($user->can('create', Product::class) === false) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method checks permissions for updating an existing resource
+     */
+    public function updateResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to update the resource
+                if ($user->can('update', $this)) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates creating a new resource
+     */
+    public function createResourceValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+
+            ];
+
+            //  Set validation messages
+            $messages = [
+
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates updating an existing resource
+     */
+    public function updateResourceValidation($data = [])
+    {
+        try {
+
+            //  Run the resource creation validation
+            $this->createResourceValidation($data);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
 }

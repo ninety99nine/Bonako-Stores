@@ -131,7 +131,7 @@
 
             },
             productArrangementUrl(){
-                return this.location['_links']['bos:product-arrangement'].href;
+                return this.location['_links']['bos:product_arrangement'].href;
             }            
         },
         methods: {

@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Currency as CurrencyResource;
 
 class Location extends JsonResource
 {
@@ -39,7 +40,6 @@ class Location extends JsonResource
                 'allow_payments' => $this->allow_payments,
                 'online_payment_methods' => $this->online_payment_methods,
                 'offline_payment_methods' => $this->offline_payment_methods,
-                'currency' => $this->currency,
                 'orange_money_merchant_code' => $this->orange_money_merchant_code,
                 'minimum_stock_quantity' => $this->minimum_stock_quantity,
 
@@ -59,6 +59,12 @@ class Location extends JsonResource
                         'title' => 'This location',
                     ],
 
+                    //  Link to the location totals
+                    'bos:totals' => [
+                        'href' => route('location-totals', ['location_id' => $this->id]),
+                        'title' => 'The location resource totals',
+                    ],
+
                     //  Link to the users
                     'bos:users' => [
                         'href' => route('location-users', ['location_id' => $this->id]),
@@ -69,12 +75,6 @@ class Location extends JsonResource
                     'bos:orders' => [
                         'href' => route('location-orders', ['location_id' => $this->id]),
                         'title' => 'The location orders',
-                    ],
-
-                    //  Link to the order totals
-                    'bos:order-totals' => [
-                        'href' => route('location-order-totals', ['location_id' => $this->id]),
-                        'title' => 'The location order totals',
                     ],
 
                     //  Link to the coupons
@@ -89,14 +89,26 @@ class Location extends JsonResource
                         'title' => 'The location products',
                     ],
 
+                    //  Link to update product arrangement
+                    'bos:product_arrangement' => [
+                        'href' => route('location-product-arrangement', ['location_id' => $this->id]),
+                        'title' => 'The POST route to update the arrangement of products for this location',
+                    ],
+
                     //  Link to the instant carts
-                    'bos:instant-carts' => [
+                    'bos:instant_carts' => [
                         'href' => route('location-instant-carts', ['location_id' => $this->id]),
                         'title' => 'The location instant carts',
                     ],
 
+                    //  Link to check if favourite
+                    'bos:favourite_status' => [
+                        'href' => route('location-favourite-status', ['location_id' => $this->id]),
+                        'title' => 'The route to check if this location is a favourite location',
+                    ],
+
                     //  Link to toggle favourite
-                    'bos:toggle-favourite' => [
+                    'bos:toggle_favourite' => [
                         'href' => route('location-toggle-favourite', ['location_id' => $this->id]),
                         'title' => 'The POST route to Mark or unmark location as favourite',
                     ],
@@ -141,7 +153,7 @@ class Location extends JsonResource
                     ],
 
                     //  Link to update product arrangement
-                    'bos:product-arrangement' => [
+                    'bos:product_arrangement' => [
                         'href' => route('location-product-arrangement', ['location_id' => $this->id]),
                         'title' => 'The PUT route to update the order of products for this location',
                     ],
@@ -231,6 +243,11 @@ class Location extends JsonResource
 
                     */
                 ],
+
+                 /*  Embedded  */
+                '_embedded' => [
+                    'currency' => new CurrencyResource($this->currency)
+                ]
             ];
         } catch (\Exception $e) {
             throw($e);

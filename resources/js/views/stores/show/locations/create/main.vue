@@ -228,6 +228,13 @@
             serverAllowPaymentsError(){
                 return (this.serverErrors || {}).allow_payments;
             },
+            createLocationUrl(){
+                /**  Note "api_home" is defined within the auth.js file.
+                 *   It holds reference to common links for ease of
+                 *   access.
+                 */
+                return api_home['_links']['bos:locations'].href
+            },
             cloneLocationUrl(){
                 if( this.$route.query.location_url ){
                     return decodeURIComponent(this.$route.query.location_url);
@@ -340,13 +347,7 @@
                  */
                 let locationData = this.locationForm;
 
-                /**  Note "api_home" is defined within the auth.js file.
-                 *   It holds reference to common links for ease of
-                 *   access.
-                 */
-                let url = api_home['_links']['bos:locations'].href
-
-                return api.call('post', url, locationData)
+                return api.call('post', this.createLocationUrl, locationData)
                     .then(({data}) => {
 
                         //  Stop loader

@@ -3,6 +3,8 @@
 namespace App\Http\Resources;
 
 use Carbon\Carbon;
+use App\Http\Resources\Order as OrderResource;
+use App\Http\Resources\Store as StoreResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ShortCode extends JsonResource
@@ -20,7 +22,7 @@ class ShortCode extends JsonResource
             'id' => $this->id,
             'code' => $this->code,
             'action' => $this->action,
-            'expires_at' => Carbon::parse($this->expires_at)->format('Y-m-d H:i:s'),
+            'expires_at' => $this->expires_at,
             'dialing_code' => $this->dialing_code,
 
             /*  Timestamp Info  */
@@ -34,9 +36,29 @@ class ShortCode extends JsonResource
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ]
 
+            ],
+
+            /*  Embedded  */
+            '_embedded' => [
+
+                'owner' => $this->owner()
+
             ]
 
         ];
+    }
+
+    public function owner()
+    {
+        if( $this->owner ){
+            switch ($this->owner->resource_type) {
+                case 'store':
+                    return new StoreResource( $this->owner );
+                case 'order':
+                    return new OrderResource( $this->owner );
+                break;
+            }
+        }
     }
 
     /**

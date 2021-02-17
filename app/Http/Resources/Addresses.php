@@ -13,7 +13,7 @@ class Addresses extends ResourceCollection
      *
      * @var string
      */
-    public $collects = 'App\Http\Resources\Coupon';
+    public $collects = 'App\Http\Resources\Address';
 
     /**
      * Transform the resource collection into an array.

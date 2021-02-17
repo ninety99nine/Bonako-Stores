@@ -1,5 +1,5 @@
 <template>
-    
+
     <Row :gutter="12" class="mt-5">
 
         <Col :span="20" :offset="2">
@@ -8,7 +8,7 @@
             <Loader v-show="isLoading" :divStyles="{ textAlign: 'center' }">Loading products...</Loader>
 
             <template v-if="!isLoading">
-                
+
                 <div class="clearfix mb-2">
 
                     <!-- Save Changes Button -->
@@ -30,10 +30,10 @@
                 <!-- Product List & Dragger  -->
                 <draggable
                     :list="products"
-                    @start="drag=true" 
-                    @end="drag=false" 
+                    @start="drag=true"
+                    @end="drag=false"
                     :options="{
-                        group:'products', 
+                        group:'products',
                         handle:'.dragger-handle',
                         draggable:'.single-draggable-item',
                     }">
@@ -47,7 +47,7 @@
                         :store="store"
                         :index="index">
                     </single-product>
-                    
+
                     <!-- No products message -->
                     <Alert v-if="!productsExist" type="info" show-icon>
                         No Products Found
@@ -62,7 +62,7 @@
 
         </Col>
 
-        <!-- 
+        <!--
             MODAL TO ADD / CLONE / EDIT PRODUCT
         -->
         <template v-if="isOpenManageProductModal">
@@ -76,7 +76,7 @@
                 @createdProduct="handleCreatedProduct($event)"
                 @visibility="isOpenManageProductModal = $event">
             </manageProductDrawer>
-    
+
         </template>
 
     </Row>
@@ -91,10 +91,10 @@
     import basicButton from './../../../../../../components/_common/buttons/basicButton.vue';
 
     export default {
-        components: { 
-            draggable, manageProductDrawer, Loader, basicButton 
+        components: {
+            draggable, manageProductDrawer, Loader, basicButton
         },
-        props: { 
+        props: {
             store: {
                 type: Object,
                 default: null
@@ -126,13 +126,13 @@
 
                 //  Check if the product has been modified
                 var status = !_.isEqual(this.products, this.productsBeforeChanges);
-                
+
                 return status;
 
             },
             productArrangementUrl(){
-                return this.location['_links']['bos:product-arrangement'].href;
-            }            
+                return this.location['_links']['bos:product_arrangement'].href;
+            }
         },
         methods: {
             handleSavedProduct(product, index){
@@ -156,7 +156,7 @@
                 this.isOpenManageProductModal = true;
             },
             copyProductsBeforeUpdate(){
-                
+
                 //  Copy products before changes
                 this.productsBeforeChanges = _.cloneDeep( this.products );
 
@@ -181,7 +181,7 @@
                     //  Use the api call() function, refer to api.js
                     return api.call('get', this.locationUrl)
                         .then(({data}) => {
-                            
+
                             //  Console log the data returned
                             console.log(data);
 
@@ -193,8 +193,8 @@
 
                             self.$emit('selectedLocation', self.location)
 
-                        })         
-                        .catch(response => { 
+                        })
+                        .catch(response => {
 
                             //  Log the responce
                             console.error(response);
@@ -230,20 +230,20 @@
                 //  Use the api call() function, refer to api.js
                 api.call('get', productUrl)
                     .then(({data}) => {
-                        
+
                         //  Console log the data returned
                         console.log(data);
 
                         //  Get the products
                         self.products = data['_embedded']['products'] || [];
-        
+
                         self.copyProductsBeforeUpdate();
 
                         //  Stop loader
                         self.isLoading = false;
 
-                    })         
-                    .catch(response => { 
+                    })
+                    .catch(response => {
 
                         //  Log the responce
                         console.error(response);
@@ -252,10 +252,10 @@
                         self.isLoading = false;
 
                     });
-                
+
             },
             updateProductArrangement() {
-                
+
                 //  If we have the product arrangement url
                 if( this.productArrangementUrl ){
 
@@ -270,26 +270,26 @@
                         location_id: this.location.id,
                         product_arrangements: self.products.map((product, index) => {
                             return {
-                                "id": product.id, 
+                                "id": product.id,
                                 "arrangement": (index + 1)
-                            }; 
+                            };
                         })
                     }
 
                     //  Use the api call() function, refer to api.js
                     return api.call('put', this.productArrangementUrl, arrangementData)
                         .then(({data}) => {
-                            
+
                             //  Console log the data returned
                             console.log(data);
-        
+
                             self.copyProductsBeforeUpdate();
 
                             //  Stop loader
                             self.isLoading = false;
 
-                        })         
-                        .catch(response => { 
+                        })
+                        .catch(response => {
 
                             //  Log the responce
                             console.error(response);
@@ -324,5 +324,5 @@
 
         }
     };
-  
+
 </script>

@@ -1,146 +1,154 @@
 <template>
 
-    <Row class="mt-3">
+    <div>
 
-        <Col :span="22" :offset="1">
+        <!-- If viewing single order -->
+        <template v-if="order && isViewingOrder">
 
-            <!-- If viewing single order -->
-            <template v-if="order && isViewingOrder">
+            <!-- Single Order -->
+            <singleOrder :store="store" :location="location" :assignedLocations="assignedLocations"
+                            :orders="orders" :index="index" :order="order" @close="handleCloseOrder()"
+                            @verified="handleVerifiedOrder">
+            </singleOrder>
 
-                <!-- Single Order -->
-                <singleOrder :store="store" :location="location" :assignedLocations="assignedLocations"
-                             :order="order" @close="handleCloseOrder()">
-                </singleOrder>
+        </template>
 
-            </template>
+        <!-- If viewing a list of orders -->
+        <Row v-else class="mt-4">
 
-            <!-- If viewing orders -->
-            <template v-else>
+            <Col :span="22" :offset="1">
 
-                <!-- Heading & Watch Video Button -->
-                <Row :gutter="12" :class="['border-bottom-dashed', 'mb-4', 'mt-3', 'pb-4']">
+                <!-- If viewing orders -->
+                <template>
 
-                    <Col :span="12">
+                    <!-- Heading & Watch Video Button -->
+                    <Row :gutter="12" :class="['border-bottom-dashed', 'mb-4', 'mt-3', 'pb-4']">
 
-                        <!-- Heading -->
-                        <h1 :class="['font-weight-bold', 'text-muted']">
-                            Orders
-                        </h1>
+                        <Col :span="12">
 
-                    </Col>
+                            <!-- Heading -->
+                            <h1 :class="['font-weight-bold', 'text-muted']">
+                                Orders
+                            </h1>
 
-                    <Col :span="12">
+                        </Col>
 
-                        <div class="clearfix">
+                        <Col :span="12">
 
-                            <!-- Watch Video Button -->
-                            <Button type="primary" size="default" @click.native="fetchStores()" :class="['float-right']">
-                                <Icon type="ios-play-outline" class="mr-1" :size="20" />
-                                <span>Watch Video</span>
+                            <div class="clearfix">
+
+                                <!-- Watch Video Button -->
+                                <Button type="primary" size="default" @click.native="fetchStores()" :class="['float-right']">
+                                    <Icon type="ios-play-outline" class="mr-1" :size="20" />
+                                    <span>Watch Video</span>
+                                </Button>
+
+                            </div>
+
+                        </Col>
+
+                    </Row>
+
+                    <!-- Search Bar, Filters & Refresh Button -->
+                    <Row :gutter="12" class="mb-4">
+
+                        <Col :span="8">
+
+                            <Input v-model="searchWord" type="text" size="default" clearable placeholder="Search order..." icon="ios-search-outline"></Input>
+
+                        </Col>
+
+                        <Col :span="8">
+
+                            <Poptip trigger="hover" content="Add filters for specific orders" word-wrap class="poptip-w-100">
+                                <Select v-model="selectedFilters" size="default" multiple class="w-100"
+                                        prefix="ios-funnel-outline" clearable placeholder="Add filters" @on-select="fetchOrders()">
+
+                                        <OptionGroup label="Type">
+                                            <Option v-for="(type, index) in types" :value="type.name" :key="index" :label="type.name">
+                                                <span :class="['font-weight-bold']">{{ type.name }}</span>
+                                                <span style="color:#ccc" :class="['float-right', 'font-italic', 'mr-3']">{{ type.desc }}</span>
+                                            </Option>
+                                        </OptionGroup>
+
+                                        <OptionGroup label="Status">
+                                            <Option v-for="(status, index) in statuses" :value="status" :key="index" :label="status">
+                                                <span :class="['font-weight-bold']">{{ status }}</span>
+                                            </Option>
+                                        </OptionGroup>
+
+                                </Select>
+                            </Poptip>
+
+                        </Col>
+
+                        <Col :span="8" class="clearfix">
+
+                            <!-- Refresh Button -->
+                            <Button type="default" size="default" :class="['float-right']"
+                                    @click.native="fetchOrders()">
+                                <Icon type="ios-refresh" class="mr-1" :size="20" />
+                                <span>Refresh</span>
                             </Button>
 
-                        </div>
+                        </Col>
 
-                    </Col>
+                    </Row>
 
-                </Row>
+                    <!-- Order Table -->
+                    <Table class="order-table" :columns="dynamicColumns" :data="orders" :loading="isLoading"
+                            no-data-text="No orders found" :style="{ overflow: 'visible' }">
 
-                <!-- Search Bar, Filters & Refresh Button -->
-                <Row :gutter="12" class="mb-4">
+                        <template slot-scope="{ row, index }" slot="action">
 
-                    <Col :span="8">
+                            <div>
+                                <Dropdown trigger="click" placement="bottom-end">
+                                    <Icon type="md-more" size="20" :class="['border', 'rounded-circle', 'border-secondary', 'text-secondary']" />
+                                    <DropdownMenu slot="list">
+                                        <DropdownItem name="View" @click.native="handleViewOrder(row, index)">View</DropdownItem>
+                                        <DropdownItem v-if="row._embedded.fulfillment_status.name === 'Unfulfilled'" name="Fulfil" @click.native="handleFulfilOrder(row, index)">Fulfil</DropdownItem>
+                                        <DropdownItem name="Cancel" class="text-danger">Cancel</DropdownItem>
+                                    </DropdownMenu>
+                                </Dropdown>
+                            </div>
 
-                        <Input v-model="search" type="text" size="default" clearable placeholder="Search order..." icon="ios-search-outline"></Input>
+                        </template>
 
-                    </Col>
+                    </Table>
 
-                    <Col :span="8">
+                </template>
 
-                        <Poptip trigger="hover" content="Add filters for specific orders" word-wrap class="poptip-w-100">
-                            <Select v-model="selectedFilters" size="default" multiple class="w-100"
-                                    prefix="ios-funnel-outline" clearable placeholder="Add filters" @on-select="fetchOrders()">
+                <!--
+                    MODAL TO VERIFY ORDER DELIVERY
+                -->
+                <template v-if="isOpenVerifyOrderDeliveryModal">
 
-                                    <OptionGroup label="Type">
-                                        <Option v-for="(type, index) in types" :value="type.name" :key="index" :label="type.name">
-                                            <span :class="['font-weight-bold']">{{ type.name }}</span>
-                                            <span style="color:#ccc" :class="['float-right', 'font-italic', 'mr-3']">{{ type.desc }}</span>
-                                        </Option>
-                                    </OptionGroup>
+                    <verifyOrderDeliveryModal
+                        :order="order"
+                        @verified="handleVerifiedOrder"
+                        @visibility="isOpenVerifyOrderDeliveryModal = $event">
+                    </verifyOrderDeliveryModal>
 
-                                    <OptionGroup label="Status">
-                                        <Option v-for="(status, index) in statuses" :value="status" :key="index" :label="status">
-                                            <span :class="['font-weight-bold']">{{ status }}</span>
-                                        </Option>
-                                    </OptionGroup>
+                </template>
 
-                            </Select>
-                        </Poptip>
+            </Col>
 
-                    </Col>
+        </Row>
 
-                    <Col :span="8" class="clearfix">
-
-                        <!-- Refresh Button -->
-                        <Button type="default" size="default" :class="['float-right']"
-                                @click.native="fetchOrders()">
-                            <Icon type="ios-refresh" class="mr-1" :size="20" />
-                            <span>Refresh</span>
-                        </Button>
-
-                    </Col>
-
-                </Row>
-
-                <!-- Order Table -->
-                <Table class="order-table" :columns="dynamicColumns" :data="orders" :loading="isLoading"
-                        no-data-text="No orders found" :style="{ overflow: 'visible' }">
-
-                    <template slot-scope="{ row, index }" slot="action">
-
-                        <div>
-                            <Dropdown trigger="click" placement="bottom-end">
-                                <Icon type="md-more" size="20" :class="['border', 'rounded-circle', 'border-secondary', 'text-secondary']" />
-                                <DropdownMenu slot="list">
-                                    <DropdownItem name="View" @click.native="handleViewOrder(row, index)">View</DropdownItem>
-                                    <DropdownItem v-if="row._embedded.fulfillment_status.name === 'Unfulfilled'" name="Fulfil" @click.native="handleFulfilOrder(row, index)">Fulfil</DropdownItem>
-                                    <DropdownItem name="Cancel" class="text-danger">Cancel</DropdownItem>
-                                </DropdownMenu>
-                            </Dropdown>
-                        </div>
-
-                    </template>
-
-                </Table>
-
-            </template>
-
-            <!--
-                MODAL TO VERIFY ORDER DELIVERY
-            -->
-            <template v-if="isOpenVerifyOrderDeliveryModal">
-
-                <verifyOrderDeliveryModal
-                    :order="order"
-                    @verified="handleVerifiedOrder"
-                    @visibility="isOpenVerifyOrderDeliveryModal = $event">
-                </verifyOrderDeliveryModal>
-
-            </template>
-
-        </Col>
-
-    </Row>
+    </div>
 
 </template>
 
 <script>
 
-    import verifyOrderDeliveryModal from './verifyOrderDeliveryModal.vue';
+    import verifyOrderDeliveryModal from './../components/verifyOrderDeliveryModal.vue';
+    import modalMixin from './../../../../../components/_mixins/modal/main.vue';
+    import miscMixin from './../../../../../components/_mixins/misc/main.vue';
     import statusTag from './../components/statusTag.vue';
     import singleOrder from './../show/main.vue';
-    import moment from 'moment';
 
     export default {
+        mixins: [ miscMixin, modalMixin ],
         props: {
             store: {
                 type: Object,
@@ -182,22 +190,36 @@
                     'Fulfillment Status', 'Created Date', 'Total'
                 ],
                 isOpenVerifyOrderDeliveryModal: false,
-                awaitingSearch: false,
-                search: '',
+                searchTimeout: null,
+                searchWord: '',
             }
         },
         watch: {
-            /** Search orders only 1 second after the user
-             *  is done typing.
+            /**
+             *  Search orders only 1 second after the user is done typing.
              */
-            search: function (val) {
-                if (!this.awaitingSearch) {
-                setTimeout(() => {
+            searchWord: function (val) {
+
+                //  Clear the search timeout variable
+                clearTimeout(this.searchTimeout);
+
+                this.searchTimeout = setTimeout(() => {
+
+                    //  Get the orders
                     this.fetchOrders();
-                    this.awaitingSearch = false;
+
                 }, 1000); // 1 sec delay
-                }
-                this.awaitingSearch = true;
+            },
+            //  Keep track of changes on the orders
+            orders: {
+
+                handler: function (val, oldVal) {
+
+                    this.$emit('fetchLocationTotals');
+
+                },
+                deep: true
+
             },
         },
         computed: {
@@ -224,6 +246,9 @@
                         title: 'Order #',
                         sortable: true,
                         render: (h, params) => {
+
+                            var order_number = (params.row.number || '...')
+
                             return h('span', {
                                 class: [(this.checkIfCancelledOrder(params.row) ? 'text-danger' : '')],
                                 on: {
@@ -240,7 +265,7 @@
                                 }, [
                                     h('span', {
                                         class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : 'text-dark')]
-                                    }, (params.row.number) || '...')
+                                    }, order_number)
                                 ])
                             ]);
                         }
@@ -253,6 +278,11 @@
                     {
                         title: 'Customer',
                         render: (h, params) => {
+
+                            var customer = (params.row._embedded.customer || {});
+                            var first_name = (customer.first_name || '...');
+                            var name = ((customer._attributes || {}).name || '...');
+
                             return h('Poptip', {
                                 style: {
                                     width: '100%',
@@ -264,12 +294,12 @@
                                     trigger:'hover',
                                     placement: 'top',
                                     title: 'Customer',
-                                    content: ((params.row._embedded.customer || {})._attributes || {}).name
+                                    content: name
                                 }
                             }, [
                                 h('span', {
                                     class: ['cut-text', 'text-capitalize', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : '')]
-                                }, ((params.row._embedded.customer || {}).first_name) || '...')
+                                }, first_name)
                             ])
                         }
                     });
@@ -281,6 +311,10 @@
                     {
                         title: 'Mobile',
                         render: (h, params) => {
+
+                            var customer = (params.row._embedded.customer || {});
+                            var mobile_number = (customer.mobile_number || '...');
+
                             return h('Poptip', {
                                 style: {
                                     width: '100%',
@@ -292,12 +326,12 @@
                                     trigger:'hover',
                                     placement: 'top',
                                     title: 'Mobile',
-                                    content: ((params.row._embedded.customer || {}).mobile_number  || '...')
+                                    content: mobile_number
                                 }
                             }, [
                                 h('span', {
                                     class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : '')]
-                                }, ((params.row._embedded.customer || {}).mobile_number  || '...'))
+                                }, mobile_number)
                             ])
                         }
                     })
@@ -312,9 +346,11 @@
                         align: 'center',
                         render: (h, params) => {
 
-                            var symbol = (params.row._embedded.active_cart._embedded.currency.symbol || '');
-                            var itemLines = (params.row._embedded.active_cart._embedded.item_lines || []);
-                            var totalItems = (params.row._embedded.active_cart.total_items || 0);
+                            var activeCart = (params.row._embedded.active_cart || {});
+                            var itemLines = ((activeCart._embedded || {}).item_lines || []);
+                            var totalItems = (activeCart.total_items || 0);
+                            var currency = (activeCart.currency || {});
+                            var symbol = (currency.symbol || '');
 
                             var ListItems = itemLines.map((item) => {
 
@@ -431,12 +467,14 @@
                         sortable: true,
                         render: (h, params) => {
 
-                            var symbol = (params.row._embedded.active_cart._embedded.currency.symbol || '');
-                            var subTotal = (params.row._embedded.active_cart.sub_total || 0);
-                            var couponTotal = (params.row._embedded.active_cart.coupon_total || 0);
-                            var discountTotal = (params.row._embedded.active_cart.sale_discount_total || 0);
-                            var deliveryFee = (params.row._embedded.active_cart.delivery_fee || 0);
-                            var grandTotal = (params.row._embedded.active_cart.grand_total || 0);
+                            var activeCart = (params.row._embedded.active_cart || {});
+                            var subTotal = (activeCart.sub_total || 0);
+                            var couponTotal = (activeCart.coupon_total || 0);
+                            var discountTotal = (activeCart.sale_discount_total || 0);
+                            var deliveryFee = (activeCart.delivery_fee || 0);
+                            var grandTotal = (activeCart.grand_total || 0);
+                            var currency = (activeCart.currency || {});
+                            var symbol = (currency.symbol || '');
 
                             return h('Poptip', {
                                 style: {
@@ -491,9 +529,6 @@
                 );
 
                 return allowedColumns;
-            },
-            moment: function () {
-                return moment();
             }
         },
         methods: {
@@ -519,17 +554,6 @@
             handleVerifiedOrder(order){
                 this.$set(this.orders, this.index, order);
                 this.fetchOrders();
-            },
-            formatDateTime(date, withTime = false) {
-                if( withTime ){
-                    return moment(date).format('MMM DD YYYY @H:mmA');
-                }else{
-                    return moment(date).format('MMM DD YYYY');
-                }
-            },
-            formatPrice(money, symbol) {
-                let val = (money/1).toFixed(2).replace(',', '.');
-                return (symbol ? symbol : '') + val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             },
             fetchOrders() {
 
@@ -566,7 +590,7 @@
                         }).join(',');
 
                         //  Use the api call() function, refer to api.js
-                        api.call('get', this.locationOrdersUrl+'?search='+this.search+'&status='+statuses+'&type='+types)
+                        api.call('get', this.locationOrdersUrl+'?search='+this.searchWord+'&status='+statuses+'&type='+types)
                             .then(({data}) => {
 
                                 //  Console log the data returned

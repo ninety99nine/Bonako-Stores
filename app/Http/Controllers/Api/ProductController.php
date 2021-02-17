@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Product;
-use DB;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class ProductController extends Controller
 {
@@ -18,6 +16,63 @@ class ProductController extends Controller
         $this->user = auth('api')->user();
     }
 
+    public function createProduct(Request $request)
+    {
+        try {
+
+            //  Return a new product
+            return (new Product())->createResource($request, $this->user)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function updateProduct(Request $request, $product_id)
+    {
+        try {
+
+            //  Return the updated product
+            return (new Product())->getResource($product_id)->updateResource($request, $this->user)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getProduct($product_id)
+    {
+        try {
+
+            //  Return the product
+            return (new Product())->getResource($product_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getProductLocations(Request $request, $product_id)
+    {
+        try {
+
+            //  Return the product locations
+            return (new Product())->getResource($product_id)->getResourceLocations($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    /*
     public function createProduct(Request $request)
     {
         try{
@@ -231,4 +286,5 @@ class ProductController extends Controller
         }
 
     }
+    */
 }

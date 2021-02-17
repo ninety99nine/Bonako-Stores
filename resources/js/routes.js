@@ -60,18 +60,33 @@ let routes = [
                 component: require('./views/stores/show/overview/main.vue').default
             },
             {
+                path: 'location', name: 'show-store-location',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/locations/show/main.vue').default
+            },
+            {
                 path: 'orders', name: 'show-store-orders',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
                 component: require('./views/stores/show/orders/list/main.vue').default
             },
             {
+                path: 'orders/:order_url', name: 'show-store-order',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/orders/show/main.vue').default
+            },
+            {
+                path: 'products', name: 'show-store-products',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/products/list/main.vue').default
+            },
+            {
                 path: 'instant-carts', name: 'show-store-instant-carts',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
                 component: require('./views/stores/show/instant-carts/main.vue').default
-            }
+            },
         ]
     },
-
+    /*
     //  Single Store Locations
     {
         path: '/stores/:store_url/locations',
@@ -94,17 +109,13 @@ let routes = [
                 component: require('./views/stores/show/locations/show/main.vue').default
             },
             {
-                path: ':location_url/products', name: 'show-location-products',
-                meta: { layout: 'Dashboard', middlewareAuth: true },
-                component: require('./views/stores/show/locations/show/products/main.vue').default
-            },
-            {
                 path: ':location_url/instant-carts', name: 'show-location-instant-carts',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
                 component: require('./views/stores/show/instant-carts/main.vue').default
             }
         ]
     }
+    */
 
 ];
 

@@ -41,6 +41,18 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
+    /*
+     *  Scope:
+     *  Returns users that are being searched
+     */
+    public function scopeSearch($query, $searchTerm)
+    {
+        return $query->where('mobile_number', 'like', '%'.$searchTerm.'%')
+                     ->orWhere('first_name', 'like', '%'.$searchTerm.'%')
+                     ->orWhere('last_name', 'like', '%'.$searchTerm.'%')
+                     ->orWhere('email', 'like', '%'.$searchTerm.'%');
+    }
+
     /****************************
      *   STORES                 *
      ****************************/
@@ -91,7 +103,7 @@ class User extends Authenticatable
                 ->latest()
 
                 //  Avoid any duplicate stores
-                ->distinct();
+                ->distinct('stores.id');
 
     }
 
@@ -144,7 +156,7 @@ class User extends Authenticatable
      */
     public function addresses()
     {
-        return $this->morphMany(Address::class, 'owner');
+        return $this->morphMany(Address::class, 'owner')->latest();
     }
 
     /** ATTRIBUTES
@@ -161,7 +173,7 @@ class User extends Authenticatable
     }
 
     public function setDeliveryTypeAttribute($value)
-    {   
+    {
         $first_letter = strtolower(substr($value, 0, 1));
 
         //  If the first letter is "d" or "p" which stands for "delivery" or "pickup"

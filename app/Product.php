@@ -2,9 +2,9 @@
 
 namespace App;
 
+use DB;
 use App\Traits\CommonTraits;
 use App\Traits\ProductTraits;
-use DB;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
@@ -18,15 +18,14 @@ class Product extends Model
      * @var string
      */
     protected $casts = [
-        'active' => 'boolean',
-        'is_new' => 'boolean',
-        'is_featured' => 'boolean',
-        'show_on_store' => 'boolean',
+        'show_description' => 'boolean',
+        'visible' => 'boolean',
         'allow_variants' => 'boolean',
-        'allow_downloads' => 'boolean',
         'variant_attributes' => 'array',
-        'auto_manage_stock' => 'boolean',
+        'allow_multiple_quantity_per_order' => 'boolean',
+        'allow_maximum_quantity_per_order' => 'boolean',
         'allow_stock_management' => 'boolean',
+        'auto_manage_stock' => 'boolean',
     ];
 
     /**
@@ -35,14 +34,30 @@ class Product extends Model
      * @var array
      */
     protected $fillable = [
-        //  Product Details
-        'name', 'description', 'arrangement', 'active', 'type', 'cost_per_item', 'unit_regular_price', 'unit_sale_price',
-        'sku', 'barcode', 'stock_quantity', 'allow_stock_management', 'auto_manage_stock', 'variant_attributes',
-        'allow_variants', 'allow_downloads', 'show_on_store', 'is_new', 'is_featured', 'parent_product_id',
-        'user_id', 'location_id',
+
+        /*  Product Management  */
+        'name', 'description', 'show_description', 'sku', 'barcode', 'visible', 'product_type_id',
+
+        /*  Variation Management  */
+        'allow_variants', 'variant_attributes',
+
+        /*  Pricing Management  */
+        'unit_regular_price', 'unit_sale_price', 'unit_cost',
+
+        /*  Quantity Management  */
+        'allow_multiple_quantity_per_order', 'allow_maximum_quantity_per_order',
+        'maximum_quantity_per_order',
+
+        /*  Stock Management  */
+        'allow_stock_management', 'auto_manage_stock', 'stock_quantity',
+
+        /*  Ownership Management  */
+        'parent_product_id', 'user_id',
+
     ];
 
-    /*
+
+    /**
      *  Scope:
      *  Returns products that are not variables of another product
      */
@@ -51,7 +66,7 @@ class Product extends Model
         return $query->whereNull('parent_product_id');
     }
 
-    /*
+    /**
      *  Scope:
      *  Returns products that are being searched
      */
@@ -60,34 +75,52 @@ class Product extends Model
         return $query->where('name', 'like', '%'.$searchTerm.'%')->orWhere('description', 'like', '%'.$searchTerm.'%');
     }
 
-    /*
+    /**
      *  Scope:
-     *  Returns products that are active (Visible products)
+     *  Returns products that are visible (Visible products)
      */
-    public function scopeActive($query)
+    public function scopeVisible($query)
     {
-        return $query->whereActive('1');
+        return $query->whereVisible('1');
     }
 
-    /*
+    /**
      *  Scope:
      *  Returns products that are not active (Hidden products)
      */
-    public function scopeInActive($query)
+    public function scopeInVisible($query)
     {
-        return $query->whereActive('0');
+        return $query->whereVisible('0');
     }
 
-    /*
+    /**
      *  Scope:
-     *  Returns products that are not active (Hidden products)
+     *  Returns products that are on sale
      */
     public function scopeOnSale($query)
     {
-        /* A product is on sale if we have the sale price and is less than the regular price
-         *
+        /**
+         *  A product is on sale if we have the sale price or
+         *  the sale price is less than the regular price
          */
-        return $query->whereNotNull('unit_sale_price')->whereRaw('unit_sale_price < unit_regular_price');
+        return $query->whereNotNull('unit_sale_price')
+                        ->orWhere('unit_sale_price', '!=', '0')
+                            ->orWhereRaw('unit_sale_price < unit_regular_price');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that are on sale
+     */
+    public function scopeNotOnSale($query)
+    {
+        /**
+         *  A product is not on sale if we don't have the sale price or
+         *  the sale price is more than or equal to the regular price
+         */
+        return $query->whereNull('unit_sale_price')
+                        ->orWhere('unit_sale_price', '0')
+                            ->orWhereRaw('unit_sale_price >= unit_regular_price');
     }
 
     /**
@@ -99,11 +132,11 @@ class Product extends Model
     }
 
     /**
-     *  Returns the location owning location.
+     *  Returns the associated locations
      */
-    public function location()
+    public function locations()
     {
-        return $this->belongsTo('App\Location');
+        return $this->morphedByMany('App\Location', 'owner', 'product_allocations')->withTimestamps();
     }
 
     /**
@@ -133,8 +166,33 @@ class Product extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'unit_price', 'unit_sale_discount', 'on_sale',
+        'resource_type', 'unit_price', 'unit_sale_discount', 'unit_profit', 'on_sale',
     ];
+
+    /**
+     *  Re-calculates the maximum quantity per order based on the stock.
+     *
+     */
+    public function getMaximumQuantityPerOrderAttribute($value)
+    {
+        $maximum_quantity_per_order = $value;
+
+        //  If we allow stock management
+        if ($this->allow_stock_management) {
+
+            //  If maximum quantity per order is greater than the stock quantity available
+            if ( $maximum_quantity_per_order > $this->stock_quantity) {
+
+                //  Return the remaining stock quantity as the maximum quantity per order
+                return $this->stock_quantity;
+
+            }
+
+        }
+
+        //  Return original value
+        return $maximum_quantity_per_order;
+    }
 
     /**
      *  Returns the product price for one unit.
@@ -146,13 +204,18 @@ class Product extends Model
     {
         //  If we have a regular price, then we can either return the regular price or sale price
         if (!is_null($this->unit_regular_price)) {
+
             //  If we have a sale price that is less than the regular price
-            if (!is_null($this->unit_sale_price) && $this->unit_sale_price < $this->unit_regular_price) {
+            if (!empty($this->unit_sale_price) && $this->unit_sale_price < $this->unit_regular_price) {
+
                 //  Return the sale price
                 return $this->unit_sale_price;
+
             } else {
+
                 //  Return the regular price
                 return $this->unit_regular_price;
+
             }
         }
 
@@ -165,8 +228,11 @@ class Product extends Model
     public function getOnSaleAttribute()
     {
         //  If we have a regular price and the sale price and if the sale price is less than the regular price
-        if (!is_null($this->unit_regular_price) && !is_null($this->unit_sale_price) && ($this->unit_sale_price < $this->unit_regular_price)) {
+        if ( !empty($this->unit_regular_price) && !empty($this->unit_sale_price) &&
+             ($this->unit_sale_price < $this->unit_regular_price) ) {
+
             return true;
+
         }
 
         return false;
@@ -179,17 +245,63 @@ class Product extends Model
      */
     public function getUnitSaleDiscountAttribute()
     {
-        if ($this->on_sale) {
+        if ( $this->on_sale ) {
+
             //  Calculate the sale discount or amount saved
             return $this->unit_regular_price - $this->unit_sale_price;
+
         }
 
         return 0;
     }
 
-    public function setActiveAttribute($value)
+    /**
+     *  Returns the product profit for one unit.
+     *
+     *  This is the difference in the regular price and sale price.
+     */
+    public function getUnitProfitAttribute()
     {
-        $this->attributes['active'] = (($value == 'true' || $value === '1') ? 1 : 0);
+        $profit = ($this->unit_price - $this->unit_cost - $this->unit_sale_discount);
+
+        if( $profit >= 0 ){
+
+            return $profit;
+
+        }
+
+        return 0;
+    }
+
+    public function setShowDescriptionAttribute($value)
+    {
+        $this->attributes['show_description'] = (($value == 'true' || $value == '1') ? 1 : 0);
+    }
+
+    public function setVisibleAttribute($value)
+    {
+        $this->attributes['visible'] = (($value == 'true' || $value == '1') ? 1 : 0);
+    }
+
+    public function setAllowVariantsAttribute($value)
+    {
+        $this->attributes['allow_variants'] = (($value == 'true' || $value == '1') ? 1 : 0);
+    }
+
+    public function setAllowMultipleQuantityPerOrderAttribute($value)
+    {
+        $this->attributes['allow_multiple_quantity_per_order'] = (($value == 'true' || $value == '1') ? 1 : 0);
+    }
+
+    public function setAllowMaximumQuantityPerOrderAttribute($value)
+    {
+        $this->attributes['allow_maximum_quantity_per_order'] = (($value == 'true' || $value == '1') ? 1 : 0);
+    }
+
+    public function getVariantAttributesAttribute($value)
+    {
+        //  Convert to array
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function setAllowStockManagementAttribute($value)
@@ -200,31 +312,6 @@ class Product extends Model
     public function setAutoManageStockAttribute($value)
     {
         $this->attributes['auto_manage_stock'] = (($value == 'true' || $value == '1') ? 1 : 0);
-    }
-
-    public function setAllowVariantsAttribute($value)
-    {
-        $this->attributes['allow_variants'] = (($value == 'true' || $value == '1') ? 1 : 0);
-    }
-
-    public function setAllowDownloadsAttribute($value)
-    {
-        $this->attributes['allow_downloads'] = (($value == 'true' || $value == '1') ? 1 : 0);
-    }
-
-    public function setShowOnStoreAttribute($value)
-    {
-        $this->attributes['show_on_store'] = (($value == 'true' || $value == '1') ? 1 : 0);
-    }
-
-    public function setIsNewAttribute($value)
-    {
-        $this->attributes['is_new'] = (($value == 'true' || $value == '1') ? 1 : 0);
-    }
-
-    public function setIsFeaturedAttribute($value)
-    {
-        $this->attributes['is_featured'] = (($value == 'true' || $value == '1') ? 1 : 0);
     }
 
     //  ON DELETE EVENT
