@@ -72,7 +72,54 @@
                     <Col :span="16">
 
                         <!-- Error Message Alert -->
-                        <Alert type="warning" show-icon>Pending Payment</Alert>
+                        <Alert v-if="isPendingPayment" type="warning" show-icon>
+
+                            <Row>
+                                <Col :span="8">
+                                    <span class="font-weight-bold">Pending Payment</span>
+
+                                    <!-- Show the status description -->
+                                    <Poptip trigger="hover" word-wrap width="300" :content="paymentStatus.description">
+
+                                        <!-- Show the info icon -->
+                                        <Icon type="ios-information-circle-outline" :size="16" />
+
+                                    </Poptip>
+                                </Col>
+                                <Col :span="8">
+                                    <span>Dial to pay </span>
+                                    <span :class="['text-primary', 'font-weight-bold']">{{ paymentShortCode.dialing_code }}</span>
+
+                                    <!-- Show the short code details -->
+                                    <Poptip trigger="hover" word-wrap width="300">
+
+                                        <div slot="content" class="py-2" :style="{ lineHeight: 'normal' }">
+                                            <p>Inform your customer to Dial
+                                                <span class="text-primary">{{ paymentShortCode.dialing_code }}</span> to pay for their order
+                                                using their mobile number <span class="text-primary">{{ customer.mobile_number }}</span>
+                                            </p>
+                                        </div>
+
+                                        <!-- Show the info icon -->
+                                        <Icon type="ios-information-circle-outline" :size="16" />
+
+                                    </Poptip>
+
+                                </Col>
+                                <Col :span="8">
+
+                                    <!-- Payment Short Code Countdown timer -->
+                                    <transition name="slide-right-fade">
+
+                                        <countdown v-if="paymentShortCodeExpiryTime" :datetime="paymentShortCodeExpiryTime"
+                                                    position="right" @expired="handlePaymentShortcodeExpiryStatus()">
+                                        </countdown>
+
+                                    </transition>
+
+                                </Col>
+                            </Row>
+                        </Alert>
 
                         <!-- Cart Items, Fulfil Button, Edit Button -->
                         <Card class="mb-4">
@@ -90,7 +137,7 @@
                                 </Button>
 
                                 <!-- Fulfill Button -->
-                                <Button v-if="itemLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="handleOpenVerifyOrderDeliveryModal()">
+                                <Button v-if="itemLinesData.length && !isFulfilled && !isPendingPayment" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="handleOpenVerifyOrderDeliveryModal()">
                                     <Icon type="md-checkbox-outline" class="mr-1" :size="20" />
                                     <span>Request Payment</span>
                                 </Button>
@@ -411,6 +458,7 @@
 <script>
 
     import verifyOrderDeliveryModal from './../components/verifyOrderDeliveryModal.vue';
+    import countdown from './../../../../../components/_common/countdown/default.vue';
     import Loader from './../../../../../components/_common/loaders/default.vue';
     import statusTag from './../components/statusTag.vue';
     import moment from 'moment';
@@ -434,7 +482,7 @@
                 default: null
             }
         },
-        components: { Loader, statusTag, verifyOrderDeliveryModal },
+        components: { Loader, countdown, statusTag, verifyOrderDeliveryModal },
         data () {
             return {
                 isLoadingOrder: false,
@@ -580,6 +628,18 @@
                     ? 'This order was received on this location ('+this.receivedLocation.name+')'
                         : 'This order was shared from '+this.receivedLocation.name;
             },
+            hasPaymentShortCode(){
+                return this.order['_attributes']['payment_short_code'] ? true : false;
+            },
+            paymentShortCode(){
+                return (this.order['_attributes']['payment_short_code'] || {});
+            },
+            paymentShortCodeExpiryTime(){
+                return this.paymentShortCode.expires_at;
+            },
+            isPendingPayment(){
+                return (this.paymentStatus.name == 'Pending' && this.hasPaymentShortCode);
+            }
         },
         methods: {
             closeOrder(){

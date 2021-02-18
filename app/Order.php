@@ -2,6 +2,7 @@
 
 namespace App;
 
+use Carbon\Carbon;
 use App\Traits\OrderTraits;
 use App\Traits\CommonTraits;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ class Order extends Model
 {
     use CommonTraits, OrderTraits;
 
-    protected $with = ['status', 'paymentStatus', 'fulfillmentStatus', 'activeCart', 'deliveryLine'];
+    protected $with = ['status', 'paymentStatus', 'fulfillmentStatus', 'activeCart', 'deliveryLine', 'paymentShortCode'];
 
     /**
      * The table associated with the model.
@@ -219,6 +220,34 @@ class Order extends Model
     public function deliveryLine()
     {
         return $this->hasOne('App\DeliveryLine');
+    }
+
+    /**
+     *  Returns the short codes owned by this order
+     *  Only short codes that are not expired are
+     *  valid.
+     */
+    public function shortCodes()
+    {
+        return $this->morphMany(ShortCode::class, 'owner')->where('expires_at', '>', Carbon::now())->latest();
+    }
+
+    /**
+     *  Returns the short code owned by this order
+     *  Only short codes that are not expired are
+     *  valid.
+     */
+    public function shortCode()
+    {
+        return $this->morphOne(ShortCode::class, 'owner')->where('expires_at', '>', Carbon::now())->latest();
+    }
+
+    /**
+     *  Returns the payment short codes owned by this order
+     */
+    public function paymentShortCode()
+    {
+        return $this->shortCode()->where('action', 'payment');
     }
 
     /** ATTRIBUTES

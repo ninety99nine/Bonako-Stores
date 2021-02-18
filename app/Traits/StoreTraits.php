@@ -336,7 +336,7 @@ trait StoreTraits
             $this->generateResourceVisitShortCode();
 
             //  Expire payment short codes
-            $this->expirePaymentShortCodes();
+            $this->expirePaymentShortCode();
 
             //  Return the new subscription
             return $subscription;
@@ -412,12 +412,12 @@ trait StoreTraits
     /**
      *  This method expires the store payment short codes
      */
-    public function expirePaymentShortCodes()
+    public function expirePaymentShortCode()
     {
         try {
 
-            //  Expire payment short codes
-            $this->paymentShortCodes()->update([
+            //  Expire payment short code
+            $this->paymentShortCode()->update([
                 'expires_at' => Carbon::now()
             ]);
 

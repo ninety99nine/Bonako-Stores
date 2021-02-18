@@ -29,7 +29,7 @@
 
                     return 'success';
 
-                }else if(['Unfulfilled', 'Unpaid'].includes(this.status.name)){
+                }else if(['Unfulfilled', 'Unpaid', 'Pending'].includes(this.status.name)){
 
                     return 'warning';
 

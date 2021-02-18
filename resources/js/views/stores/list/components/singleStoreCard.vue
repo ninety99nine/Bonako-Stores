@@ -207,7 +207,7 @@
                 return this.store['_links']['bos:generate-payment-shortcode'].href;
             },
             hasSubscribed(){
-                return this.store['_attributes']['has_subscribed'];
+                return this.store['_attributes']['subscription'] ? true : false;
             },
             subscription(){
                 return (this.store['_attributes']['subscription'] || {});
@@ -219,7 +219,7 @@
                 return this.subscription.end_at;
             },
             hasPaymentShortCode(){
-                return this.store['_attributes']['has_payment_short_code'];
+                return this.store['_attributes']['payment_short_code'] ? true : false;
             },
             paymentShortCode(){
                 return (this.store['_attributes']['payment_short_code'] || {});

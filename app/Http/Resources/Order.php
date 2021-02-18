@@ -38,7 +38,8 @@ class Order extends JsonResource
             '_attributes' => [
                 'is_paid' => $this->isPaid(),
                 'is_fulfilled' => $this->isFulfilled(),
-                'resource_type' => $this->resource_type
+                'resource_type' => $this->resource_type,
+                'payment_short_code' => collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']),
             ],
 
             /*  Resource Links */

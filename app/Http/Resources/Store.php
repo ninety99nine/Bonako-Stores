@@ -35,14 +35,10 @@ class Store extends JsonResource
 
             /*  Attributes  */
             '_attributes' => [
-                'subscription' => $this->subscription,
-                'visit_short_code' => $this->visit_short_code,
-                'payment_short_code' => $this->payment_short_code,
-
-                'has_subscribed' => $this->has_subscribed,
-                'has_visit_short_code' => $this->has_visit_short_code,
-                'has_payment_short_code' => $this->has_payment_short_code,
-                'resource_type' => $this->resource_type
+                'resource_type' => $this->resource_type,
+                'visit_short_code' => collect($this->visitShortCode)->only(['dialing_code', 'expires_at']),
+                'payment_short_code' => collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']),
+                'subscription' => collect($this->myActiveSubscription)->only(['id', 'subscription_plan_id', 'start_at', 'end_at'])
             ],
 
             /*  Resource Links */

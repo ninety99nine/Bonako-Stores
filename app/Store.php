@@ -14,7 +14,7 @@ class Store extends Model
     use StoreTraits;
     use CommonTraits;
 
-    protected $with = ['visitShortCodes', 'paymentShortCodes', 'myActiveSubscriptions'];
+    protected $with = ['visitShortCode', 'paymentShortCode', 'myActiveSubscription'];
 
     /**
      * The table associated with the model.
@@ -120,25 +120,31 @@ class Store extends Model
     }
 
     /*
-     *  Returns the current user's active subscriptions
-     *  of this store
+     *  Returns subscription of this store
      */
-    public function myActiveSubscriptions()
+    public function subscription()
     {
-        $user_id = auth()->user()->id;
-
-        return $this->subscriptions()->active()->asOwner($user_id);
+        return $this->hasOne('App\Subscription')->latest();
     }
 
     /*
-     *  Returns the current user's inactive subscriptions
-     *  of this store
+     *  Returns the current user's active subscriptions of this store
      */
-    public function myInactiveSubscriptions()
+    public function myActiveSubscription()
     {
         $user_id = auth()->user()->id;
 
-        return $this->subscriptions()->inactive()->asOwner($user_id);
+        return $this->subscription()->active()->asOwner($user_id);
+    }
+
+    /*
+     *  Returns the short codes owned by this store
+     *  Only short codes that are not expired are
+     *  valid.
+     */
+    public function shortCodes()
+    {
+        return $this->morphMany(ShortCode::class, 'owner')->where('expires_at', '>', Carbon::now())->latest();
     }
 
     /*
@@ -146,26 +152,25 @@ class Store extends Model
      *  Only short codes that are not expired are
      *  valid.
      */
-    public function shortCodes()
+    public function shortCode()
     {
-        return $this->morphMany(ShortCode::class, 'owner')
-                    ->where('expires_at', '>', Carbon::now());
+        return $this->morphOne(ShortCode::class, 'owner')->where('expires_at', '>', Carbon::now())->latest();
     }
 
     /*
      *  Returns the visit short codes owned by this store
      */
-    public function visitShortCodes()
+    public function visitShortCode()
     {
-        return $this->shortCodes()->where('action', 'visit');
+        return $this->shortCode()->where('action', 'visit');
     }
 
     /*
      *  Returns the payment short codes owned by this store
      */
-    public function paymentShortCodes()
+    public function paymentShortCode()
     {
-        return $this->shortCodes()->where('action', 'payment');
+        return $this->shortCode()->where('action', 'payment');
     }
 
     /*
@@ -181,58 +186,8 @@ class Store extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'has_visit_short_code', 'visit_short_code', 'has_payment_short_code', 'payment_short_code',
-        'has_subscribed', 'subscription'
+        'resource_type'
     ];
-
-    /*
-     *  Ckecks if we have a visit short code
-     */
-    public function getHasVisitShortCodeAttribute()
-    {
-        return collect($this->visitShortCodes)->count() ? true : false;
-    }
-
-    /*
-     *  Returns the visit short code
-     */
-    public function getVisitShortCodeAttribute()
-    {
-        return $this->has_visit_short_code ? collect($this->visitShortCodes)->first()->only(['dialing_code', 'expires_at']) : null;
-    }
-
-    /*
-     *  Ckecks if we have a payment short code
-     */
-    public function getHasPaymentShortCodeAttribute()
-    {
-        return collect($this->paymentShortCodes)->count() ? true : false;
-    }
-
-    /*
-     *  Returns the payment short code
-     */
-    public function getPaymentShortCodeAttribute()
-    {
-        return $this->has_payment_short_code ? collect($this->paymentShortCodes)->first()->only(['dialing_code', 'expires_at']) : null;
-    }
-
-    /*
-     *  Ckecks if we have an active subscription
-     */
-    public function getHasSubscribedAttribute()
-    {
-        return collect($this->myActiveSubscriptions)->count() ? true : false;
-    }
-
-    /*
-     *  Returns the payment short code
-     */
-    public function getSubscriptionAttribute()
-    {
-        return $this->has_subscribed ? collect($this->myActiveSubscriptions)->first()
-                                        ->only(['id', 'subscription_plan_id', 'start_at', 'end_at']) : null;
-    }
 
     public function setOnlineAttribute($value)
     {
