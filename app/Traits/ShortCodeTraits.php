@@ -103,6 +103,7 @@ trait ShortCodeTraits
                     //  Update the available short code owner and datetime of expiry
                     $available_short_code->update([
                         'owner_id' => $model->id,
+                        'owner_type' => $model->resource_type,
                         'expires_at' => $expires_at
                     ]);
 
@@ -213,8 +214,7 @@ trait ShortCodeTraits
     public function getAvailableResource($action, $model)
     {
         $search = [
-            'action' => $action,
-            'owner_type' => $model->resource_type
+            'action' => $action
         ];
 
         return \App\ShortCode::where($search)->where('expires_at', '<', Carbon::now())->latest()->first();
@@ -226,8 +226,7 @@ trait ShortCodeTraits
     public function generateResourceCode($action, $model)
     {
         $search = [
-            'action' => $action,
-            'owner_type' => $model->resource_type
+            'action' => $action
         ];
 
         //  Count the total number of similar short codes
@@ -236,11 +235,11 @@ trait ShortCodeTraits
         //  The new code must be an increment of this total
         $code = ($total + 1);
 
-        //  If this is a store resource type with an action equal to "visit"
-        if( $model->resource_type == 'store' && $action == 'visit' ){
+        //  If this action is equal to "visit"
+        if( $action == 'visit' ){
 
-            /** Add 10 to offset so that every store related
-             *  short code can always have a code starting
+            /** Add 10 to offset so that every visit related
+             *  short code can always has a code starting
              *  from 10 and above.
              */
             $code += 10;

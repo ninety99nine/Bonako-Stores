@@ -54,7 +54,6 @@ class ShortCode extends Model
 
         $code = $this->code;
 
-
         if( $this->action == 'payment' ){
 
             //  Add 2 leading Zero's
