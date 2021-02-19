@@ -73,6 +73,12 @@ class Order extends JsonResource
                     'title' => 'The POST route to send payment request to customer'
                 ],
 
+                //  Link to pay
+                'bos:pay' => [
+                    'href' => route('order-pay', ['order_id' => $this->id]),
+                    'title' => 'The POST route to pay order'
+                ],
+
                 //  Link to shared locations
                 'bos:shared-locations' => [
                     'href' => route('order-shared-locations', ['order_id' => $this->id]),

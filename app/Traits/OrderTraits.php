@@ -912,6 +912,72 @@ trait OrderTraits
     }
 
     /**
+     *  This method sends the payment success sms to the customer
+     */
+    public function sendPaymentConfirmationSms($user = null)
+    {
+        try {
+
+            //  Get the order store
+            $store = $this->getResourceStore();
+
+            //  Get the order customer
+            $customer = $this->customer;
+
+            //  Get the order active cart
+            $active_cart = $this->activeCart;
+
+            //  If we have the store, customer and active cart
+            if( $store && $customer && $active_cart ){
+
+                //	Set the payment date
+                $payment_date = \Carbon\Carbon::now()->format('d M @ H:i');
+
+                //  Set the grand total
+                $grand_total = number_format($active_cart->grand_total, 2, '.', ',');
+
+                //  Set the currency symbol
+                $currency_symbol = $active_cart->currency->symbol;
+
+                //  Set the total
+                $total = $currency_symbol.$grand_total;
+
+                //  Craft the sms message
+                $message = $store->name.': Hi '.$customer->first_name.
+                           ', payment successful for order #'.$this->number.
+                           ' Amount '.$total.', '.$payment_date;
+
+                $type = 'Order payment';
+
+                $data = [
+
+                    //  Set the type on the data
+                    'type' => $type,
+
+                    //  Set the message on the data
+                    'message' => $message,
+
+                    //  Set the mobile_number on the data
+                    'mobile_number' => $this->customer->mobile_number
+
+                ];
+
+                //  Set the sms owning model
+                $model = $this;
+
+                //  Create a new sms and send
+                return ( new \App\Sms() )->createResource($data, $model, $user)->sendSms();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method generates a new order number
      */
     public function deliverResource($data = [], $user)
@@ -985,7 +1051,7 @@ trait OrderTraits
     public function sendResourcePaymentRequest($user = null)
     {
         try {
-            
+
             //  Generate the payment short code
             $this->generateResourcePaymentShortCode($user);
 
@@ -995,7 +1061,7 @@ trait OrderTraits
             //  Reload the payment short code
             $this->load('paymentShortCode');
 
-            //  Send the payment request sms 
+            //  Send the payment request sms
             $this->sendPaymentRequestSms($user);
 
             //  Return the current order instance
@@ -1007,6 +1073,73 @@ trait OrderTraits
 
         }
 
+    }
+
+    /**
+     *  This method pays for an order
+     */
+    public function payResource($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Generate a new transaction
+            $this->createResourceTransaction($data);
+
+            //  Set the order status to paid
+            $this->setPaymentStatusToPaid();
+
+            //  Send the payment confirmation sms
+            $this->sendPaymentConfirmationSms($user);
+
+            //  Return the current order instance
+            return $this->fresh();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method creates a new order transaction
+     */
+    public function createResourceTransaction($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Merge the data with additional fields
+            $data = array_merge($data, [
+
+                //  Set the transaction type on the data
+                'type' => 'order payment',
+
+                //  Set the transaction amount on the data
+                'amount' => $this->activeCart->grand_total,
+
+                //  Set the transaction description on the data
+                'description' => 'Payment for order #'.$this->number
+
+            ]);
+
+            //  Set the transaction owning model
+            $model = $this;
+
+            //  Create a new transaction
+            return ( new \App\Transaction() )->createResource($data, $model);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**

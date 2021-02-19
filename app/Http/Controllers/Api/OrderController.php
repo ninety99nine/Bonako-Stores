@@ -158,9 +158,23 @@ class OrderController extends Controller
     public function sendOrderPaymentRequest(Request $request, $order_id)
     {
         try {
-            
+
             //  Send the order payment request
             return (new Order())->getResource($order_id)->sendResourcePaymentRequest($this->user)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function payOrder(Request $request, $order_id)
+    {
+        try {
+
+            //  Send the order payment request
+            return (new Order())->getResource($order_id)->payResource($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 

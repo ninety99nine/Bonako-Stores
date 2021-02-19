@@ -154,6 +154,7 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::put('/uncancel', 'OrderController@uncancelOrder')->name('uncancel');
 
             Route::post('/payment-request', 'OrderController@sendOrderPaymentRequest')->name('payment-request');
+            Route::post('/pay', 'OrderController@payOrder')->name('pay');
 
             Route::get('/item-lines', 'OrderController@getOrderItemLines')->name('item-lines');
             Route::get('/coupon-lines', 'OrderController@getOrderCouponLines')->name('coupon-lines');
