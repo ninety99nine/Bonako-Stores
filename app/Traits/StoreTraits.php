@@ -314,7 +314,7 @@ trait StoreTraits
     /**
      *  This method generates a store subscription
      */
-    public function generateResourceSubscription($data = [])
+    public function generateResourceSubscription($data = [], $user)
     {
         try {
 
@@ -337,6 +337,12 @@ trait StoreTraits
 
             //  Expire payment short codes
             $this->expirePaymentShortCode();
+
+            //  Reload the visit short code
+            $this->load('visitShortCode');
+
+            //  Send the payment request sms
+            $this->sendSubscriptionSuccessSms($user);
 
             //  Return the new subscription
             return $subscription;
@@ -439,6 +445,56 @@ trait StoreTraits
             $this->shortCodes()->update([
                 'expires_at' => Carbon::now()
             ]);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sends the subscription success message to the merchant
+     */
+    public function sendSubscriptionSuccessSms($user = null)
+    {
+        try {
+
+            //  Set the store visit short code
+            $visit_short_code = $this->visitShortCode;
+
+            //  If we have the visit short code
+            if( $visit_short_code ){
+
+                //  Set expiry to the same time as the subscription end datetime
+                $expiry_date = Carbon::parse($visit_short_code->expires_at)->format('Y-m-d H:i');
+
+                //  Craft the sms message
+                $message = 'Subscription for '.$this->name.' successful. Dial '.$visit_short_code->dialing_code.
+                           ' to visit your store. Expires on '.$expiry_date;
+
+                $type = 'Store subscription confirmation';
+
+                $data = [
+
+                    //  Set the type on the data
+                    'type' => $type,
+
+                    //  Set the message on the data
+                    'message' => $message,
+
+                    //  Set the mobile_number on the data
+                    'mobile_number' => $user->mobile_number
+
+                ];
+
+                //  Set the sms owning model
+                $model = $this;
+
+                //  Create a new sms and send
+                return ( new \App\Sms() )->createResource($data, $model, $user)->sendSms();
+
+            }
 
         } catch (\Exception $e) {
 

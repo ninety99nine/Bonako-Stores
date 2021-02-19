@@ -90,7 +90,7 @@ class StoreController extends Controller
         try {
 
             //  Return the generated subscription
-            return (new Store())->getResource($store_id)->generateResourceSubscription($request)->convertToApiFormat();
+            return (new Store())->getResource($store_id)->generateResourceSubscription($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 
