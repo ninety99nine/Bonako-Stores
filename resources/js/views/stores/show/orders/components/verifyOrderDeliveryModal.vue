@@ -108,8 +108,8 @@
             deliveryLineMobileNumber(){
                 return this.deliveryLine.mobile_number
             },
-            fulfilOrderUrl(){
-                return (this.order || {})['_links']['bos:fulfil'].href;
+            deliverOrderUrl(){
+                return (this.order || {})['_links']['bos:deliver'].href;
             },
             canVerify(){
                 return ((this.code || {}).length == 6);
@@ -159,19 +159,19 @@
                 //  Start loader
                 self.isVerifying = true;
 
-                var fulfilData = {
+                var deliverData = {
                     delivery_confirmation_code: this.code
                 }
 
                 //  Use the api call() function, refer to api.js
-                api.call('put', this.fulfilOrderUrl, fulfilData)
+                api.call('put', this.deliverOrderUrl, deliverData)
                     .then(({data}) => {
 
                     //  Stop loader
                     self.isVerifying = false;
 
                     self.$Message.success({
-                        content: 'Order Fulfilled!',
+                        content: 'Order Delivered!',
                         duration: 6
                     });
 

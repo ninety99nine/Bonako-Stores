@@ -11,7 +11,7 @@ class Order extends Model
 {
     use CommonTraits, OrderTraits;
 
-    protected $with = ['status', 'paymentStatus', 'fulfillmentStatus', 'activeCart', 'deliveryLine', 'paymentShortCode'];
+    protected $with = ['status', 'paymentStatus', 'deliveryStatus', 'activeCart', 'deliveryLine', 'paymentShortCode'];
 
     /**
      * The table associated with the model.
@@ -45,7 +45,7 @@ class Order extends Model
         'request_customer_rating_at',
 
         /*  Status Info  */
-        'status_id', 'payment_status_id', 'fulfillment_status_id',
+        'status_id', 'payment_status_id', 'delivery_status_id',
 
         /*  Cancellation Info  */
         'cancellation_reason',
@@ -77,20 +77,20 @@ class Order extends Model
 
     /*
      *  Scope:
-     *  Returns orders that are fulfilled
+     *  Returns orders that are delivered
      */
-    public function scopeFulfilled($query)
+    public function scopeDelivered($query)
     {
-        return $query->where('fulfillment_status', 'fulfilled')->open();
+        return $query->where('delivery_status', 'delivered')->open();
     }
 
     /*
      *  Scope:
-     *  Returns orders that are unfulfilled
+     *  Returns orders that are undelivered
      */
-    public function scopeUnfulfilled($query)
+    public function scopeUndelivered($query)
     {
-        return $query->where('fulfillment_status', 'unfulfilled')->open();
+        return $query->where('delivery_status', 'undelivered')->open();
     }
 
     /*
@@ -199,9 +199,9 @@ class Order extends Model
     }
 
     /**
-     *  Returns the order fulfillment status
+     *  Returns the order delivery status
      */
-    public function fulfillmentStatus()
+    public function deliveryStatus()
     {
         return $this->belongsTo('App\Status');
     }

@@ -141,12 +141,26 @@ class OrderController extends Controller
         }
     }
 
-    public function fulfilOrder(Request $request, $order_id)
+    public function deliverOrder(Request $request, $order_id)
     {
         try {
 
-            //  Fulfill the order
-            return (new Order())->getResource($order_id)->fulfilResource($request, $this->user)->convertToApiFormat();
+            //  Deliver the order
+            return (new Order())->getResource($order_id)->deliverResource($request, $this->user)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function sendOrderPaymentRequest(Request $request, $order_id)
+    {
+        try {
+            
+            //  Send the order payment request
+            return (new Order())->getResource($order_id)->sendResourcePaymentRequest($this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 
@@ -186,7 +200,7 @@ class OrderController extends Controller
         }
     }
 
-    public function fulfilOrder( Request $request, $order_id )
+    public function deliverOrder( Request $request, $order_id )
     {
         try {
 
@@ -196,8 +210,8 @@ class OrderController extends Controller
             //  Check if the order exists
             if ($order) {
 
-                //  Fulfil the order
-                return $order->fulfilResource($request, $this->user);
+                //  Deliver the order
+                return $order->deliverResource($request, $this->user);
 
             } else {
 

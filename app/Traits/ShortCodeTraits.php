@@ -67,8 +67,8 @@ trait ShortCodeTraits
             //  If this is a payment short code
             if( $action == 'payment' ){
 
-            //  Set expiry after 24 hours
-            $expires_at = Carbon::now()->addHours(24)->format('Y-m-d H:i:s');
+                //  Set expiry after 24 hours
+                $expires_at = Carbon::now()->addHours(24)->format('Y-m-d H:i:s');
 
             //  If this is a visit store short code
             }elseif( $action == 'visit' && $model->resource_type == 'store' ){

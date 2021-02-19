@@ -25,11 +25,11 @@
         computed: {
             color(){
 
-                if(['Open', 'Fulfilled', 'Paid'].includes(this.status.name)){
+                if(['Open', 'Delivered', 'Paid'].includes(this.status.name)){
 
                     return 'success';
 
-                }else if(['Unfulfilled', 'Unpaid', 'Pending'].includes(this.status.name)){
+                }else if(['Undelivered', 'Unpaid', 'Pending'].includes(this.status.name)){
 
                     return 'warning';
 

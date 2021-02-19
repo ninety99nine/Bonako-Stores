@@ -480,11 +480,11 @@ class LocationController extends Controller
             //  Get the limit
             $limit = $request->input('limit');
 
-            //  Get the fulfillment status e.g "open" or "cancelled"
+            //  Get the delivery status e.g "open" or "cancelled"
             $status = $request->input('status');
 
-            //  Get the fulfillment status e.g "fulfilled" or "unfulfilled"
-            $fulfillment_status = $request->input('fulfillment_status');
+            //  Get the delivery status e.g "delivered" or "undelivered"
+            $delivery_status = $request->input('delivery_status');
 
             //  Get the is_customer status e.g "0" or "1"
             $is_customer = $request->input('is_customer');
@@ -508,14 +508,14 @@ class LocationController extends Controller
                 $orders = $orders->cancelled();
             }
 
-            //  If we want only fulfilled orders
-            if ($fulfillment_status === 'fulfilled') {
-                //  Only fetch fulfilled orders
-                $orders = $orders->fulfilled();
-            //  If we want only unfulfilled orders
-            } elseif ($fulfillment_status === 'unfulfilled') {
-                //  Only fetch unfulfilled orders
-                $orders = $orders->unfulfilled();
+            //  If we want only delivered orders
+            if ($delivery_status === 'delivered') {
+                //  Only fetch delivered orders
+                $orders = $orders->delivered();
+            //  If we want only undelivered orders
+            } elseif ($delivery_status === 'undelivered') {
+                //  Only fetch undelivered orders
+                $orders = $orders->undelivered();
             }
 
             //  If we want to search

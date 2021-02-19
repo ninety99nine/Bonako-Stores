@@ -39,7 +39,7 @@
                             <div :class="['d-flex', 'mt-1']" :style="{ alignItems: 'flex-end' }">
                                 <statusTag :status="status"></statusTag>
                                 <statusTag :status="paymentStatus"></statusTag>
-                                <statusTag :status="fulfillmentStatus"></statusTag>
+                                <statusTag :status="deliveryStatus"></statusTag>
                             </div>
 
                         </Col>
@@ -75,6 +75,7 @@
                         <Alert v-if="isPendingPayment" type="warning" show-icon>
 
                             <Row>
+
                                 <Col :span="8">
                                     <span class="font-weight-bold">Pending Payment</span>
 
@@ -86,7 +87,8 @@
 
                                     </Poptip>
                                 </Col>
-                                <Col :span="8">
+
+                                <Col v-if="hasPaymentShortCode" :span="8">
                                     <span>Dial to pay </span>
                                     <span :class="['text-primary', 'font-weight-bold']">{{ paymentShortCode.dialing_code }}</span>
 
@@ -94,10 +96,7 @@
                                     <Poptip trigger="hover" word-wrap width="300">
 
                                         <div slot="content" class="py-2" :style="{ lineHeight: 'normal' }">
-                                            <p>Inform your customer to Dial
-                                                <span class="text-primary">{{ paymentShortCode.dialing_code }}</span> to pay for their order
-                                                using their mobile number <span class="text-primary">{{ customer.mobile_number }}</span>
-                                            </p>
+                                            <p>Inform your customer to Dial <span class="text-primary">{{ paymentShortCode.dialing_code }}</span> to pay for their order using their mobile number <span class="text-primary">{{ customer.mobile_number }}</span></p>
                                         </div>
 
                                         <!-- Show the info icon -->
@@ -106,7 +105,8 @@
                                     </Poptip>
 
                                 </Col>
-                                <Col :span="8">
+
+                                <Col v-if="hasPaymentShortCode" :span="8">
 
                                     <!-- Payment Short Code Countdown timer -->
                                     <transition name="slide-right-fade">
@@ -118,10 +118,27 @@
                                     </transition>
 
                                 </Col>
+
+                                <Col v-if="!hasPaymentShortCode" :span="16">
+                                    <span>Payment shortcode expired</span>
+
+                                    <!-- Show the status description -->
+                                    <Poptip trigger="hover" word-wrap width="400">
+
+                                        <!-- Show the info icon -->
+                                        <Icon type="ios-information-circle-outline" :size="16" />
+
+                                        <div slot="content" class="py-2" :style="{ lineHeight: 'normal' }">
+                                            <p>The payment shortcode expired before the customer could pay. Generate a new payment shortcode by clicking the <span class="text-primary">Request Payment</span> button. Please inform your customer before sending a payment shortcode.</p>
+                                        </div>
+
+                                    </Poptip>
+                                </Col>
+
                             </Row>
                         </Alert>
 
-                        <!-- Cart Items, Fulfil Button, Edit Button -->
+                        <!-- Cart Items, Deliver Button, Edit Button -->
                         <Card class="mb-4">
 
                             <div class="clearfix">
@@ -130,20 +147,20 @@
                                     Cart Items
                                 </span>
 
-                                <!-- Fulfill Button -->
-                                <Button v-if="itemLinesData.length && !isFulfilled" type="success" size="default" :class="['float-right']" @click.native="handleOpenVerifyOrderDeliveryModal()">
+                                <!-- Deliver Button -->
+                                <Button v-if="itemLinesData.length && !isDelivered" type="success" size="default" :class="['float-right']" @click.native="handleOpenVerifyOrderDeliveryModal()">
                                     <Icon type="md-checkbox-outline" class="mr-1" :size="20" />
-                                    <span>Fulfil</span>
+                                    <span>Delivered</span>
                                 </Button>
 
-                                <!-- Fulfill Button -->
-                                <Button v-if="itemLinesData.length && !isFulfilled && !isPendingPayment" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="handleOpenVerifyOrderDeliveryModal()">
+                                <!-- Deliver Button -->
+                                <Button v-if="itemLinesData.length && !isDelivered && !hasPaymentShortCode" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="handleOpenGeneratePaymentShortcodeModal()">
                                     <Icon type="md-checkbox-outline" class="mr-1" :size="20" />
                                     <span>Request Payment</span>
                                 </Button>
 
                                 <!-- Edit Button -->
-                                <Button v-if="itemLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
+                                <Button v-if="itemLinesData.length && !isDelivered" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
                                     <Icon type="ios-create-outline" class="mr-1" :size="20" />
                                     <span>Edit</span>
                                 </Button>
@@ -244,7 +261,7 @@
                                 </span>
 
                                 <!-- Edit Button -->
-                                <Button v-if="couponLinesData.length && !isFulfilled" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
+                                <Button v-if="couponLinesData.length && !isDelivered" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="closeOrder()">
                                     <Icon type="ios-create-outline" class="mr-1" :size="20" />
                                     <span>Edit</span>
                                 </Button>
@@ -443,6 +460,19 @@
 
                         </template>
 
+                        <!--
+                            MODAL TO GENERATE PAYMENT SHORTCODE
+                        -->
+                        <template v-if="isOpenGeneratePaymentShortcode">
+
+                            <generatePaymentShortcodeModal
+                                :order="order"
+                                @sentPaymentRequest="handleSentPaymentRequest"
+                                @visibility="isOpenGeneratePaymentShortcode = $event">
+                            </generatePaymentShortcodeModal>
+
+                        </template>
+
                     </Col>
 
                 </template>
@@ -457,6 +487,7 @@
 
 <script>
 
+    import generatePaymentShortcodeModal from './../components/generatePaymentShortcodeModal.vue';
     import verifyOrderDeliveryModal from './../components/verifyOrderDeliveryModal.vue';
     import countdown from './../../../../../components/_common/countdown/default.vue';
     import Loader from './../../../../../components/_common/loaders/default.vue';
@@ -480,9 +511,15 @@
             order: {
                 type: Object,
                 default: null
+            },
+            orders: {
+                type: Array,
+                default: function(){
+                    return [];
+                }
             }
         },
-        components: { Loader, countdown, statusTag, verifyOrderDeliveryModal },
+        components: { Loader, countdown, statusTag, generatePaymentShortcodeModal, verifyOrderDeliveryModal },
         data () {
             return {
                 isLoadingOrder: false,
@@ -524,6 +561,7 @@
                         slot: 'rate'
                     }
                 ],
+                isOpenGeneratePaymentShortcode: false,
                 isOpenVerifyOrderDeliveryModal: false,
                 isLoadingReceivedLocation: false,
                 isUpdatingSharedLocations: false,
@@ -549,14 +587,17 @@
             paymentStatus(){
                 return (this.localOrder._embedded.payment_status || {});
             },
-            fulfillmentStatus(){
-                return (this.localOrder._embedded.fulfillment_status || {});
+            deliveryStatus(){
+                return (this.localOrder._embedded.delivery_status || {});
             },
             isPaid(){
                 return this.localOrder._attributes.is_paid
             },
-            isFulfilled(){
-                return this.localOrder._attributes.is_fulfilled
+            isPendingPayment(){
+                return (this.paymentStatus.name == 'Pending');
+            },
+            isDelivered(){
+                return this.localOrder._attributes.is_delivered
             },
             activeCart(){
                 return (this.localOrder._embedded.active_cart || {});
@@ -605,7 +646,11 @@
                 return this.deliveryLine.delivery_type;
             },
             orderUrl(){
-                if( this.$route.params.order_url ){
+                if(this.localOrder){
+                    //  If we have the order url via order resource
+                    return this.localOrder['_links']['self']['href'];
+                }else{
+                    //  If we have the order url via route
                     return decodeURIComponent(this.$route.params.order_url);
                 }
             },
@@ -629,23 +674,25 @@
                         : 'This order was shared from '+this.receivedLocation.name;
             },
             hasPaymentShortCode(){
-                return this.order['_attributes']['payment_short_code'] ? true : false;
+                return this.localOrder['_attributes']['payment_short_code'] ? true : false;
             },
             paymentShortCode(){
-                return (this.order['_attributes']['payment_short_code'] || {});
+                return (this.localOrder['_attributes']['payment_short_code'] || {});
             },
             paymentShortCodeExpiryTime(){
                 return this.paymentShortCode.expires_at;
-            },
-            isPendingPayment(){
-                return (this.paymentStatus.name == 'Pending' && this.hasPaymentShortCode);
             }
         },
         methods: {
             closeOrder(){
 
-                //  If we have the order Url
-                if( this.orderUrl ){
+                //  If we have the orders
+                if( this.orders.length ){
+                    
+                    //  Notify parent to show orders list
+                    this.$emit('close');
+
+                }else{
 
                     /** Note that using router.push() or router.replace() does not allow us to make a
                      *  page refresh when visiting routes. This is undesirable at this moment since our
@@ -671,10 +718,6 @@
 
                     //  Visit the url
                     window.location.href = href;
-
-                }else{
-
-                    this.$emit('close');
 
                 }
             },
@@ -855,22 +898,37 @@
             handleOpenVerifyOrderDeliveryModal(){
                 this.isOpenVerifyOrderDeliveryModal = true;
             },
-            handleVerifiedOrder(order){
-                this.localOrder = _.cloneDeep(Object.assign({}, order));
-                this.$emit('verified', order);
+            handleOpenGeneratePaymentShortcodeModal(){
+                this.isOpenGeneratePaymentShortcode = true;
+            },
+            handleVerifiedOrder(){
+                //  Fetch the order
+                this.prepareOrder();
+            },
+            handleSentPaymentRequest(){
+                //  Make the modal is closed
+                this.isOpenGeneratePaymentShortcode = false;
+                
+                //  Fetch the order
+                this.prepareOrder();
+            },
+            handlePaymentShortcodeExpiryStatus(){
+
+                if( this.isPendingPayment && this.hasPaymentShortCode ){
+
+                    //  Fetch the order
+                    this.prepareOrder();
+
+                }
+
             },
             /** Note the use of "async" and "await". This helps us to perform the
              *  api call and wait for the response before we continue any futher
              */
             async prepareOrder(){
 
-                //  If we have the order Url
-                if( this.orderUrl ){
-
-                    //  Fetch the order
-                    await this.fetchOrder();
-
-                }
+                //  Fetch the order
+                await this.fetchOrder();
 
                 //  Fetch the received location
                 this.fetchReceivedLocation();

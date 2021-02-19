@@ -147,11 +147,13 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::put('/', 'OrderController@updateOrder')->name('update')->where('order_id', '[0-9]+');
             Route::delete('/', 'OrderController@deleteOrder')->name('delete')->where('order_id', '[0-9]+');
 
-            Route::put('/fulfil', 'OrderController@fulfilOrder')->name('fulfil');
-            Route::put('/unfulfil', 'OrderController@unfulfilOrder')->name('unfulfil');
+            Route::put('/deliver', 'OrderController@deliverOrder')->name('deliver');
+            Route::put('/undeliver', 'OrderController@undeliverOrder')->name('undeliver');
 
             Route::put('/cancel', 'OrderController@cancelOrder')->name('cancel');
             Route::put('/uncancel', 'OrderController@uncancelOrder')->name('uncancel');
+
+            Route::post('/payment-request', 'OrderController@sendOrderPaymentRequest')->name('payment-request');
 
             Route::get('/item-lines', 'OrderController@getOrderItemLines')->name('item-lines');
             Route::get('/coupon-lines', 'OrderController@getOrderCouponLines')->name('coupon-lines');
@@ -228,13 +230,13 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
         //  Single location orders: /locations/{location_id}/orders
         Route::get('/{location_id}/orders', 'LocationController@getLocationOrders')->name('location-orders')->where('location_id', '[0-9]+');
-        Route::get('/{location_id}/orders?fulfillment_status=fulfilled', 'LocationController@getLocationOrders')->name('location-fulfilled-orders')->where('location_id', '[0-9]+');
-        Route::get('/{location_id}/orders?fulfillment_status=unfulfilled', 'LocationController@getLocationOrders')->name('location-unfulfilled-orders')->where('location_id', '[0-9]+');
+        Route::get('/{location_id}/orders?delivery_status=delivered', 'LocationController@getLocationOrders')->name('location-delivered-orders')->where('location_id', '[0-9]+');
+        Route::get('/{location_id}/orders?delivery_status=undelivered', 'LocationController@getLocationOrders')->name('location-undelivered-orders')->where('location_id', '[0-9]+');
         Route::get('/{location_id}/orders?status=cancelled', 'LocationController@getLocationOrders')->name('location-cancelled-orders')->where('location_id', '[0-9]+');
 
         Route::get('/{location_id}/orders?is_customer=1', 'LocationController@getLocationOrders')->name('location-my-orders')->where('location_id', '[0-9]+');
-        Route::get('/{location_id}/orders?is_customer=1&fulfillment_status=fulfilled', 'LocationController@getLocationOrders')->name('location-my-fulfilled-orders')->where('location_id', '[0-9]+');
-        Route::get('/{location_id}/orders?is_customer=1&fulfillment_status=unfulfilled', 'LocationController@getLocationOrders')->name('location-my-unfulfilled-orders')->where('location_id', '[0-9]+');
+        Route::get('/{location_id}/orders?is_customer=1&delivery_status=delivered', 'LocationController@getLocationOrders')->name('location-my-delivered-orders')->where('location_id', '[0-9]+');
+        Route::get('/{location_id}/orders?is_customer=1&delivery_status=undelivered', 'LocationController@getLocationOrders')->name('location-my-undelivered-orders')->where('location_id', '[0-9]+');
         Route::get('/{location_id}/orders?is_customer=1&status=cancelled', 'LocationController@getLocationOrders')->name('location-my-cancelled-orders')->where('location_id', '[0-9]+');
 
         Route::get('/{location_id}/unrated-orders', 'LocationController@getLocationUnratedOrders')->name('location-unrated-orders')->where('location_id', '[0-9]+');
@@ -269,8 +271,8 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::get('/{order_id}', 'OrderController@getOrder')->name('order')->where('order_id', '[0-9]+');
         Route::delete('/{order_id}', 'OrderController@deleteOrder')->name('order-delete')->where('order_id', '[0-9]+');
 
-        //  Fulfillment related resources
-        Route::post('/{order_id}/fulfil', 'OrderController@fulfilOrder')->name('order-fulfillment')->where('order_id', '[0-9]+');
+        //  Delivery related resources
+        Route::post('/{order_id}/deliver', 'OrderController@deliverOrder')->name('order-delivery')->where('order_id', '[0-9]+');
         Route::post('/{order_id}/cancel', 'OrderController@cancelOrder')->name('order-cancellation')->where('order_id', '[0-9]+');
 
     });

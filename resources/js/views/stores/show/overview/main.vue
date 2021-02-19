@@ -84,7 +84,7 @@
                         <h2 :style="{ fontSize: '20px' }" :class="['text-center']">
                             <span :class="['font-weight-bold', 'text-center', 'border-bottom-dashed']"
                                 :style="{ fontSize: '1.5em' }">
-                                {{ locationUnfulfilledOrders }}
+                                {{ locationUndeliveredOrders }}
                             </span>
                         </h2>
 
@@ -187,9 +187,9 @@
                     return this.locationTotals.products.total;
                 }
             },
-            locationUnfulfilledOrders(){
+            locationUndeliveredOrders(){
                 if( this.locationTotals ){
-                    return this.locationTotals.orders.received.statuses.unfulfilled;
+                    return this.locationTotals.orders.received.statuses.undelivered;
                 }
             },
             visitShortCode(){

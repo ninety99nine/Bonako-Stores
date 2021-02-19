@@ -95,17 +95,17 @@ class OrderPolicy
     }
 
     /**
-     * Determine whether the user can fulfil the order.
+     * Determine whether the user can deliver the order.
      *
      * @param  \App\User  $user
      * @param  \App\Order  $order
      * @return mixed
      */
-    public function fulfil(User $user, Order $order)
+    public function deliver(User $user, Order $order)
     {
         try {
 
-            //  Only an Admin can fulfil this order
+            //  Only an Admin can deliver this order
             return $order->location->isAdmin($user->id);
 
         } catch (\Exception $e) {

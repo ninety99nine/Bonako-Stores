@@ -20,7 +20,7 @@ class CreateOrdersTable extends Migration
             /*  Status Info  */
             $table->string('status_id')->nullable();
             $table->string('payment_status_id')->nullable();
-            $table->string('fulfillment_status_id')->nullable();
+            $table->string('delivery_status_id')->nullable();
 
             /*  Cancellation Reason  */
             $table->string('cancellation_reason')->nullable();

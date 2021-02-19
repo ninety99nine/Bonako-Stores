@@ -185,18 +185,18 @@ class Location extends JsonResource
                         'total' => $this->orders()->count(),
                     ],
 
-                    //  Link to the fulfilled orders
-                    'bos:received-fulfilled-orders' => [
-                        'href' => route('my-store-location-fulfilled-orders', ['store_id' => $this->store_id, 'location_id' => $this->id]),
-                        'title' => 'The location orders that are fulfilled',
-                        'total' => $this->orders()->fulfilled()->count(),
+                    //  Link to the delivered orders
+                    'bos:received-delivered-orders' => [
+                        'href' => route('my-store-location-delivered-orders', ['store_id' => $this->store_id, 'location_id' => $this->id]),
+                        'title' => 'The location orders that are delivered',
+                        'total' => $this->orders()->delivered()->count(),
                     ],
 
-                    //  Link to the unfulfilled orders
-                    'bos:received-unfulfilled-orders' => [
-                        'href' => route('my-store-location-unfulfilled-orders', ['store_id' => $this->store_id, 'location_id' => $this->id]),
-                        'title' => 'The location orders that are unfulfilled',
-                        'total' => $this->orders()->unfulfilled()->count(),
+                    //  Link to the undelivered orders
+                    'bos:received-undelivered-orders' => [
+                        'href' => route('my-store-location-undelivered-orders', ['store_id' => $this->store_id, 'location_id' => $this->id]),
+                        'title' => 'The location orders that are undelivered',
+                        'total' => $this->orders()->undelivered()->count(),
                     ],
 
                     //  Link to the cancelled orders
@@ -213,18 +213,18 @@ class Location extends JsonResource
                         'total' => $this->orders()->userIsCustomer()->count(),
                     ],
 
-                    //  Link to my fulfilled orders
-                    'bos:sent-fulfilled-orders' => [
-                        'href' => route('location-my-fulfilled-orders', ['location_id' => $this->id]),
-                        'title' => 'TThe location orders that have been placed by this user and are fulfilled',
-                        'total' => $this->orders()->userIsCustomer()->fulfilled()->count(),
+                    //  Link to my delivered orders
+                    'bos:sent-delivered-orders' => [
+                        'href' => route('location-my-delivered-orders', ['location_id' => $this->id]),
+                        'title' => 'TThe location orders that have been placed by this user and are delivered',
+                        'total' => $this->orders()->userIsCustomer()->delivered()->count(),
                     ],
 
-                    //  Link to my unfulfilled orders
-                    'bos:sent-unfulfilled-orders' => [
-                        'href' => route('location-my-unfulfilled-orders', ['location_id' => $this->id]),
-                        'title' => 'TThe location orders that have been placed by this user and are unfulfilled',
-                        'total' => $this->orders()->userIsCustomer()->unfulfilled()->count(),
+                    //  Link to my undelivered orders
+                    'bos:sent-undelivered-orders' => [
+                        'href' => route('location-my-undelivered-orders', ['location_id' => $this->id]),
+                        'title' => 'TThe location orders that have been placed by this user and are undelivered',
+                        'total' => $this->orders()->userIsCustomer()->undelivered()->count(),
                     ],
 
                     //  Link to my cancelled orders

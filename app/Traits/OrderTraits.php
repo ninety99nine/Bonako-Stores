@@ -93,8 +93,8 @@ trait OrderTraits
                 //  Update the order status as "Unpaid"
                 $this->order->setPaymentStatusToUnpaid();
 
-                //  Update the order status as "Unfulfilled"
-                $this->order->setFulfillmentStatusToUnfulfilled();
+                //  Update the order status as "Undelivered"
+                $this->order->setDeliveryStatusToUndelivered();
 
                 //  Assign order to location
                 $this->order->assignResourceToLocation($data);
@@ -189,7 +189,7 @@ trait OrderTraits
             $filters = [
                 'open', 'draft', 'archieved', 'cancelled',
                 'paid', 'unpaid', 'refunded', 'failed',
-                'fulfilled', 'unfulfilled'
+                'delivered', 'undelivered'
             ];
 
             collect($filters)->map(function($filter) use (&$totals, $builder){
@@ -203,9 +203,9 @@ trait OrderTraits
                  *  If we do not clone, only one object instance will be used for every filter producing
                  *  incorrect results e.g The instance may be used to filter only orders with a status
                  *  of "paid" and return a few results. The same builder will then be used to filter
-                 *  orders with a status of "fulfilled", however since we are using the same instance
+                 *  orders with a status of "delivered", however since we are using the same instance
                  *  it would have applied the previous filter of "paid", which means that the final
-                 *  orders returned will need to be "paid" and "fulfilled". This gets worse as we
+                 *  orders returned will need to be "paid" and "delivered". This gets worse as we
                  *  load more filters e.g It will look to return orders that must match every
                  *  status i.e "open", "draft", "archieved", "cancelled", e.t.c
                  */
@@ -230,8 +230,8 @@ trait OrderTraits
              *
              *       "refunded" => 0,
              *       "failed" => 0,
-             *       "fulfilled" => 0,
-             *       "unfulfilled" => 1
+             *       "delivered" => 0,
+             *       "undelivered" => 1
              *      ]
 
              *  ]
@@ -292,18 +292,18 @@ trait OrderTraits
         //  Set the statuses to an empty array
         $statuses = [];
 
-        //  Set the status filters e.g ["open", "paid", "fulfilled", ...] or "open,paid,fulfilled, ..."
+        //  Set the status filters e.g ["open", "paid", "delivered", ...] or "open,paid,delivered, ..."
         $status_filters = $data['status'] ?? $data;
 
-        //  If the filters are provided as String format e.g "open,paid,fulfilled"
+        //  If the filters are provided as String format e.g "open,paid,delivered"
         if( is_string($status_filters) ){
 
-            //  Set the statuses to the exploded Array ["open", "paid", "fulfilled"]
+            //  Set the statuses to the exploded Array ["open", "paid", "delivered"]
             $statuses = explode(',', $status_filters);
 
         }elseif( is_array($status_filters) ){
 
-            //  Set the statuses to the given Array ["open", "paid", "fulfilled"]
+            //  Set the statuses to the given Array ["open", "paid", "delivered"]
             $statuses = $status_filters;
 
         }
@@ -325,8 +325,8 @@ trait OrderTraits
                 return ($value == 'Paid' || $value == 'Unpaid' || $value == 'Refunded' || $value == 'Failed');
             });
 
-            $fulfillment_statuses = collect($statuses)->filter(function ($value) {
-                return ($value == 'Fulfilled' || $value == 'Unfulfilled');
+            $delivery_statuses = collect($statuses)->filter(function ($value) {
+                return ($value == 'Delivered' || $value == 'Undelivered');
             });
 
             if( count($general_statuses) ){
@@ -341,9 +341,9 @@ trait OrderTraits
                 });
             }
 
-            if( count($fulfillment_statuses) ){
-                $orders = $orders->whereHas('fulfillmentStatus', function (Builder $query) use ($fulfillment_statuses){
-                    $query->whereIn('name', $fulfillment_statuses);
+            if( count($delivery_statuses) ){
+                $orders = $orders->whereHas('deliveryStatus', function (Builder $query) use ($delivery_statuses){
+                    $query->whereIn('name', $delivery_statuses);
                 });
             }
 
@@ -861,9 +861,60 @@ trait OrderTraits
     }
 
     /**
+     *  This method sends the new order message to the merchant
+     */
+    public function sendPaymentRequestSms($user = null)
+    {
+        try {
+
+            //  Get the order store
+            $store = $this->getResourceStore();
+
+            //  Set the order payment short code
+            $payment_short_code = $this->paymentShortCode;
+
+            //  If we have the store and payment short code
+            if( $store && $payment_short_code ){
+
+                //  Craft the sms message
+                $message = $store->name.': Hi '.$this->customer->first_name.', dial '.
+                           $payment_short_code->dialing_code.' to pay for order #'.$this->number.
+                           '. Expires after 24hrs.';
+
+                $type = 'Order payment request';
+
+                $data = [
+
+                    //  Set the type on the data
+                    'type' => $type,
+
+                    //  Set the message on the data
+                    'message' => $message,
+
+                    //  Set the mobile_number on the data
+                    'mobile_number' => $this->customer->mobile_number
+
+                ];
+
+                //  Set the sms owning model
+                $model = $this;
+
+                //  Create a new sms and send
+                return ( new \App\Sms() )->createResource($data, $model, $user)->sendSms();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method generates a new order number
      */
-    public function fulfilResource($data = [], $user)
+    public function deliverResource($data = [], $user)
     {
         try {
 
@@ -871,16 +922,16 @@ trait OrderTraits
             $data = $this->extractRequestData($data);
 
             //  Validate the data
-            $this->fulfilResourceValidation($data);
+            $this->deliverResourceValidation($data);
 
             //  Verify permissions
-            $this->fulfilResourcePermission($user);
+            $this->deliverResourcePermission($user);
 
             //  Set the delivery confirmation code
             $delivery_confirmation_code = $data['delivery_confirmation_code'];
 
-            //  If the order is not fulfilled
-            if( !$this->isFulfilled() ){
+            //  If the order is not delivered
+            if( !$this->isDelivered() ){
 
                 //  Check if we have a matching delivery confirmation code
                 if( Hash::check($delivery_confirmation_code, $this->delivery_confirmation_code) ){
@@ -892,8 +943,8 @@ trait OrderTraits
                         'delivery_verified' => true
                     ]);
 
-                    //  Update the order status as "Fulfilled"
-                    $this->setFulfillmentStatusToFulfilled();
+                    //  Update the order status as "Delivered"
+                    $this->setDeliveryStatusToDelivered();
 
 
                     //  If the order is not paid
@@ -916,8 +967,8 @@ trait OrderTraits
 
             }else{
 
-                //  The order is already fulfilled. Throw a validation error
-                throw ValidationException::withMessages(['delivery_confirmation_code' => 'The order has already been fulfilled.']);
+                //  The order is already delivered. Throw a validation error
+                throw ValidationException::withMessages(['delivery_confirmation_code' => 'The order has already been delivered.']);
 
             }
 
@@ -929,13 +980,72 @@ trait OrderTraits
     }
 
     /**
-     *  This method returns true/false if the order is fulfilled
+     *  This method generates a store payment short code
      */
-    public function isFulfilled()
+    public function sendResourcePaymentRequest($user = null)
+    {
+        try {
+            
+            //  Generate the payment short code
+            $this->generateResourcePaymentShortCode($user);
+
+            //  Set the order status to pending
+            $this->setPaymentStatusToPending();
+
+            //  Reload the payment short code
+            $this->load('paymentShortCode');
+
+            //  Send the payment request sms 
+            $this->sendPaymentRequestSms($user);
+
+            //  Return the current order instance
+            return $this;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method generates an order payment short code
+     */
+    public function generateResourcePaymentShortCode($user = null)
     {
         try {
 
-            return $this->fulfillmentStatus->name === 'Fulfilled' ? true : false;
+            $data = [
+
+                //  Set the action on the data
+                'action' => 'payment'
+
+            ];
+
+            //  Set the short code owning model
+            $model = $this;
+
+            /**
+             *  Create new a short code resource
+             */
+            return ( new \App\ShortCode() )->createResource($data, $model, $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns true/false if the order is delivered
+     */
+    public function isDelivered()
+    {
+        try {
+
+            return $this->deliveryStatus->name === 'Delivered' ? true : false;
 
         } catch (\Exception $e) {
 
@@ -1048,6 +1158,23 @@ trait OrderTraits
     /**
      *  This method sets the order payment status to unpaid
      */
+    public function setPaymentStatusToPending()
+    {
+        try {
+
+            //  Set order status to "Pending"
+            $this->updateStatus('Pending', 'order payment status');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sets the order payment status to unpaid
+     */
     public function setPaymentStatusToUnpaid()
     {
         try {
@@ -1097,14 +1224,14 @@ trait OrderTraits
     }
 
     /**
-     *  This method sets the order fulfillment status to fulfilled
+     *  This method sets the order delivery status to delivered
      */
-    public function setFulfillmentStatusToFulfilled()
+    public function setDeliveryStatusToDelivered()
     {
         try {
 
-            //  Set order status to "Fulfilled"
-            $this->updateStatus('Fulfilled', 'order fulfillment status');
+            //  Set order status to "Delivered"
+            $this->updateStatus('Delivered', 'order delivery status');
 
         } catch (\Exception $e) {
 
@@ -1114,14 +1241,14 @@ trait OrderTraits
     }
 
     /**
-     *  This method sets the order fulfillment status to unfulfilled
+     *  This method sets the order delivery status to undelivered
      */
-    public function setFulfillmentStatusToUnfulfilled()
+    public function setDeliveryStatusToUndelivered()
     {
         try {
 
-            //  Set order status to "Unfulfilled"
-            $this->updateStatus('Unfulfilled', 'order fulfillment status');
+            //  Set order status to "Undelivered"
+            $this->updateStatus('Undelivered', 'order delivery status');
 
         } catch (\Exception $e) {
 
@@ -1157,21 +1284,21 @@ trait OrderTraits
                         'payment_status_id' => $status->id
                     ]);
 
-                //  If we are updating the order fulfillment status
-                }elseif( $type == 'order fulfillment status'){
+                //  If we are updating the order delivery status
+                }elseif( $type == 'order delivery status'){
 
                     $this->update([
-                        'fulfillment_status_id' => $status->id
+                        'delivery_status_id' => $status->id
                     ]);
 
-                    //  If this fulfillment status is set to "Fulfilled"
-                    if( $status->name == 'Fulfilled' ){
+                    //  If this delivery status is set to "Delivered"
+                    if( $status->name == 'Delivered' ){
 
                         //  Set order status to archieved
                         $this->setStatusToArchieved();
 
-                    //  If this fulfillment status is set to "Unfulfilled"
-                    }elseif( $status->name == 'Unfulfilled' ){
+                    //  If this delivery status is set to "Undelivered"
+                    }elseif( $status->name == 'Undelivered' ){
 
                         //  Set order status to open
                         $this->setStatusToOpen();
@@ -1217,17 +1344,17 @@ trait OrderTraits
     }
 
     /**
-     *  This method checks permissions for fulfilling an existing resource
+     *  This method checks permissions for delivering an existing resource
      */
-    public function fulfilResourcePermission($user = null)
+    public function deliverResourcePermission($user = null)
     {
         try {
 
             //  If the user is provided
             if( $user ){
 
-                //  Check if the user is authourized to fulfil this resource
-                if ($user->can('fulfil', Order::class) === false) {
+                //  Check if the user is authourized to deliver this resource
+                if ($user->can('deliver', Order::class) === false) {
 
                     //  Return "Not Authourized" Error
                     return help_not_authorized();
@@ -1291,7 +1418,7 @@ trait OrderTraits
     /**
      *  This method validates updating an existing resource
      */
-    public function fulfilResourceValidation($data = [])
+    public function deliverResourceValidation($data = [])
     {
         try {
 

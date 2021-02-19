@@ -22,7 +22,7 @@
                                 @click.native="fetchStores()" :loading="isLoading"
                                 :disabled="isLoading">
                             <Icon type="ios-clipboard-outline" :size="20" />
-                            <span>Fulfil Orders</span>
+                            <span>Deliver Orders</span>
                         </Button>
 
                     </div>

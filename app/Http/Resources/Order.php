@@ -37,9 +37,9 @@ class Order extends JsonResource
             /*  Attributes  */
             '_attributes' => [
                 'is_paid' => $this->isPaid(),
-                'is_fulfilled' => $this->isFulfilled(),
+                'is_delivered' => $this->isDelivered(),
                 'resource_type' => $this->resource_type,
-                'payment_short_code' => collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']),
+                'payment_short_code' => !empty($this->paymentShortCode) ? collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']) : null,
             ],
 
             /*  Resource Links */
@@ -55,16 +55,22 @@ class Order extends JsonResource
                     'title' => 'This order'
                 ],
 
-                //  Link to fulfil order
-                'bos:fulfil' => [
-                    'href' => route('order-fulfil', ['order_id' => $this->id]),
-                    'title' => 'The POST route to fulfil this order'
+                //  Link to deliver order
+                'bos:deliver' => [
+                    'href' => route('order-deliver', ['order_id' => $this->id]),
+                    'title' => 'The POST route to deliver this order'
                 ],
 
                 //  Link to cancel order
                 'bos:cancel' => [
                     'href' => route('order-cancel', ['order_id' => $this->id]),
                     'title' => 'The POST route to cancel this order'
+                ],
+
+                //  Link to send payment request
+                'bos:payment_request' => [
+                    'href' => route('order-payment-request', ['order_id' => $this->id]),
+                    'title' => 'The POST route to send payment request to customer'
                 ],
 
                 //  Link to shared locations
@@ -92,7 +98,7 @@ class Order extends JsonResource
 
                 'status' => new StatusResource( $this->status ),
                 'payment_status' => new StatusResource( $this->paymentStatus ),
-                'fulfillment_status' => new StatusResource( $this->fulfillmentStatus ),
+                'delivery_status' => new StatusResource( $this->deliveryStatus ),
                 'active_cart' => new CartResource( $this->activeCart ),
                 'delivery_line' => new DeliveryLineResource( $this->deliveryLine ),
                 'customer' => new UserResource( $this->customer ),

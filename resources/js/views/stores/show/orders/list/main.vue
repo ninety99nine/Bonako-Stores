@@ -7,8 +7,8 @@
 
             <!-- Single Order -->
             <singleOrder :store="store" :location="location" :assignedLocations="assignedLocations"
-                            :orders="orders" :index="index" :order="order" @close="handleCloseOrder()"
-                            @verified="handleVerifiedOrder">
+                         :orders="orders" :order="order" @close="handleCloseOrder()"
+                         @verified="handleVerifiedOrder">
             </singleOrder>
 
         </template>
@@ -106,7 +106,7 @@
                                     <Icon type="md-more" size="20" :class="['border', 'rounded-circle', 'border-secondary', 'text-secondary']" />
                                     <DropdownMenu slot="list">
                                         <DropdownItem name="View" @click.native="handleViewOrder(row, index)">View</DropdownItem>
-                                        <DropdownItem v-if="row._embedded.fulfillment_status.name === 'Unfulfilled'" name="Fulfil" @click.native="handleFulfilOrder(row, index)">Fulfil</DropdownItem>
+                                        <DropdownItem v-if="row._embedded.delivery_status.name === 'Undelivered'" name="Delivered" @click.native="handleDeliverOrder(row, index)">Delivered</DropdownItem>
                                         <DropdownItem name="Cancel" class="text-danger">Cancel</DropdownItem>
                                     </DropdownMenu>
                                 </Dropdown>
@@ -182,12 +182,12 @@
                     }
                 ],
                 statuses: [
-                    'Paid', 'Unpaid', 'Fulfilled', 'Unfulfilled', 'Cancelled'
+                    'Paid', 'Unpaid', 'Pending', 'Delivered', 'Undelivered', 'Cancelled', 'Archieved'
                 ],
-                selectedFilters: ['Unfulfilled'],
+                selectedFilters: ['Undelivered'],
                 tableColumnsToShowByDefault: [
                     'Selector', 'Order #', 'Customer', 'Mobile', 'Items', 'Payment Status',
-                    'Fulfillment Status', 'Created Date', 'Total'
+                    'Delivery Status', 'Created Date', 'Total'
                 ],
                 isOpenVerifyOrderDeliveryModal: false,
                 searchTimeout: null,
@@ -415,16 +415,16 @@
                     })
                 }
 
-                //  Fulfillment Status
-                if(this.tableColumnsToShowByDefault.includes('Fulfillment Status')){
+                //  Delivery Status
+                if(this.tableColumnsToShowByDefault.includes('Delivery Status')){
                     allowedColumns.push(
                     {
-                        title: 'Fulfillment',
+                        title: 'Delivery',
                         render: (h, params) => {
-                            //  Fulfillment Status Badge
+                            //  Delivery Status Badge
                             return h(statusTag, {
                                 props: {
-                                    status: params.row._embedded.fulfillment_status
+                                    status: params.row._embedded.delivery_status
                                 }
                             })
                         }
@@ -543,7 +543,7 @@
             handleCloseOrder(){
                 this.isViewingOrder = false;
             },
-            handleFulfilOrder(order, index){
+            handleDeliverOrder(order, index){
                 this.order = order;
                 this.index = index;
                 this.handleOpenVerifyOrderDeliveryModal();

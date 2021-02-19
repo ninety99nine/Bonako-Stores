@@ -54,14 +54,11 @@ class ShortCode extends Model
 
         $code = $this->code;
 
-        if( $this->owner_type == 'store' ){
 
-            if( $this->action == 'payment' ){
+        if( $this->action == 'payment' ){
 
-                //  Add 2 leading Zero's
-                $code = '00'.$this->code;
-
-            }
+            //  Add 2 leading Zero's
+            $code = '00'.$this->code;
 
         }elseif( $this->owner_type == 'instant_cart' ){
 

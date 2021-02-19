@@ -75,7 +75,7 @@
                                     <div :style="{ fontSize: 'small' }" :class="['mt-1', 'text-black-50']">
                                         <span>{{ order._embedded.status.name }}</span>
                                         <span>{{ order._embedded.payment_status.name }}</span>
-                                        <span>{{ order._embedded.fulfillment_status.name }}</span>
+                                        <span>{{ order._embedded.delivery_status.name }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -572,15 +572,15 @@
                     //  If this is the orders menu
                     if( this.menuLinks[x].name == 'orders' && this.locationTotals){
 
-                        //  Update total unfulfilled orders
-                        this.$set(this.menuLinks[x], 'total', this.locationTotals.orders.received.statuses.unfulfilled);
+                        //  Update total undelivered orders
+                        this.$set(this.menuLinks[x], 'total', this.locationTotals.orders.received.statuses.undelivered);
 
                     }
 
                     //  If this is the products menu
                     if( this.menuLinks[x].name == 'products' && this.locationTotals){
 
-                        //  Update total unfulfilled products
+                        //  Update total undelivered products
                         this.$set(this.menuLinks[x], 'total', this.locationTotals.products.total);
 
                     }
