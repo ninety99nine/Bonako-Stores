@@ -227,7 +227,6 @@
             paymentShortCodeExpiryTime(){
                 return this.paymentShortCode.expires_at;
             },
-
             numberOfLocations(){
                 return this.store['_links']['bos:locations'].total;
             },
