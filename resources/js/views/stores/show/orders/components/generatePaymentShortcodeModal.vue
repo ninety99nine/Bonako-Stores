@@ -37,7 +37,7 @@
 
             <!-- Instructions Alert -->
             <Alert v-if="customer" type="warning" :style="{ lineHeight: '1.5em' }" class="p-2">
-                <span :style="{ display: 'block', textAlign: 'justify' }"><span :class="['font-weight-bold']">Desclaimer: </span>By sending the <span class="text-primary">Payment Request</span>, you are verifying that the customer has been informed and notified on the purpose of the payment shortcode for use to pay for their order.</span>
+                <span :style="{ display: 'block', textAlign: 'justify' }"><span :class="['font-weight-bold']">Disclaimer: </span>By sending the <span class="text-primary">Payment Request</span>, you are verifying that the customer has been informed and notified on the purpose of the payment shortcode for use to pay for their order.</span>
             </Alert>
 
             <!-- If we don't have a customer -->
@@ -53,7 +53,7 @@
                 <div class="clearfix">
                     <Button type="success" class="float-right" :disabled="isLoading" :loading="isLoading"
                             @click.native="sendPaymentRequest()">
-                        {{ sendPaymentRequestText }}
+                        Send Payment Request
                     </Button>
                     <Button @click.native="closeModal()" class="float-right mr-2" :disabled="isLoading">Cancel</Button>
                 </div>
@@ -100,8 +100,8 @@
             paymentRequestUrl(){
                 return this.order['_links']['bos:payment_request']['href'];
             },
-            sendPaymentRequestText(){
-                return (this.isPendingPayment ? 'Send' : 'Resend') + ' Payment Request';
+            hasPaymentShortCode(){
+                return this.order['_attributes']['payment_short_code'] ? true : false;
             }
         },
         methods: {

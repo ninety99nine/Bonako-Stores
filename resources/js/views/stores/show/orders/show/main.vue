@@ -148,9 +148,8 @@
                                 </span>
 
                                 <!-- Deliver Button -->
-                                <Button v-if="itemLinesData.length && !isDelivered" type="success" size="default" :class="['float-right']" @click.native="handleOpenVerifyOrderDeliveryModal()">
-                                    <Icon type="md-checkbox-outline" class="mr-1" :size="20" />
-                                    <span>Delivered</span>
+                                <Button v-if="itemLinesData.length && !isDelivered" type="warning" size="default" :class="['float-right']" @click.native="handleOpenVerifyOrderDeliveryModal()">
+                                    <span>Deliver</span>
                                 </Button>
 
                                 <!-- Deliver Button -->
@@ -688,7 +687,7 @@
 
                 //  If we have the orders
                 if( this.orders.length ){
-                    
+
                     //  Notify parent to show orders list
                     this.$emit('close');
 
@@ -908,7 +907,7 @@
             handleSentPaymentRequest(){
                 //  Make the modal is closed
                 this.isOpenGeneratePaymentShortcode = false;
-                
+
                 //  Fetch the order
                 this.prepareOrder();
             },
