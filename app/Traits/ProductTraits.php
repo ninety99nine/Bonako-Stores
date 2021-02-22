@@ -1320,7 +1320,7 @@ trait ProductTraits
             if( $user ){
 
                 return $user->locations()->wherePivot('type', 'admin')->whereHas('products', function (Builder $query) {
-                    $query->where('id', $this->id);
+                    $query->where('products.id', $this->id);
                 })->exists();
 
             }
