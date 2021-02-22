@@ -106,7 +106,7 @@ class ProductPolicy
         try {
 
             //  Only an Admin can update this product
-            return $product->isAdmin($user->id);
+            return $product->isAdmin($user);
 
         } catch (\Exception $e) {
 
@@ -127,7 +127,7 @@ class ProductPolicy
         try {
 
             //  Only an Admin can delete this product
-            return $product->isAdmin($user->id);
+            return $product->isAdmin($user);
 
         } catch (\Exception $e) {
 
@@ -148,7 +148,7 @@ class ProductPolicy
         try {
 
             //  Only an Admin can restore this product
-            return $product->isAdmin($user->id);
+            return $product->isAdmin($user);
 
         } catch (\Exception $e) {
 
@@ -169,7 +169,7 @@ class ProductPolicy
         try {
 
             //  Only an Admin can force delete this product
-            return $product->isAdmin($user->id);
+            return $product->isAdmin($user);
 
         } catch (\Exception $e) {
 
