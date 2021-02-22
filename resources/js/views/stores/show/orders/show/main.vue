@@ -46,8 +46,15 @@
 
                         <Col :span="6" class="clearfix">
 
+                            <!-- Refresh Button -->
+                            <Button type="default" size="default" :class="['float-right']"
+                                    @click.native="prepareOrder()">
+                                <Icon type="ios-refresh" class="mr-1" :size="20" />
+                                <span>Refresh</span>
+                            </Button>
+
                             <!-- Watch Video Button -->
-                            <Button type="primary" size="default" @click.native="fetchStores()" :class="['float-right']">
+                            <Button type="primary" size="default" @click.native="prepareOrder()" :class="['float-right', 'mr-2']">
                                 <Icon type="ios-play-outline" class="mr-1" :size="20" />
                                 <span>Watch Video</span>
                             </Button>
@@ -973,8 +980,12 @@
                 this.isOpenGeneratePaymentShortcode = true;
             },
             handleVerifiedOrder(){
+
+                this.isOpenVerifyOrderDeliveryModal = false;
+
                 //  Fetch the order
                 this.prepareOrder();
+
             },
             handleSentPaymentRequest(){
                 //  Make the modal is closed

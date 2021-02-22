@@ -167,21 +167,21 @@
                 api.call('put', this.deliverOrderUrl, deliverData)
                     .then(({data}) => {
 
-                    //  Stop loader
-                    self.isVerifying = false;
+                        //  Stop loader
+                        self.isVerifying = false;
 
-                    self.$Message.success({
-                        content: 'Order Delivered!',
-                        duration: 6
-                    });
+                        self.$Message.success({
+                            content: 'Order Delivered!',
+                            duration: 6
+                        });
 
-                    self.$emit('verified', data);
+                        /** Note the closeModal() method is imported from the
+                         *  modalMixin file. It handles the closing process
+                         *  of the modal
+                         */
+                        self.closeModal();
 
-                    /** Note the closeModal() method is imported from the
-                     *  modalMixin file. It handles the closing process
-                     *  of the modal
-                     */
-                    self.closeModal();
+                        self.$emit('verified', data);
 
                 }).catch((response) => {
 

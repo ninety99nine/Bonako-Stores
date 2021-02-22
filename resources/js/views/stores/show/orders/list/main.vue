@@ -544,6 +544,7 @@
             },
             handleCloseOrder(){
                 this.isViewingOrder = false;
+                this.fetchOrders();
             },
             handleDeliverOrder(order, index){
                 this.order = order;
@@ -555,7 +556,6 @@
             },
             handleVerifiedOrder(order){
                 this.$set(this.orders, this.index, order);
-                this.fetchOrders();
             },
             fetchOrders() {
 
