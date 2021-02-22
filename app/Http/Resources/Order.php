@@ -6,6 +6,7 @@ use App\Http\Resources\Cart as CartResource;
 use App\Http\Resources\User as UserResource;
 use App\Http\Resources\Status as StatusResource;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Transaction as TransactionResource;
 use App\Http\Resources\DeliveryLine as DeliveryLineResource;
 
 class Order extends JsonResource
@@ -107,7 +108,10 @@ class Order extends JsonResource
                 'delivery_status' => new StatusResource( $this->deliveryStatus ),
                 'active_cart' => new CartResource( $this->activeCart ),
                 'delivery_line' => new DeliveryLineResource( $this->deliveryLine ),
+                'transaction' => new TransactionResource( $this->transaction ),
                 'customer' => new UserResource( $this->customer ),
+
+
 
             ]
 

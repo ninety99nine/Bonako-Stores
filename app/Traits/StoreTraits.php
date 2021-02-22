@@ -570,8 +570,11 @@ trait StoreTraits
     {
         try {
 
+            //  Get the store locations
+            $locations = $this->locations()->latest();
+
             //  Return a list of store locations
-            return (new \App\Location())->getResources($data, $this->locations()->latest(), $paginate, $convert_to_api_format);
+            return (new \App\Location())->getResources($data, $locations, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 

@@ -327,7 +327,7 @@ trait UserTraits
             if ($store) {
 
                 //  Return a list of user store locations
-                return (new \App\Location())->getResources($data, $store->locations()->latest(), $paginate, $convert_to_api_format);
+                return $store->getResourceLocations($data, $paginate, $convert_to_api_format);
 
             } else {
 

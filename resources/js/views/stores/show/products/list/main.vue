@@ -1,189 +1,222 @@
 <template>
 
-    <!-- If viewing a list of products -->
-    <Row class="mt-4">
+    <div>
 
-        <Col :span="22" :offset="1">
+        <!-- If viewing single product -->
+        <template v-if="product && isViewingProduct">
 
-            <!-- If viewing products -->
-            <template>
+            <!-- Single Product -->
+            <singleProduct :store="store" :location="location" :assignedLocations="assignedLocations"
+                           :products="products" :product="product" @close="handleCloseProduct()">
+            </singleProduct>
 
-                <!-- Heading, Add Product Button & Watch Video Button -->
-                <Row :gutter="12" :class="['border-bottom-dashed', 'mb-4', 'mt-3', 'pb-4']">
+        </template>
 
-                    <Col :span="12">
+        <!-- If viewing a list of products -->
+        <Row v-else class="mt-4">
 
-                        <!-- Heading -->
-                        <h1 :class="['font-weight-bold', 'text-muted']">Products</h1>
+            <Col :span="22" :offset="1">
 
-                    </Col>
+                <!-- If viewing products -->
+                <template>
 
-                    <Col :span="12">
+                    <!-- Heading, Add Product Button & Watch Video Button -->
+                    <Row :gutter="12" :class="['border-bottom-dashed', 'mb-4', 'mt-3', 'pb-4']">
 
-                        <div class="clearfix">
+                        <Col :span="12">
 
-                            <!-- Add Product Button -->
-                            <basicButton :type="addButtonType" size="default" icon="ios-add" :showIcon="true"
-                                         :ripple="!productsExist && !isLoading" :class="['float-right', 'ml-2']"
-                                         :disabled="productsHaveChanged || isLoading"
-                                         @click.native="handleAddProduct()">
-                                <span>Add Product</span>
+                            <!-- Heading -->
+                            <h1 :class="['font-weight-bold', 'text-muted']">Products</h1>
+
+                        </Col>
+
+                        <Col :span="12">
+
+                            <div class="clearfix">
+
+                                <!-- Add Product Button -->
+                                <basicButton :type="addButtonType" size="default" icon="ios-add" :showIcon="true"
+                                            :ripple="!productsExist && !isLoading" :class="['float-right', 'ml-2']"
+                                            :disabled="productsHaveChanged || isLoading"
+                                            @click.native="handleAddProduct()">
+                                    <span>Add Product</span>
+                                </basicButton>
+
+                                <!-- Watch Video Button -->
+                                <Button type="primary" size="default" @click.native="fetchProducts()" :class="['float-right']">
+                                    <Icon type="ios-play-outline" class="mr-1" :size="20" />
+                                    <span>Watch Video</span>
+                                </Button>
+
+                            </div>
+
+                        </Col>
+
+                    </Row>
+
+                    <!-- Search Bar, Filters, Arrange Products Switch, Save Changes Button & Refresh Button -->
+                    <Row :gutter="12" class="mb-4">
+
+                        <Col :span="8">
+
+                            <!-- Search Bar -->
+                            <Input v-model="searchWord" type="text" size="default" :disabled="arrangeProducts" clearable placeholder="Search product..." icon="ios-search-outline"></Input>
+
+                        </Col>
+
+                        <Col :span="8">
+
+                            <!-- Filters -->
+                            <Poptip trigger="hover" content="Add filters for specific products" word-wrap class="poptip-w-100">
+                                <Select v-model="selectedFilters" size="default" multiple class="w-100"
+                                        prefix="ios-funnel-outline" clearable placeholder="Add filters"
+                                        :disabled="arrangeProducts" @on-select="fetchProducts()">
+
+                                    <!-- Filter Options-->
+                                    <Option v-for="(status, index) in statuses" :value="status.name" :key="index" :label="status.name">
+                                        <span :class="['font-weight-bold']">{{ status.name }}</span>
+                                        <span v-if="status.desc" style="color:#ccc" :class="['float-right', 'font-italic', 'mr-3']">{{ status.desc }}</span>
+                                    </Option>
+
+                                </Select>
+                            </Poptip>
+
+                        </Col>
+
+                        <Col :span="4" :class="['clearfix']">
+
+                            <!-- Arrange Products Switch -->
+                            <div :class="['float-left', 'mt-1', 'ml-3']">
+                                <span :style="{ width: '200px' }" class="font-weight-bold">Arrange Products: </span>
+                                <Poptip trigger="hover" word-wrap width="300" content="Turn on to drag and drop and change the arrangement of products">
+                                    <i-Switch v-model="arrangeProducts" :disabled="!products.length || isLoading || productsHaveChanged" />
+                                </Poptip>
+                            </div>
+
+                        </Col>
+
+                        <Col :span="4" :class="['clearfix']">
+
+                            <!-- Save Changes Button -->
+                            <basicButton v-if="products.length && productsHaveChanged" type="success" size="default"
+                                        :class="['float-right', 'ml-2']" :ripple="productsHaveChanged && !isLoading"
+                                        :disabled="isLoading" :loading="isLoading"
+                                        @click.native="updateProductArrangement()">
+                                <span>Save Changes</span>
                             </basicButton>
 
-                            <!-- Watch Video Button -->
-                            <Button type="primary" size="default" @click.native="fetchProducts()" :class="['float-right']">
-                                <Icon type="ios-play-outline" class="mr-1" :size="20" />
-                                <span>Watch Video</span>
+                            <!-- Refresh Button -->
+                            <Button v-else type="default" size="default" :class="['float-right']"
+                                    @click.native="fetchProducts()">
+                                <Icon type="ios-refresh" class="mr-1" :size="20" />
+                                <span>Refresh</span>
                             </Button>
 
-                        </div>
+                        </Col>
 
-                    </Col>
+                    </Row>
 
-                </Row>
+                    <!-- Product Table -->
+                    <Table v-show="!arrangeProducts" class="product-table" :columns="dynamicColumns" :data="products" :loading="isLoading"
+                            no-data-text="No products found" :style="{ overflow: 'visible' }">
 
-                <!-- Search Bar, Filters, Arrange Products Switch, Save Changes Button & Refresh Button -->
-                <Row :gutter="12" class="mb-4">
+                        <template slot-scope="{ row, index }" slot="action">
 
-                    <Col :span="8">
+                            <div>
+                                <Dropdown trigger="click" placement="bottom-end">
+                                    <Icon type="md-more" size="20" :class="['border', 'rounded-circle', 'border-secondary', 'text-secondary']" />
+                                    <DropdownMenu slot="list">
+                                        <DropdownItem name="View" @click.native="handleViewProduct(row, index)">View</DropdownItem>
+                                        <DropdownItem name="Edit" @click.native="handleEditProduct(row, index)">Edit</DropdownItem>
+                                        <DropdownItem name="Delete" class="text-danger" @click.native="handleDeleteProduct(row, index)">Delete</DropdownItem>
+                                    </DropdownMenu>
+                                </Dropdown>
+                            </div>
 
-                        <!-- Search Bar -->
-                        <Input v-model="searchWord" type="text" size="default" :disabled="arrangeProducts" clearable placeholder="Search product..." icon="ios-search-outline"></Input>
+                        </template>
 
-                    </Col>
+                    </Table>
 
-                    <Col :span="8">
+                    <!-- Draggable Product Cards (Arrange Products) -->
+                    <draggable v-show="arrangeProducts" v-model="products" draggable=".draggable-product">
 
-                        <!-- Filters -->
-                        <Poptip trigger="hover" content="Add filters for specific products" word-wrap class="poptip-w-100">
-                            <Select v-model="selectedFilters" size="default" multiple class="w-100"
-                                    prefix="ios-funnel-outline" clearable placeholder="Add filters"
-                                    :disabled="arrangeProducts" @on-select="fetchProducts()">
+                        <Card v-for="(product, index) in products" :key="index" :class="['draggable-product', 'cursor-pointer', 'mb-1']">
 
-                                <Option v-for="(status, index) in statuses" :value="status.name" :key="index" :label="status.name">
-                                    <span :class="['font-weight-bold']">{{ status.name }}</span>
-                                    <span v-if="status.desc" style="color:#ccc" :class="['float-right', 'font-italic', 'mr-3']">{{ status.desc }}</span>
-                                </Option>
+                            <div :class="['clearfix']">
 
-                            </Select>
-                        </Poptip>
+                                <!-- Product Name  -->
+                                <span :class="['float-left', 'font-weight-bold']">{{ product.name }}</span>
 
-                    </Col>
+                                <!-- Move Product Button  -->
+                                <Icon :class="['float-right', 'dragger-handle']" type="ios-move" size="20" />
 
-                    <Col :span="4" :class="['clearfix']">
+                                <!-- Product Position  -->
+                                <span :class="['float-right', 'border-bottom', 'mr-5']"># {{ (index + 1) }}</span>
 
-                        <!-- Arrange Products Switch -->
-                        <div :class="['float-left', 'mt-1', 'ml-3']">
-                            <span :style="{ width: '200px' }" class="font-weight-bold">Arrange Products: </span>
-                            <Poptip trigger="hover" word-wrap width="300" content="Turn on to drag and drop and change the arrangement of products">
-                                <i-Switch v-model="arrangeProducts" :disabled="!products.length || isLoading || productsHaveChanged" />
-                            </Poptip>
-                        </div>
+                            </div>
 
-                    </Col>
+                        </Card>
 
-                    <Col :span="4" :class="['clearfix']">
+                    </draggable>
 
-                        <!-- Save Changes Button -->
-                        <basicButton v-if="products.length && productsHaveChanged" type="success" size="default"
-                                    :class="['float-right', 'ml-2']" :ripple="productsHaveChanged && !isLoading"
-                                    :disabled="isLoading" :loading="isLoading"
-                                    @click.native="updateProductArrangement()">
-                            <span>Save Changes</span>
-                        </basicButton>
+                </template>
 
-                        <!-- Refresh Button -->
-                        <Button v-else type="default" size="default" :class="['float-right']"
-                                @click.native="fetchProducts()">
-                            <Icon type="ios-refresh" class="mr-1" :size="20" />
-                            <span>Refresh</span>
-                        </Button>
+                <!--
+                    MODAL TO CREATE / EDIT PRODUCT
+                -->
+                <template v-if="isOpenManageProductModal">
 
-                    </Col>
+                    <manageProductDrawer
+                        :index="index"
+                        :store="store"
+                        :product="product"
+                        :location="location"
+                        :layoutSize="layoutSize"
+                        :assignedLocations="assignedLocations"
+                        @savedProduct="handleSavedProduct($event)"
+                        @createdProduct="handleCreatedProduct($event)"
+                        @visibility="isOpenManageProductModal = $event">
+                    </manageProductDrawer>
 
-                </Row>
+                </template>
 
-                <!-- Product Table -->
-                <Table v-show="!arrangeProducts" class="product-table" :columns="dynamicColumns" :data="products" :loading="isLoading"
-                        no-data-text="No products found" :style="{ overflow: 'visible' }">
+                <!--
+                    MODAL TO DELETE PRODUCT
+                -->
+                <template v-if="isOpenDeleteProductModal">
 
-                    <template slot-scope="{ row, index }" slot="action">
+                    <deleteProductModal
+                        :index="index"
+                        :product="product"
+                        :products="products"
+                        @deleted="$emit('deleted')"
+                        @visibility="isOpenDeleteProductModal = $event">
+                    </deleteProductModal>
 
-                        <div>
-                            <Dropdown trigger="click" placement="bottom-end">
-                                <Icon type="md-more" size="20" :class="['border', 'rounded-circle', 'border-secondary', 'text-secondary']" />
-                                <DropdownMenu slot="list">
-                                    <DropdownItem name="View" @click.native="handleViewProduct(row, index)">View</DropdownItem>
-                                    <DropdownItem name="Edit" @click.native="handleEditProduct(row, index)">Edit</DropdownItem>
-                                    <DropdownItem name="Cancel" class="text-danger">Delete</DropdownItem>
-                                </DropdownMenu>
-                            </Dropdown>
-                        </div>
+                </template>
 
-                    </template>
+            </Col>
 
-                </Table>
+        </Row>
 
-                <!-- Draggable Product Cards (Arrange Products) -->
-                <draggable v-show="arrangeProducts" v-model="products" draggable=".draggable-product">
-
-                    <Card v-for="(product, index) in products" :key="index" :class="['draggable-product', 'cursor-pointer', 'mb-1']">
-
-                        <div :class="['clearfix']">
-
-                            <!-- Product Name  -->
-                            <span :class="['float-left', 'font-weight-bold']">{{ product.name }}</span>
-
-                            <!-- Move Product Button  -->
-                            <Icon :class="['float-right', 'dragger-handle']" type="ios-move" size="20" />
-
-                            <!-- Product Position  -->
-                            <span :class="['float-right', 'border-bottom', 'mr-5']"># {{ (index + 1) }}</span>
-
-                        </div>
-
-                    </Card>
-
-                </draggable>
-
-            </template>
-
-            <!--
-                MODAL TO ADD / CLONE / EDIT PRODUCT
-            -->
-            <template v-if="isOpenManageProductModal">
-
-                <manageProductDrawer
-                    :store="store"
-                    :product="product"
-                    :location="location"
-                    :products="products"
-                    :assignedLocations="assignedLocations"
-                    @savedProduct="handleSavedProduct($event)"
-                    @createdProduct="handleCreatedProduct($event)"
-                    @visibility="isOpenManageProductModal = $event">
-                </manageProductDrawer>
-
-            </template>
-
-        </Col>
-
-    </Row>
+    </div>
 
 </template>
 
 <script>
 
     import draggable from 'vuedraggable';
+    import singleProduct from './../show/main.vue';
+    import statusTag from './../components/statusTag.vue';
+    import deleteProductModal from './../components/deleteProductModal.vue';
     import manageProductDrawer from './../components/manageProductDrawer.vue';
     import miscMixin from './../../../../../components/_mixins/misc/main.vue';
-    import Loader from './../../../../../components/_common/loaders/default.vue';
     import basicButton from './../../../../../components/_common/buttons/basicButton.vue';
 
     export default {
         mixins: [ miscMixin ],
         components: {
-            draggable, manageProductDrawer, Loader, basicButton
+            draggable, singleProduct, statusTag, deleteProductModal, manageProductDrawer, basicButton
         },
         props: {
             store: {
@@ -196,21 +229,25 @@
             },
             assignedLocations: {
                 type: Array,
-                default: []
+                default: function(){
+                    return [];
+                }
             },
         },
         data(){
             return {
+                isOpenDeleteProductModal: false,
                 isOpenManageProductModal: false,
                 productsBeforeChanges: null,
                 arrangeProducts: false,
+                isViewingProduct: false,
+                layoutSize: null,
                 isLoading: false,
                 product: null,
                 products: [],
                 index: null,
-
                 tableColumnsToShowByDefault: [
-                    'Selector', 'Name', 'Stock', 'Price', 'Created Date'
+                    'Selector', 'Name', 'Stock', 'Price', 'Visibility Status', 'Created Date'
                 ],
                 statuses: [
                     {
@@ -413,6 +450,22 @@
                     })
                 }
 
+                //  Visibility Status
+                if(this.tableColumnsToShowByDefault.includes('Visibility Status')){
+                    allowedColumns.push(
+                    {
+                        title: 'Visible',
+                        render: (h, params) => {
+                            //  Visibility Status Badge
+                            return h(statusTag, {
+                                props: {
+                                    visibilityStatus: params.row.visible
+                                }
+                            })
+                        }
+                    })
+                }
+
                 //  Created Date
                 if(this.tableColumnsToShowByDefault.includes('Created Date')){
                     allowedColumns.push(
@@ -453,45 +506,47 @@
         },
         methods: {
             handleAddProduct(){
-                this.isOpenManageProductModal = true;
+                this.index = null;
+                this.product = null;
+                this.layoutSize = 'small';
+                this.handleOpenManageProductModal();
             },
             handleEditProduct(product, index){
                 this.index = index;
                 this.product = product;
+                this.layoutSize = 'small';
+                this.handleOpenManageProductModal();
+            },
+            handleViewProduct(product, index){
+                this.index = index;
+                this.product = product;
+                this.layoutSize = 'large';
+                this.isViewingProduct = true;
+            },
+            handleDeleteProduct(product, index){
+                this.index = index;
+                this.product = product;
+                this.handleOpenDeleteStoreModal();
+            },
+            handleOpenManageProductModal(){
                 this.isOpenManageProductModal = true;
             },
+            handleOpenDeleteStoreModal(){
+                this.isOpenDeleteProductModal = true;
+            },
+            handleCloseProduct(){
+                this.isViewingProduct = false;
+            },
             handleCreatedProduct(product){
-
-                //  Check if the state of the products has already been changed
-                var hasAlreadyChanged = this.productsHaveChanged;
 
                 //  Add the new created product to the top of the list
                 this.products.unshift(product);
 
-                //  If the state of the products has not already been changed
-                if( hasAlreadyChanged == false ){
-
-                    //  Turn off any changes detected
-                    this.copyProductsBeforeUpdate();
-
-                }
-
             },
             handleSavedProduct(product){
 
-                //  Check if the state of the products has already been changed
-                var hasAlreadyChanged = this.productsHaveChanged;
-
                 //  Update the product
                 this.$set(this.products, this.index, product);
-
-                //  If the state of the products has not already been changed
-                if( hasAlreadyChanged == false ){
-
-                    //  Turn off any changes detected
-                    this.copyProductsBeforeUpdate();
-
-                }
 
             },
             copyProductsBeforeUpdate(){

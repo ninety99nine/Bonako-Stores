@@ -521,7 +521,9 @@
             },
             assignedLocations: {
                 type: Array,
-                default: []
+                default: function(){
+                    return [];
+                }
             },
             product: {
                 type: Object,

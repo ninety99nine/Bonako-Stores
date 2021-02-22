@@ -12,6 +12,8 @@ class Product extends Model
     use ProductTraits;
     use CommonTraits;
 
+    protected $with = ['variables'];
+
     /**
      * The table associated with the model.
      *
@@ -166,7 +168,7 @@ class Product extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'unit_price', 'unit_sale_discount', 'unit_profit', 'on_sale',
+        'resource_type', 'unit_price', 'unit_sale_discount', 'unit_profit', 'on_sale', 'is_free'
     ];
 
     /**
@@ -230,6 +232,23 @@ class Product extends Model
         //  If we have a regular price and the sale price and if the sale price is less than the regular price
         if ( !empty($this->unit_regular_price) && !empty($this->unit_sale_price) &&
              ($this->unit_sale_price < $this->unit_regular_price) ) {
+
+            return true;
+
+        }
+
+        return false;
+    }
+
+    /*
+     *  Returns true if the product is free
+     */
+    public function getIsFreeAttribute()
+    {
+        //  If the regular price is Zero or the regular price is equal to the sale price
+        if ( (!empty($this->unit_regular_price) && $this->unit_regular_price === 0) ||
+             (!empty($this->unit_regular_price) && !empty($this->unit_sale_price) &&
+             ($this->unit_sale_price < $this->unit_regular_price)) ) {
 
             return true;
 

@@ -11,6 +11,8 @@ class Transaction extends Model
     use TransactionTraits;
     use CommonTraits;
 
+    protected $with = ['paymentMethod'];
+
     /**
      * The attributes that are mass assignable.
      *

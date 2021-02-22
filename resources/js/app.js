@@ -31,6 +31,7 @@ Vue.use(ViewUI, { locale });
 // const files = require.context('./', true, /\.vue$/i)
 // files.keys().map(key => Vue.component(key.split('/').pop().split('.')[0], files(key).default))
 
+Vue.component('variations',  require('./views/stores/show/products/show/components/variations/variations').default);
 Vue.component('single-product',  require('./views/stores/show/locations/show/products/single-product/main.vue').default);
 
 //  Basic App Scaffolding
@@ -70,9 +71,9 @@ const app = new Vue({
 
 /** Save the current Vue Instance. We can use this instance inside other js files
  *  e.g api.js to call on iView methods e.g We can notify a warning message to
- *  the user in the following manner:  
- * 
+ *  the user in the following manner:
+ *
  *  VueInstance.$Notice.warning({ title: 'Session expired!' });
- * 
+ *
  */
 window.VueInstance = app;

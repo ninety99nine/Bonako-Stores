@@ -183,6 +183,16 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
             Route::get('/', 'ProductController@getProduct')->name('show')->where('product_id', '[0-9]+');
             Route::put('/', 'ProductController@updateProduct')->name('update')->where('product_id', '[0-9]+');
+            Route::delete('/', 'ProductController@deleteProduct')->name('delete')->where('product_id', '[0-9]+');
+
+            //  Single product resources    /api/products/{product_id}   name => product-*
+            Route::prefix('/variations')->name('variations-')->group(function () {
+
+                Route::get('/', 'ProductController@getProductVariations')->name('list');
+                Route::post('/', 'ProductController@createProductVariations')->name('create');
+
+            });
+
             Route::get('/locations', 'ProductController@getProductLocations')->name('locations');
 
         });

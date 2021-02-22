@@ -80,6 +80,11 @@ let routes = [
                 component: require('./views/stores/show/products/list/main.vue').default
             },
             {
+                path: 'products/:product_url', name: 'show-store-product',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/products/show/main.vue').default
+            },
+            {
                 path: 'instant-carts', name: 'show-store-instant-carts',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
                 component: require('./views/stores/show/instant-carts/main.vue').default

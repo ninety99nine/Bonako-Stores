@@ -80,7 +80,7 @@
                                     <span class="font-weight-bold">Pending Payment</span>
 
                                     <!-- Show the status description -->
-                                    <Poptip trigger="hover" word-wrap width="300" :content="paymentStatus.description">
+                                    <Poptip trigger="hover" placement="top-start" word-wrap width="300" :content="paymentStatus.description">
 
                                         <!-- Show the info icon -->
                                         <Icon type="ios-information-circle-outline" :size="16" />
@@ -138,6 +138,19 @@
                             </Row>
                         </Alert>
 
+                        <!-- Error Message Alert -->
+                        <Alert v-if="isPaid" type="success" show-icon>
+                            <span class="font-weight-bold">Paid</span>
+
+                            <!-- Show the status description -->
+                            <Poptip trigger="hover" placement="top-start" word-wrap width="300" :content="paymentStatus.description">
+
+                                <!-- Show the info icon -->
+                                <Icon type="ios-information-circle-outline" :size="16" />
+
+                            </Poptip>
+                        </Alert>
+
                         <!-- Cart Items, Deliver Button, Edit Button -->
                         <Card class="mb-4">
 
@@ -149,12 +162,12 @@
 
                                 <!-- Deliver Button -->
                                 <Button v-if="itemLinesData.length && !isDelivered" type="warning" size="default" :class="['float-right']" @click.native="handleOpenVerifyOrderDeliveryModal()">
+                                    <Icon type="ios-thumbs-up" class="mr-1" :size="20" />
                                     <span>Deliver</span>
                                 </Button>
 
                                 <!-- Deliver Button -->
-                                <Button v-if="itemLinesData.length && !isDelivered && !hasPaymentShortCode" type="default" size="default" :class="['float-right', 'mr-2']" @click.native="handleOpenGeneratePaymentShortcodeModal()">
-                                    <Icon type="md-checkbox-outline" class="mr-1" :size="20" />
+                                <Button v-if="itemLinesData.length && !isPaid && !hasPaymentShortCode" type="warning" size="default" :class="['float-right', 'mr-2']" @click.native="handleOpenGeneratePaymentShortcodeModal()">
                                     <span>Request Payment</span>
                                 </Button>
 
@@ -267,7 +280,7 @@
 
                             </div>
 
-                            <Table :columns="couponLineColumns" :data="couponLinesData"
+                            <Table v-if="couponLinesData.length" :columns="couponLineColumns" :data="couponLinesData"
                                     no-data-text="No coupons found" :style="{ overflow: 'visible' }">
 
                                 <span slot-scope="{ row, index }" slot="name">
@@ -284,6 +297,11 @@
 
                             </Table>
 
+                            <!-- No Coupons Alert -->
+                            <Alert v-else type="info" show-icon>
+                                <span class="font-weight-bold">No coupons applied</span>
+                            </Alert>
+
                         </Card>
 
                         <!-- Transaction -->
@@ -294,8 +312,26 @@
                                     :style="{ fontSize: 'large', lineHeight: 'initial' }">
                                     Transaction
                                 </span>
-
                             </div>
+
+                            <!-- Transaction Table -->
+                            <Table v-if="transactionData.length" :columns="transactionColumns" :data="transactionData"
+                                    no-data-text="No coupons found" :style="{ overflow: 'visible' }">
+
+                                <span slot-scope="{ row, index }" slot="amount">
+                                    {{ row.amount }}
+                                </span>
+
+                                <span slot-scope="{ row, index }" slot="payment_method">
+                                    {{ row._embedded.payment_method.name }}
+                                </span>
+
+                            </Table>
+
+                            <!-- No transactions Alert -->
+                            <Alert v-else type="info" show-icon>
+                                <span class="font-weight-bold">No transaction</span>
+                            </Alert>
 
                         </Card>
 
@@ -505,7 +541,9 @@
             },
             assignedLocations: {
                 type: Array,
-                default: []
+                default: function(){
+                    return [];
+                }
             },
             order: {
                 type: Object,
@@ -558,6 +596,30 @@
                     {
                         title: 'Rate',
                         slot: 'rate'
+                    }
+                ],
+                transactionColumns: [
+                    {
+                        title: 'Number',
+                        key: 'number'
+                    },
+                    {
+                        title: 'Type',
+                        key: 'type',
+                    },
+                    {
+                        title: 'Amount',
+                        slot: 'amount'
+                    },
+                    {
+                        title: 'Description',
+                        key: 'description',
+                        width: 200
+                    },
+                    {
+                        title: 'Payment Method',
+                        slot: 'payment_method',
+                        width: 150
                     }
                 ],
                 isOpenGeneratePaymentShortcode: false,
@@ -622,6 +684,13 @@
             couponLinesData(){
                 return ((this.activeCart._embedded || {}).coupon_lines || []);
             },
+            transactionData(){
+                if( (this.localOrder._embedded || {}).transaction ){
+                    return [ (this.localOrder._embedded || {}).transaction ];
+                }else{
+                    return [];
+                }
+            },
             moment: function () {
                 return moment();
             },
@@ -631,6 +700,9 @@
             },
             currenySymbol(){
                 return (((this.activeCart._embedded || {}).currency || {}).symbol || '');
+            },
+            transaction(){
+                return (this.localOrder._embedded.transaction || {});
             },
             customer(){
                 return (this.localOrder._embedded.customer || {});

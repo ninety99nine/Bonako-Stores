@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Variables as VariablesResource;
 
 class Product extends JsonResource
 {
@@ -57,6 +58,7 @@ class Product extends JsonResource
             /*  Attributes  */
             '_attributes' => [
                 'on_sale' => $this->on_sale,
+                'is_free' => $this->is_free,
                 'unit_price' => $this->unit_price,
                 'unit_profit' => $this->unit_profit,
                 'unit_sale_discount' => $this->unit_sale_discount
@@ -79,21 +81,19 @@ class Product extends JsonResource
                     'title' => 'The product locations'
                 ],
 
-                /*
-                //  Link to current resource
-
-                //  Link to the product variations
                 'bos:variations' => [
-                    'href' => route('product-variations', ['product_id' => $this->id]),
+                    'href' => route('product-variations-list', ['product_id' => $this->id]),
                     'title' => 'The product variations',
-                    'total' => $this->variations()->count(),
                 ],
-                */
+
             ],
 
             /*  Embedded  */
             '_embedded' => [
-                'variables' => $this->whenLoaded('variables'),
+
+                //  Set the variables (Extract the nested variables)
+                'variables' => (new VariablesResource($this->variables ?? []))->collection
+
             ],
         ];
     }

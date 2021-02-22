@@ -106,7 +106,7 @@
                                     <Icon type="md-more" size="20" :class="['border', 'rounded-circle', 'border-secondary', 'text-secondary']" />
                                     <DropdownMenu slot="list">
                                         <DropdownItem name="View" @click.native="handleViewOrder(row, index)">View</DropdownItem>
-                                        <DropdownItem v-if="row._embedded.delivery_status.name === 'Undelivered'" name="Delivered" @click.native="handleDeliverOrder(row, index)">Delivered</DropdownItem>
+                                        <DropdownItem v-if="row._embedded.delivery_status.name === 'Undelivered'" name="Deliver" @click.native="handleDeliverOrder(row, index)">Deliver</DropdownItem>
                                         <DropdownItem name="Cancel" class="text-danger">Cancel</DropdownItem>
                                     </DropdownMenu>
                                 </Dropdown>
@@ -160,7 +160,9 @@
             },
             assignedLocations: {
                 type: Array,
-                default: []
+                default: function(){
+                    return [];
+                }
             },
         },
         components: { verifyOrderDeliveryModal, statusTag, singleOrder },

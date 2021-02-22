@@ -114,12 +114,10 @@ class Subscription extends Model
             parent::boot();
 
             // before delete() method call this
-            static::deleting(function ($store) {
+            static::deleting(function ($subscription) {
 
-                //  Delete all transactions
-                foreach ($store->transactions as $transaction) {
-                    $transaction->delete();
-                }
+                //  Delete the transaction
+                $subscription->transaction()->delete();
 
                 // do the rest of the cleanup...
             });

@@ -11,7 +11,7 @@ class Order extends Model
 {
     use CommonTraits, OrderTraits;
 
-    protected $with = ['status', 'paymentStatus', 'deliveryStatus', 'activeCart', 'deliveryLine', 'paymentShortCode'];
+    protected $with = ['status', 'paymentStatus', 'deliveryStatus', 'activeCart', 'deliveryLine', 'paymentShortCode', 'transaction'];
 
     /**
      * The table associated with the model.
@@ -248,6 +248,14 @@ class Order extends Model
     public function paymentShortCode()
     {
         return $this->shortCode()->where('action', 'payment');
+    }
+
+    /**
+     * Get the transaction
+     */
+    public function transaction()
+    {
+        return $this->morphOne(Transaction::class, 'owner');
     }
 
     /** ATTRIBUTES

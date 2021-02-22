@@ -20,7 +20,7 @@ class ProductController extends Controller
     {
         try {
 
-            //  Return a new product
+            //  Create and return the product
             return (new Product())->createResource($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
@@ -49,7 +49,35 @@ class ProductController extends Controller
         try {
 
             //  Return the product
-            return (new Product())->getResource($product_id);
+            return (new Product())->getResource($product_id)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getProductVariations(Request $request, $product_id)
+    {
+        try {
+
+            //  Return the product locations
+            return (new Product())->getResource($product_id)->getResourceVariations($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function createProductVariations(Request $request, $product_id)
+    {
+        try {
+
+            //  Create and return the product variations
+            return (new Product())->getResource($product_id)->createResourceVariations($request, $this->user);
 
         } catch (\Exception $e) {
 
@@ -64,6 +92,20 @@ class ProductController extends Controller
 
             //  Return the product locations
             return (new Product())->getResource($product_id)->getResourceLocations($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function deleteProduct($product_id)
+    {
+        try {
+
+            //  Delete the product
+            return (new Product())->getResource($product_id)->deleteResource($this->user);
 
         } catch (\Exception $e) {
 

@@ -20,8 +20,9 @@
             v-model="drawerVisible"
             @on-visible-change="detectClose">
 
-            <productManager :store="store" :location="location" :product="product" :assignedLocations="assignedLocations"
-                            @createdProduct="handleCreatedProduct($event)" @savedProduct="handleSavedProduct($event)">
+            <productManager :store="store" :location="location" :assignedLocations="assignedLocations" :layoutSize="layoutSize"
+                            :product="product" :products="products" @createdProduct="handleCreatedProduct($event)"
+                            @savedProduct="handleSavedProduct($event)" @fetchedProduct="handleFetchedProduct($event)">
             </productManager>
 
         </Drawer>
@@ -30,7 +31,8 @@
 </template>
 <script>
 
-    import productManager from './productManager.vue';
+    //import productManager from './productManager.vue';
+    import productManager from './../show/main.vue';
     import drawerMixin from './../../../../../components/_mixins/drawer/main.vue';
 
     export default {
@@ -47,11 +49,22 @@
             },
             assignedLocations: {
                 type: Array,
-                default: []
+                default: function(){
+                    return [];
+                }
             },
             product: {
                 type: Object,
                 default: null
+            },
+            products: {
+                type: Array,
+                default: function(){
+                    return [];
+                }
+            },
+            layoutSize: {
+                type: String
             },
             mask: {
                 type: Boolean,
@@ -106,6 +119,12 @@
 
                 //  Close the drawer
                 this.closeDrawer();
+
+            },
+            handleFetchedProduct(product){
+
+                //  Notify parent of the product fetched
+                this.$emit('fetchedProduct', product);
 
             },
         }

@@ -373,17 +373,17 @@ trait ProductTraits
     }
 
     /**
-     *  This method returns the product locations
+     *  This method returns the product variations
      */
-    public function getResourceLocations($data = [], $paginate = true, $convert_to_api_format = true)
+    public function getResourceVariations($data = [], $paginate = true, $convert_to_api_format = true)
     {
         try {
 
-            //  Get the product locations
-            $locations = $this->locations();
+            //  Get the product variations
+            $variations = $this->variations();
 
-            //  Return locations
-            return (new \App\Location())->collectionResponse($data, $locations, $paginate, $convert_to_api_format);
+            //  Return a list of product variations
+            return (new \App\Product())->getResources($data, $variations, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 
@@ -393,119 +393,354 @@ trait ProductTraits
     }
 
     /**
-     *  This method assigns the product to one or many locations.
-     *  The method also arranges the current product as well as
-     *  existing products in proper order for each location.
+     *  This method creates the product variations
      */
-    public function assignResourceToLocations($data)
+    public function createResourceVariations($data = [], $user = null)
     {
         try {
 
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
-            //  Set the location id
-            $location_id = $data['location_id'] ?? null;
+            //  Validate the data
+            $this->createResourceVariationsValidation($data);
 
-            //  Set the location ids
-            $location_ids = $data['location_ids'] ?? [];
+            //  Verify permissions
+            $this->updateResourcePermission($user);
 
-            if( $location_id ){
+            //  Set the product variant attributes and allow variants
+            $this->setVariantAttributes($data);
 
-                array_push($location_ids, $location_id);
+            //  Set the product variant attributes and allow variants
+            $variant_attribute_matrix = $this->buildVariationsMatrix($data);
 
-            }
-
-            //  Get the locations matching the given ids
-            $locations = \App\Location::whereIn('id', $location_ids)
-                                      ->with('products')
-                                      ->distinct()
-                                      ->get();
-
-            //  Set the arrangements
-            $arrangements = [];
-
-            //  Foreach of the locations
-            foreach ($locations as $location) {
-
-                //  Set the product instance arrangement
-                $arrangement = 1;
-
-                //  Set this product instance as the first product arrangement
-                $arrangement = $this->getResourceArrangementTemplate($this, $location, $arrangement);
-
-                //  Add this arrangement to the list of arrangements
-                array_push($arrangements, $arrangement);
-
-                //  Filter products that do not match the current product
-                $products = collect($location->products)->filter(function($product) {
-                    return $product->id !== $this->id;
-                });
-
-                //  Foreach of the location products
-                foreach ($products as $key => $product) {
-
-                    //  Set the location product arrangement
-                    $arrangement = ($key + 2);
-
-                    //  Set the location product as the next product arrangement
-                    $arrangement = $this->getResourceArrangementTemplate($product, $location, $arrangement);
-
-                    //  Add this arrangement to the list of arrangements
-                    array_push($arrangements, $arrangement);
-
-                }
-
-            }
-
-            //  If we have any arrangements
-            if( count($arrangements) ){
-
-                //  Set the product ids
-                $product_ids = collect($arrangements)->map(function($arrangement){
-                    return $arrangement['product_id'];
-                });
-
-                //  Delete previously assigned location products
-                DB::table('product_allocations')->whereIn('product_id', $product_ids)->delete();
-
-                //  Assign products to locations
-                DB::table('product_allocations')->insert($arrangements);
-
-            }
+            return $this->generateVariationsAndVariants($data, $variant_attribute_matrix, $user);
 
         } catch (\Exception $e) {
 
             throw($e);
 
         }
+
     }
 
-    /**
-     *  This method creates the product to location assignment record template.
-     *  This record identifies the product as well as the location where the
-     *  product is assigned and its quantity. Note that the quantity value
-     *  is used for product allocations to model resources such as instant
-     *  carts and is not relevant for product allocations to locations.
-     */
-    public function getResourceArrangementTemplate($product, $location, $arrangement)
+    public function setVariantAttributes($data = [])
     {
-        //  Set the product arrangement template
-        $template = [
-            'quantity' => null,
-            'product_id' => $product->id,
-            'arrangement' => $arrangement,
+        /**
+         *  Sample Structure of $data
+         *
+         * [
+         *    [
+         *      'name' => 'Color'
+         *      'values' => ["Red", "Green", "Blue"]
+         *    ],
+         *    [
+         *      'name' => 'Size'
+         *      'values' => ["L", "M", 'SM']
+         *    ]
+         * ]
+         *
+         *  Update Explanation
+         *
+         *  -   Set the product variant attributes
+         *  -   Set allow variants to true
+         *
+         */
+        return $this->update([
+            'variant_attributes' => $data,
+            'allow_variants' => true,
+        ]);
 
-            'owner_id' => $location->id,
-            'owner_type' => $location->resource_type,
+    }
 
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
-        ];
+    public function buildVariationsMatrix($data = [])
+    {
+        /**
+         *  Sample Structure of $data
+         *
+         * [
+         *    [
+         *      'name' => 'Color'
+         *      'values' => ["Red", "Green", "Blue"]
+         *    ],
+         *    [
+         *      'name' => 'Size'
+         *      'values' => ["L", "M", 'SM']
+         *    ]
+         * ]
+         *
+         *  $variant_attribute_values:
+         *
+         */
 
-        //  Return the arrangement template
-        return $template;
+        //  Filter variant attribute with values
+        $variant_attributes = collect($data)->filter(function ($variant_attribute) {
 
+            //  Set the variant attribute values e.g ["Red", "Green", "Blue"]
+            $variant_attribute_values = $variant_attribute['values'];
+
+            //  Filter variant attribute that are not empty
+            return is_array($variant_attribute_values) && !empty($variant_attribute_values);
+
+        });
+
+        /**
+         *  Sample Structure of $variant_attribute_values
+         *
+         *  [
+         *      ["Red", "Green", "Blue"],
+         *      ["L", "M", 'SM']
+         *  ]
+         *
+         *  Set the variant attribute values
+         */
+        $variant_attribute_values = collect($variant_attributes)->map(function ($variant_attribute) {
+
+            //  Set the variant attribute values e.g ["Red", "Green", "Blue"]
+            return $variant_attribute['values'];
+
+        });
+
+        //  If we have any variant attribute values
+        if( count($variant_attribute_values) ){
+
+            /**
+             *  Sample Structure of $variant_attribute_matrix
+             *
+             * [
+             *    ["Red","L"],
+             *    ["Red","M"],
+             *    ["Red","SM"],
+             *    ["Green","L"],
+             *    ["Green","M"],
+             *    ["Green","SM"],
+             *    ["Blue","L"],
+             *    ["Blue","M"],
+             *    ["Blue","SM"]
+             * ]
+             *
+             *  Cross join the variant attribute values into an Matrix
+             */
+            $variant_attribute_matrix = Arr::crossJoin(...$variant_attribute_values);
+
+            //  Return the variant attribute matrix
+            return $variant_attribute_matrix;
+
+        }
+
+        return [];
+    }
+
+    public function generateVariationsAndVariants($data, $variant_attribute_matrix, $user)
+    {
+        //  If we have any generated variations
+        if (count($variant_attribute_matrix)) {
+
+            //  Set the templates
+            $templates = [];
+
+            //  Foreach variant attribute matrix
+            foreach ($variant_attribute_matrix as $key => $options) {
+
+                /**
+                 *  If the main product is called "Summer Dress" and the
+                 *  $options = ["Small", "Blue", "Cotton"]
+                 *
+                 *  Then the variation product is named using both the parent
+                 *  product name and the variation options. For example:
+                 *
+                 *  "Summer Dress (Small, Blue, Cotton)"
+                 *
+                 */
+                $name = $this->name.' ('.ucwords(trim(is_array($options) ? implode(', ', $options) : $options)).')';
+
+                /**
+                 *  The $template variable represents structure of the product variation
+                 */
+                $template = [
+                    'name' => $name,
+                    'description' => $this->description,
+                    'show_description' => $this->show_description,
+                    'visible' => true,
+                    'product_type_id' => $this->product_type_id,
+                    'parent_product_id' => $this->id,
+                    'user_id' => $user->id,
+                ];
+
+                //  Add the template to the rest of the templates
+                array_push($templates, $template);
+
+            }
+
+            //  Get existing variations and their respective variables
+            $existing_variations = $this->variations()->with('variables')->get();
+
+            $excluded_variation_ids = [];
+
+            //  Foreach existing variation
+            foreach ($existing_variations as $existing_variation) {
+
+                /**
+                 *  Extract the values of the current variation variables e.g
+                 *
+                 *  $existing_values = ['Blue', 'M'] or
+                 *  $existing_values = ['Red', 'L']
+                 */
+                $existing_values = collect($existing_variation['variables'])->map(function ($variable) {
+
+                    /**
+                     *  Sample Structure of $variable
+                     *
+                     *  [
+                     *      'name' => 'Color'
+                     *      'value' => 'Red'
+                     *  ]
+                     */
+                    return $variable['value'];
+
+                });
+
+                //  Foreach variant attribute matrix
+                foreach ($variant_attribute_matrix as $key => $new_values) {
+
+                    /**
+                     *  Get the variable values for the new product variation
+                     *
+                     *  $new_values = ['Blue', 'M'] or
+                     *  $new_values = ['Red', 'L'].
+                     *
+                     *  Note that in this case it is possible that the $new_values have more
+                     *  values or less values than the existing values
+                     *
+                     *  $new_values = ['Blue', 'M', 'Cotton'] but $existing_values = ['Blue', 'Cotton']
+                     *
+                     *  or
+                     *
+                     *  $new_values = ['Red', 'L', 'Cotton'] but $existing_values = ['Red', 'L']
+                     *
+                     *  However we are checking if we can find an exact match to prove that the variation
+                     *  already exists so that we do not delete it
+                     */
+                    $new_values = collect($new_values);
+
+                    //  Get the variable values of the existing product variation
+                    $diff = $new_values->diff($existing_values);
+
+                    /**
+                     *  If we don't have a difference, then we should not delete the existing variations
+                     *  and we should not create a new variation
+                     */
+                    if ($diff->count() == 0) {
+
+                        //  Do not delete the existing variation
+                        array_push($excluded_variation_ids, $existing_variation['id']);
+
+                        //  Do not create a new variation (Remove template)
+                        unset($templates[$key]);
+                        $templates = array_values($templates);
+
+                        //  Do not create a new variation
+                        unset($variant_attribute_matrix[$key]);
+                        $variant_attribute_matrix = array_values($variant_attribute_matrix);
+
+                    }
+                }
+            }
+
+            /**
+             *  Delete previous product variations (except variations that match the excluded ids)
+             */
+            $deleted_product_variations = $this->variations()->whereNotIn('id', $excluded_variation_ids)->forceDelete();
+
+            /**
+             *  Create the new product variations
+             */
+            $created_variations = $this->insert($templates);
+
+            //  Get the created product variations
+            $created_variations = $this->variations()->whereNotIn('id', $excluded_variation_ids)->get();
+
+            /**
+             *  We need a $variants array to store all the variants for each
+             *  product variation we just created.
+             */
+            $variants = [];
+
+            //  Foearch product variation
+            foreach ($created_variations as $x => $created_variation) {
+
+                //  Get the product variation id
+                $variation_product_id = $created_variation['id'];
+
+                /**
+                 *  Get the generated variations. Sometimes each generated
+                 *  variation can be a single element or an array. We need
+                 *  to check for either case.
+                 *
+                 *  A single element example:
+                 *
+                 *   ~ Small
+                 *
+                 *  An array example:
+                 *
+                 *   ~ ["Small", "Blue", "Cotton"]
+                 */
+
+                /**
+                 *  $variant_attribute_matrix[$x] is an Array e.g:
+                 *
+                 *   ~ ["Small", "Blue", "Cotton"] or
+                 *   ~ ["Small", "Blue", "Nylon"]  or
+                 *   ~ ["Small", "Red", "Cotton"]
+                 *   e.t.c ...
+                 *
+                 *  This means we had multiple variant attributes e.g
+                 *
+                 *   ~ "Size" with options "Small", "Medium", "Large", e.t.c
+                 *   ~ "Color" with options "Blue", "Red", e.t.c
+                 *   ~ "Material" with options "Cotton", "Nylon", e.t.c
+                 *   e.t.c
+                 */
+                foreach ($variant_attribute_matrix[$x] as $y => $variant_attribute_value) {
+
+                    /** We can get the name of the variable attribute that each
+                     *  $generated_variation belongs to e.g
+                     *
+                     *  name = Size, name = Color, e.t.c.
+                     */
+                    $variant_attribute_name = $data[$y]['name'];
+
+                    /* Final result must be variants with details showing the variant
+                     *  attribute name, the option value and product it e.g =>
+                     *
+                     *  [ name => "Size", value => "Small", product_id => 82 ]
+                     *  [ name => "Color", value => "Blue", product_id => 82 ]
+                     *  [ name => "Material", value => "Cotton", product_id => 82 ]
+                     *  [ name => "Size", value => "Small", product_id => 83 ]
+                     *  [ name => "Color", value => "Blue", product_id => 83 ]
+                     *  [ name => "Material", value => "Nylon", product_id => 83 ]
+                     *  e.t.c
+                     *
+                     *  We push each one into the $variants array for storage
+                     */
+                    array_push($variants, [
+                        'name' => $variant_attribute_name,      //  E.g Size / Color / Material
+                        'value' => $variant_attribute_value,    //  E.g Small / Blue / Cotton
+                        'product_id' => $variation_product_id,  //  E.g 10
+                    ]);
+                }
+            }
+
+            if (count($variants)) {
+
+                //  Create the variants of the variations
+                $created_product_variants = DB::table('variables')->insert($variants);
+
+            }
+
+            //  Get the variations
+            return $this->getResourceVariations($data = [], true, true);
+        }
     }
 
     /** initiateUpdate() method =>
@@ -759,6 +994,165 @@ trait ProductTraits
     }
 
     /**
+     *  This method returns the product locations
+     */
+    public function getResourceLocations($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the product locations
+            $locations = $this->locations();
+
+            //  Return a list of product locations
+            return (new \App\Location())->getResources($data, $locations, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method assigns the product to one or many locations.
+     *  The method also arranges the current product as well as
+     *  existing products in proper order for each location.
+     */
+    public function assignResourceToLocations($data)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the location id
+            $location_id = $data['location_id'] ?? null;
+
+            //  Set the location ids
+            $location_ids = $data['location_ids'] ?? [];
+
+            if( $location_id ){
+
+                array_push($location_ids, $location_id);
+
+            }
+
+            //  Get the locations matching the given ids
+            $locations = \App\Location::whereIn('id', $location_ids)
+                                      ->with('products')
+                                      ->distinct()
+                                      ->get();
+
+            //  Set the arrangements
+            $arrangements = [];
+
+            //  Foreach of the locations
+            foreach ($locations as $location) {
+
+                //  Set the product instance arrangement
+                $arrangement = 1;
+
+                //  Set this product instance as the first product arrangement
+                $arrangement = $this->getResourceArrangementTemplate($this, $location, $arrangement);
+
+                //  Add this arrangement to the list of arrangements
+                array_push($arrangements, $arrangement);
+
+                //  Filter products that do not match the current product
+                $products = collect($location->products)->filter(function($product) {
+                    return $product->id !== $this->id;
+                });
+
+                //  Foreach of the location products
+                foreach ($products as $key => $product) {
+
+                    //  Set the location product arrangement
+                    $arrangement = ($key + 2);
+
+                    //  Set the location product as the next product arrangement
+                    $arrangement = $this->getResourceArrangementTemplate($product, $location, $arrangement);
+
+                    //  Add this arrangement to the list of arrangements
+                    array_push($arrangements, $arrangement);
+
+                }
+
+            }
+
+            //  If we have any arrangements
+            if( count($arrangements) ){
+
+                //  Set the product ids
+                $product_ids = collect($arrangements)->map(function($arrangement){
+                    return $arrangement['product_id'];
+                });
+
+                //  Delete previously assigned location products
+                DB::table('product_allocations')->whereIn('product_id', $product_ids)->delete();
+
+                //  Assign products to locations
+                DB::table('product_allocations')->insert($arrangements);
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method creates the product to location assignment record template.
+     *  This record identifies the product as well as the location where the
+     *  product is assigned and its quantity. Note that the quantity value
+     *  is used for product allocations to model resources such as instant
+     *  carts and is not relevant for product allocations to locations.
+     */
+    public function getResourceArrangementTemplate($product, $location, $arrangement)
+    {
+        //  Set the product arrangement template
+        $template = [
+            'quantity' => null,
+            'product_id' => $product->id,
+            'arrangement' => $arrangement,
+
+            'owner_id' => $location->id,
+            'owner_type' => $location->resource_type,
+
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ];
+
+        //  Return the arrangement template
+        return $template;
+
+    }
+
+    /**
+     *  This method deletes a product
+     */
+    public function deleteResource($user = null)
+    {
+        try {
+
+            //  Verify permissions
+            $this->forceDeleteResourcePermission($user);
+
+            /**
+             *  Delete the resource
+             */
+            return $this->delete();
+
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method checks permissions for creating a new resource
      */
     public function createResourcePermission($user = null)
@@ -797,6 +1191,33 @@ trait ProductTraits
 
                 //  Check if the user is authourized to update the resource
                 if ($user->can('update', $this)) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method checks permissions for deleting an existing resource
+     */
+    public function forceDeleteResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to delete the resource
+                if ($user->can('forceDelete', $this)) {
 
                     //  Return "Not Authourized" Error
                     return help_not_authorized();
@@ -855,6 +1276,33 @@ trait ProductTraits
 
         }
 
+    }
+
+    /**
+     *  This method validates creating resource variations
+     */
+    public function createResourceVariationsValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+
+            ];
+
+            //  Set validation messages
+            $messages = [
+
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
 }

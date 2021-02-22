@@ -525,8 +525,8 @@ trait OrderTraits
             //  Get the shared location
             $locations = $this->sharedLocations();
 
-            //  Return locations
-            return (new \App\Location())->collectionResponse($data, $locations, $paginate, $convert_to_api_format);
+            //  Return a list of order shared locations
+            return (new \App\Location())->getResources($data, $locations, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 

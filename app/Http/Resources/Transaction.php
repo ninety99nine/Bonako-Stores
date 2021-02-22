@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\PaymentMethod as PaymentMethodResource;
 
 class Transaction extends JsonResource
 {
@@ -35,7 +36,14 @@ class Transaction extends JsonResource
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ]
 
+            ],
+
+            /*  Embedded  */
+            '_embedded' => [
+                'payment_method' => new PaymentMethodResource( $this->paymentMethod )
             ]
+
+
 
         ];
     }
