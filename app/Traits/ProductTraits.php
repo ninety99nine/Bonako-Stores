@@ -5,6 +5,7 @@ namespace App\Traits;
 use DB;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Product as ProductResource;
 use App\Http\Resources\Products as ProductsResource;
@@ -1304,5 +1305,33 @@ trait ProductTraits
 
         }
     }
+
+    /**
+     *  This method verifies if the user is the admin of the location
+     */
+   public function isAdmin($resource = null)
+   {
+       try{
+
+            //  Retrieve the User ID
+            $user_id = ($resource instanceof \App\User) ? $resource->id : $resource;
+
+            //  Check if the user is an admin to any linked location
+            if( !empty($user_id) ){
+
+                return $this->whereHas('locations', function (Builder $query) use ($user_id){
+                    $query->wherePivot('user_id', $user_id)->wherePivot('type', 'admin');
+                })->exists();
+
+            }
+
+            return false;
+
+       } catch (\Exception $e) {
+
+           throw($e);
+
+       }
+   }
 
 }
