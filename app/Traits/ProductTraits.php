@@ -1314,13 +1314,13 @@ trait ProductTraits
        try{
 
             //  Retrieve the User ID
-            $user_id = ($resource instanceof \App\User) ? $resource->id : $resource;
+            $user = ($resource instanceof \App\User) ? $resource : \App\User::find($resource->id);
 
             //  Check if the user is an admin to any linked location
-            if( !empty($user_id) ){
+            if( $user ){
 
-                return $this->whereHas('locations', function (Builder $query) use ($user_id){
-                    $query->wherePivot('user_id', $user_id)->wherePivot('type', 'admin');
+                return $user->locations()->wherePivot('location_user.type', 'admin')->whereHas('products', function (Builder $query) {
+                    $query->wherePivot('id', $this->id);
                 })->exists();
 
             }
