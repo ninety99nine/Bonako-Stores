@@ -90,8 +90,20 @@ trait OrderTraits
                 //  Set the order number
                 $this->order->generateResourceNumber();
 
-                //  Update the order status as "Unpaid"
-                $this->order->setPaymentStatusToUnpaid();
+                if( $data['is_paid'] === true ){
+
+                    //  Update the order status as "Paid"
+                    $this->order->setPaymentStatusToPaid();
+
+                    //  Send the order delivery confirmation code sms
+                    $this->order->sendDeliveryConfirmationCodeSms($user);
+
+                }else{
+
+                    //  Update the order status as "Unpaid"
+                    $this->order->setPaymentStatusToUnpaid();
+
+                }
 
                 //  Update the order status as "Undelivered"
                 $this->order->setDeliveryStatusToUndelivered();
@@ -107,9 +119,6 @@ trait OrderTraits
 
                 //  Refresh the instance to load the delivery line
                 $this->order = $this->order->fresh();
-
-                //  Send the order delivery confirmation code sms
-                $this->order->sendDeliveryConfirmationCodeSms($user);
 
                 //  Send the new order merchant sms
                 $this->order->sendNewOrderMerchantSms($user);
@@ -755,8 +764,11 @@ trait OrderTraits
             //  Set the delivery confirmation code
             $this->update(['delivery_confirmation_code' => $code]);
 
+            //  Set the delivery reference name
+            $name = $this->deliveryLine->name ?? $this->customer->first_name;
+
             //  Craft the sms message
-            $message = 'Hi '.$this->deliveryLine->name.', your delivery confirmation code '.
+            $message =  trim('Hi '.$name).', your delivery confirmation code '.
                        'for order #'.$this->number.' is ' .$six_digit_random_number.'. '.
                        'Share this code with your merchant only after you receive your order.';
 
@@ -1063,6 +1075,9 @@ trait OrderTraits
 
             //  Send the payment request sms
             $this->sendPaymentRequestSms($user);
+
+            //  Send the order delivery confirmation code sms
+            $this->sendDeliveryConfirmationCodeSms($user);
 
             //  Return the current order instance
             return $this;
