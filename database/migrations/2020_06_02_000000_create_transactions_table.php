@@ -17,7 +17,8 @@ class CreateTransactionsTable extends Migration
             /*  Transaction Details  */
             $table->string('number')->nullable();
             $table->string('type')->nullable();
-            $table->float('amount');
+            $table->char('currency', 3)->default('BWP');
+            $table->float('amount')->default(0);
             $table->string('payment_method_id');
             $table->string('description')->nullable();
 

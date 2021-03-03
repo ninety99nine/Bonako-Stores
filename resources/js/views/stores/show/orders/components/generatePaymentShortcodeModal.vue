@@ -63,12 +63,13 @@
 </template>
 <script>
 
-    import Loader from './../../../../../components/_common/loaders/default.vue';
+    import miscMixin from './../../../../../components/_mixins/misc/main.vue';
     import modalMixin from './../../../../../components/_mixins/modal/main.vue';
-    var customMixin = require('./../../../../../mixin.js').default;
+
+    import Loader from './../../../../../components/_common/loaders/default.vue';
 
     export default {
-        mixins: [modalMixin, customMixin],
+        mixins: [miscMixin, modalMixin],
         components: { Loader },
         props: {
             order: {
@@ -134,8 +135,6 @@
                     self.closeModal();
 
                 }).catch((response) => {
-
-                    console.error(response);
 
                     //  Stop loader
                     this.isLoading = false;

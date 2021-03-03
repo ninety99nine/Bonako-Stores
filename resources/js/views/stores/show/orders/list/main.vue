@@ -357,10 +357,10 @@
                             var ListItems = itemLines.map((item) => {
 
                                 var itemInfo = item.quantity+'x('+item.name+')'+ ' for '+
-                                                this.formatPrice(item.sub_total, symbol);
+                                               item.sub_total.currency_money;
 
                                 var hasSaleDiscount = item.sale_discount_total ? true : false;
-                                var saleDiscount = ' - '+this.formatPrice(item.sale_discount_total, symbol)+' sale discount';
+                                var saleDiscount = ' - '+item.sale_discount_total.currency_money+' sale discount';
 
                                 return h('ListItem', {
                                         class: ['d-block']
@@ -469,14 +469,12 @@
                         sortable: true,
                         render: (h, params) => {
 
-                            var activeCart = (params.row._embedded.active_cart || {});
-                            var subTotal = (activeCart.sub_total || 0);
-                            var couponTotal = (activeCart.coupon_total || 0);
-                            var discountTotal = (activeCart.sale_discount_total || 0);
-                            var deliveryFee = (activeCart.delivery_fee || 0);
-                            var grandTotal = (activeCart.grand_total || 0);
-                            var currency = (activeCart.currency || {});
-                            var symbol = (currency.symbol || '');
+                            var activeCart = params.row._embedded.active_cart;
+                            var subTotal = activeCart.sub_total.currency_money;
+                            var couponTotal = activeCart.coupon_total.currency_money;
+                            var discountTotal = activeCart.sale_discount_total.currency_money;
+                            var deliveryFee = activeCart.delivery_fee.currency_money;
+                            var grandTotal = activeCart.grand_total.currency_money;
 
                             return h('Poptip', {
                                 style: {
@@ -494,7 +492,7 @@
                             }, [
                                 h('span', {
                                     class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'cancelled text-danger' : '')]
-                                }, this.formatPrice(grandTotal, symbol) ),
+                                }, grandTotal ),
                                 h('List', {
                                         slot: 'content',
                                         props: {
@@ -502,20 +500,20 @@
                                             size: 'small'
                                         }
                                     }, [
-                                        h('ListItem', 'Sub Total: '+this.formatPrice(subTotal, symbol) ),
+                                        h('ListItem', 'Sub Total: '+ subTotal ),
                                         h('ListItem', {
                                             class: ['border-0', 'text-danger']
-                                        }, 'Sale Discount: '+this.formatPrice(discountTotal, symbol) ),
+                                        }, 'Sale Discount: '+ discountTotal ),
                                         h('ListItem', {
                                             class: ['text-danger']
-                                        }, 'Coupon Discount: '+this.formatPrice(couponTotal, symbol) ),
+                                        }, 'Coupon Discount: '+ couponTotal ),
                                         h('ListItem', {
                                             class: ['border-0', deliveryFee ? '' : 'd-none']
-                                        },'Delivery Fee: '+this.formatPrice(deliveryFee, symbol) ),
+                                        },'Delivery Fee: '+ deliveryFee ),
                                         h('ListItem', {
                                             class: ['font-weight-bold', 'mt-2'],
                                             style: { outline: 'double' }
-                                        },'Grand Total: '+this.formatPrice(grandTotal, symbol) )
+                                        },'Grand Total: '+ grandTotal )
                                     ])
                             ])
                         }
@@ -595,9 +593,6 @@
                         api.call('get', this.locationOrdersUrl+'?search='+this.searchWord+'&status='+statuses+'&type='+types)
                             .then(({data}) => {
 
-                                //  Console log the data returned
-                                console.log(data);
-
                                 //  Get the store
                                 self.orders = (((data || {})._embedded || {}).orders || []);
 
@@ -606,9 +601,6 @@
 
                             })
                             .catch(response => {
-
-                                //  Log the responce
-                                console.error(response);
 
                                 //  Stop loader
                                 self.isLoading = false;

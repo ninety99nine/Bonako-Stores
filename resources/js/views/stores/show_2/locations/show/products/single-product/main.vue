@@ -381,9 +381,6 @@
                 api.call('get', this.variationsUrl)
                     .then(({data}) => {
 
-                        //  Console log the data returned
-                        console.log(data);
-
                         //  Get the product variations
                         self.productVariations = data['_embedded']['products'] || [];
 
@@ -392,9 +389,6 @@
 
                     })
                     .catch(response => {
-
-                        //  Log the responce
-                        console.error(response);
 
                         //  Stop loader
                         self.isLoading = false;

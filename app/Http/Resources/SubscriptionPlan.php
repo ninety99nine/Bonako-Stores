@@ -22,6 +22,7 @@ class SubscriptionPlan extends JsonResource
             'description' => $this->description,
             'frequency' => $this->frequency,
             'duration' => $this->duration,
+            'currency' => $this->currency,
             'price' => $this->price,
 
             /*  Resource Links */

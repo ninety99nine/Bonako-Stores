@@ -27,8 +27,7 @@
                     class="ml-1" size="large"
                     :value="productForm.allow_variants"
                     :disabled="!isEditing || isLoading"
-                    @on-change="productForm.allow_variants = $event"
-                    :before-change="handleAllowVariantsBeforeChange">
+                    @on-change="productForm.allow_variants = $event">
                     <span slot="open">Yes</span>
                     <span slot="close">No</span>
                 </i-Switch>
@@ -52,75 +51,29 @@
                 type: Boolean,
                 default: false
             },
+            isEditing: {
+                type: Boolean,
+                default: false
+            },
+            productHasChanged: {
+                type: Boolean,
+                default: false
+            },
             serverErrors: {
                 type: Array,
                 default: function(){
                     return [];
                 }
             },
-            isEditing: {
-                type: Boolean,
-                default: false
-            },
-            parentFetchVariations: {
-                type: Function,
-                default: null
-            },
         },
         data(){
             return {
-                variantAttributesBeforeChange: null,
+
             }
         },
         computed: {
             serverAllowVariantsError(){
                 return (this.serverErrors || {}).allow_variants;
-            }
-        },
-        methods: {
-            handleAllowVariantsBeforeChange () {
-                return new Promise((resolve) => {
-
-                    //  If the switch is on but is being turned off
-                    if(this.productForm.allow_variants){
-
-                        //  Restore the variant attributes to their original state
-                        this.productForm.variant_attributes = this.variantAttributesBeforeChange;
-
-
-                    //  If the switch is off but is being turned on
-                    }else{
-
-                        //  Fetch the product variations
-                        this.parentFetchVariations();
-
-                        //  Store the original product variant attributes
-                        this.copyVariantAttributesBeforeUpdate();
-
-                        //  If the product does not already have variant attributes
-                        if( !(this.variantAttributesBeforeChange || []).length ){
-
-                            if( this.productForm.variant_attributes == null ){
-                                this.productForm.variant_attributes = [];
-                            }
-
-                            //  Add the default variable attributes
-                            this.productForm.variant_attributes.push({  name: 'Color', values: ['Blue', 'Red'] });
-
-                        }
-
-                    }
-
-                    //  This concludes our promise
-                    resolve();
-
-                });
-            },
-            copyVariantAttributesBeforeUpdate(){
-
-                //  Store the original product variant attributes
-                this.variantAttributesBeforeChange = _.cloneDeep(this.productForm.variant_attributes);
-
             }
         }
     };

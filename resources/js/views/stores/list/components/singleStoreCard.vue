@@ -167,14 +167,14 @@
 <script>
 
     //  Get the custom mixin file
-    var customMixin = require('./../../../../mixin.js').default;
+    import miscMixin from './../../../../components/_mixins/misc/main.vue';
 
     import Loader from './../../../../components/_common/loaders/default.vue';
     import countdown from './../../../../components/_common/countdown/default.vue';
     import deleteStoreModal from './deleteStoreModal.vue';
 
     export default {
-        mixins: [customMixin],
+        mixins: [miscMixin],
         components: { Loader, countdown, deleteStoreModal },
         props: {
             store: {
@@ -319,8 +319,6 @@
 
                     }).catch((response) => {
 
-                        console.log(response);
-
                         //  Stop loader
                         self.isLoading = false;
 
@@ -344,8 +342,6 @@
                         self.$set(self.stores, self.index, data);
 
                     }).catch((response) => {
-
-                        console.log(response);
 
                         //  Stop loader
                         self.isLoading = false;

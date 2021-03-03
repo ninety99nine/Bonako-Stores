@@ -3,7 +3,7 @@
     <Row>
         <Col span="8" :offset="8">
             <Card class="auth-form mt-5 pt-2">
-                
+
                 <!-- Heading -->
                 <Divider orientation="left" class="font-weight-bold">Change Password</Divider>
 
@@ -13,7 +13,7 @@
                 <Alert v-if="serverErrorMessage && !isLoading" type="warning">{{ serverErrorMessage }}</Alert>
 
                 <Form ref="passwordResetForm" :model="passwordResetForm" :rules="passwordResetFormRules">
-                                       
+
                     <!-- Enter Password -->
                     <FormItem prop="password" :error="serverPasswordError">
                         <Input type="password" v-model="passwordResetForm.password" placeholder="Password" :disabled="isLoading"
@@ -21,7 +21,7 @@
                             <Icon type="ios-lock-outline" slot="prepend"></Icon>
                         </Input>
                     </FormItem>
-                    
+
                     <!-- Confirm Password -->
                     <FormItem prop="password_confirmation">
                         <Input type="password" v-model="passwordResetForm.password_confirmation" placeholder="Confirm Password" :disabled="isLoading"
@@ -29,7 +29,7 @@
                             <Icon type="ios-lock-outline" slot="prepend"></Icon>
                         </Input>
                     </FormItem>
-                    
+
                     <!-- Change Password Button -->
                     <FormItem v-if="!isLoading">
                         <Button type="primary" icon="ios-refresh" class="float-right" :disabled="isLoading" @click="handleSubmit()">
@@ -47,10 +47,12 @@
 
 </template>
 <script>
-    
+
+    import miscMixin from './../../../components/_mixins/misc/main.vue';
     import Loader from './../../../components/_common/loaders/default.vue';
 
     export default {
+        mixins: [miscMixin],
         components: { Loader },
         data () {
 
@@ -79,9 +81,7 @@
                         { required: true, message: 'Confirm your password.', trigger: 'blur' },
                         { validator: samePasswordValidator, trigger: 'change' }
                     ]
-                },
-                serverErrors: [],
-                serverErrorMessage: ''
+                }
             }
         },
         computed: {
@@ -96,11 +96,11 @@
                 this.resetErrors();
 
                 //  Validate the password reset form
-                this.$refs['passwordResetForm'].validate((valid) => 
-                {   
+                this.$refs['passwordResetForm'].validate((valid) =>
+                {
                     //  If the validation passed
                     if (valid) {
-                        
+
                         //  Attempt to reset password
                         this.attemptResetPassword();
 
@@ -120,9 +120,9 @@
 
                 //  Start loader
                 self.isLoading = true;
-                
+
                 //  Attempt to reset the password using the auth resetPassword method found in the auth.js file
-                auth.resetPassword( 
+                auth.resetPassword(
                     this.$route.query.email, this.$route.query.token,
                     this.passwordResetForm.password, this.passwordResetForm.password_confirmation)
                     .then((data) => {
@@ -130,8 +130,8 @@
                         //  Stop loader
                         self.isLoading = false;
 
-                        //  Reset the password reset form
-                        self.resetForm();
+                        //  resetForm() declared in miscMixin
+                        self.resetForm('passwordResetForm');
 
                         //  Password reset success message
                         self.$Message.success({
@@ -141,62 +141,19 @@
 
                         //  Redirect the user to the projects page
                         self.$router.push({ name: 'show-stores' });
-                        
+
                     }).catch((response) => {
-                
-                        console.log(response);
 
                         //  Stop loader
                         self.isLoading = false;
 
-                        //  Get the error response data
-                        let data = (response || {}).data;
-                            
-                        //  Get the response errors
-                        var errors = (data || {}).errors;
-
-                        //  Set the general error message
-                        self.serverErrorMessage = (data || {}).message;
-
-                        /** 422: Validation failed. Incorrect credentials
-                         */
-                        if((response || {}).status === 422){
-
-                            //  If we have errors
-                            if(_.size(errors)){
-                                
-                                //  Set the server errors
-                                self.serverErrors = errors;
-
-                                //  Foreach error
-                                for (var i = 0; i < _.size(errors); i++) {
-                                    //  Get the error key e.g 'email'
-                                    var prop = Object.keys(errors)[i];
-                                    //  Get the error value e.g 'The account using the email provided does not exist'
-                                    var value = Object.values(errors)[i][0];
-
-                                    //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                                    self.serverErrors[prop] = value;
-                                }
-
-                            }
-                        }
-
                 });
-            },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
-            },
-            resetForm(){
-                this.resetErrors();
-                this.$refs['passwordResetForm'].resetFields();
             }
         },
         created(){
             //  If the token or email hasn't been provided
             if( !this.$route.query.token || !this.$route.query.email ){
-                
+
                 //  Return back to the forgot password page
                 this.$router.push({ name: 'forgot-password' });
 

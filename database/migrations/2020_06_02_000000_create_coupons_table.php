@@ -17,14 +17,15 @@ class CreateCouponsTable extends Migration
             /*  Coupon Details  */
             $table->string('name')->nullable();
             $table->string('description')->nullable();
-            $table->boolean('active')->nullable()->default(false);
-            $table->boolean('always_apply')->nullable()->default(false);
-            $table->boolean('uses_code')->nullable()->default(false);
+            $table->boolean('active')->default(false);
+            $table->boolean('always_apply')->default(false);
+            $table->boolean('uses_code')->default(false);
             $table->string('code');
-            $table->boolean('is_fixed_rate')->nullable()->default(false);
-            $table->float('fixed_rate');
-            $table->tinyInteger('is_percentage_rate')->nullable()->default(false);
-            $table->tinyInteger('percentage_rate');
+            $table->char('currency', 3)->default('BWP');
+            $table->boolean('is_fixed_rate')->default(false);
+            $table->float('fixed_rate')->default(0);
+            $table->tinyInteger('is_percentage_rate')->default(false);
+            $table->tinyInteger('percentage_rate')->default(0);
 
             /*  Ownership Information  */
             $table->unsignedInteger('location_id')->nullable();

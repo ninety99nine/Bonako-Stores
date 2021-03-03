@@ -21,6 +21,8 @@ class ItemLine extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'is_free' => $this->is_free,
+            'currency' => $this->currency,
             'unit_regular_price' => $this->unit_regular_price,
             'unit_sale_price' => $this->unit_sale_price,
             'unit_price' => $this->unit_price,
@@ -40,13 +42,13 @@ class ItemLine extends JsonResource
                 'curies' => [
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
-                
+
             ],
 
             '_embedded' => [
-
-                'product' => new ProductResource($this->product),
                 
+                'product' => new ProductResource($this->product),
+
             ]
 
         ];

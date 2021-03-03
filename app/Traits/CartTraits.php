@@ -106,13 +106,26 @@ trait CartTraits
     {
         try {
 
-            //  If we have the cart basket currency 
-            if( isset($cart_basket['currency']['id']) ){
+            //  Set the total amount
+            $cart_basket['sub_total'] = $cart_basket['sub_total']['amount'];
 
-                //  Set the currency id
-                $cart_basket['currency_id'] = $cart_basket['currency']['id'];
+            //  Set the coupon total amount
+            $cart_basket['coupon_total'] = $cart_basket['coupon_total']['amount'];
 
-            }
+            //  Set the sale discount total amount
+            $cart_basket['sale_discount_total'] = $cart_basket['sale_discount_total']['amount'];
+
+            //  Set the sale discount total amount
+            $cart_basket['coupon_and_sale_discount_total'] = $cart_basket['coupon_and_sale_discount_total']['amount'];
+
+            //  Set the delivery fee amount
+            $cart_basket['delivery_fee'] = $cart_basket['delivery_fee']['amount'];
+
+            //  Set the grand total amount
+            $cart_basket['grand_total'] = $cart_basket['grand_total']['amount'];
+
+            //  Set the currency code
+            $cart_basket['currency'] = $cart_basket['currency']['code'];
 
             //  Return the template with the resource fields allowed
             return collect($cart_basket)->only($this->getFillable())->toArray();
@@ -144,8 +157,11 @@ trait CartTraits
             //  Set the location id
             $location_id = $data['location_id'] ?? null;
 
+            //  Set the allow free delivery
+            $allow_free_delivery = $data['allow_free_delivery'] ?? false;
+
             //  Set the delivery fee
-            $delivery_fee = $data['delivery_fee'] ?? null;
+            $delivery_fee = $data['delivery_fee'] ?? 0;
 
             //  Set the location coupons
             $location_coupons = [];
@@ -166,7 +182,7 @@ trait CartTraits
                     $location_coupons = collect($location->coupons)->toArray();
 
                     //  Update the currency
-                    $currency = $location->currency->only(['id', 'code', 'symbol']);
+                    $currency = $location->currency;
 
                 }
 
@@ -191,26 +207,29 @@ trait CartTraits
             foreach ($cart_items as $item) {
 
                 //  Calculate the sub total (Excludes sale discount)
-                $sub_total += $item['sub_total'];
+                $sub_total += $item['sub_total']['amount'];
 
                 //  Calculate the total amount discounted because of items on sale
-                $sale_discount_total += $item['sale_discount_total'];
+                $sale_discount_total += $item['sale_discount_total']['amount'];
 
                 //  Calculate the grand total (Includes sale discount)
-                $grand_total += $item['grand_total'];
+                $grand_total += $item['grand_total']['amount'];
 
             }
 
             //  Calculate the total amount discounted because of coupons
             $coupon_total = $this->calcultateCoupons($grand_total, $location_coupons, $coupons);
 
-            //  If we don't have a delivery fee
-            if( $delivery_fee == null ){
+            //  If we don't have a delivery fee or we allow free delivery
+            if( $delivery_fee == 0 || $allow_free_delivery ){
 
                 /** Calculate the grand total (The actual amount minus how much the customer saved using coupons).
                  *  Remember that the grand total already applied the sale discounts.
                  */
                 $grand_total = $grand_total - $coupon_total;
+                
+                //  Set the delivery fee to Zero (In the case that we allow free delivery)
+                $delivery_fee = 0;
 
             //  If we have a delivery fee
             }else{
@@ -234,12 +253,13 @@ trait CartTraits
                 'total_items' => $this->getTotalItemQuantity($cart_items),
                 'items_summarized_array' => $this->getItemsSummarizedInArray($cart_items),
                 'items_summarized_inline' => $this->getItemsSummarizedInline($cart_items),
-                'sub_total' => $sub_total,
-                'coupon_total' => $coupon_total,
-                'sale_discount_total' => $sale_discount_total,
-                'coupon_and_sale_discount_total' => $coupon_and_sale_discount_total,
-                'delivery_fee' => $delivery_fee,
-                'grand_total' => $grand_total,
+                'sub_total' => $this->convertToMoney($currency, $sub_total),
+                'coupon_total' => $this->convertToMoney($currency, $coupon_total),
+                'sale_discount_total' => $this->convertToMoney($currency, $sale_discount_total),
+                'coupon_and_sale_discount_total' => $this->convertToMoney($currency, $coupon_and_sale_discount_total),
+                'allow_free_delivery' => $allow_free_delivery,
+                'delivery_fee' => $this->convertToMoney($currency, $delivery_fee),
+                'grand_total' => $this->convertToMoney($currency, $grand_total),
                 'location_id' => $location_id,
                 'currency' => $currency
             ];
@@ -297,22 +317,24 @@ trait CartTraits
                         $quantity =  $item['quantity'] ?? 1;
 
                         //  Set the unit price
-                        $unit_price = $related_item['unit_price'];
+                        $unit_price = $related_item['unit_price']['amount'];
 
                         //  Set the sub total (based on the unit regular price and quantity)
-                        $sub_total = $related_item['unit_regular_price'] * $quantity;
+                        $sub_total = $related_item['unit_regular_price']['amount'] * $quantity;
 
                         //  Set the sale discount (based on the sale discount and quantity)
-                        $sale_discount_total = $related_item['unit_sale_discount'] * $quantity;
+                        $sale_discount_total = $related_item['unit_sale_discount']['amount'] * $quantity;
 
                         //  Set the grand total (based on the unit price and quantity)
                         $grand_total = $unit_price * $quantity;
 
                         //  Set the cart item (Extract only selected fields)
-                        $cart_item = collect($related_item->toArray())->only([
+                        $cart_item = collect($related_item)->only([
 
                             /*  Product Details  */
-                            'id', 'name', 'description', 'unit_regular_price', 'unit_sale_price', 'sku', 'barcode', 
+                            'id', 'name', 'description', 
+                            'is_free', 'unit_regular_price', 'unit_sale_price', 
+                            'sku', 'barcode', 
 
                             /*  Product Attributes  */
                             'unit_price', 'unit_sale_discount'
@@ -321,9 +343,9 @@ trait CartTraits
 
                         //  Update the cart item with additional fields
                         $cart_item['quantity'] = $quantity;
-                        $cart_item['sub_total'] = $sub_total;
-                        $cart_item['grand_total'] = $grand_total;
-                        $cart_item['sale_discount_total'] = $sale_discount_total;
+                        $cart_item['sub_total'] = $this->convertToMoney($related_item->currency, $sub_total);
+                        $cart_item['grand_total'] = $this->convertToMoney($related_item->currency, $grand_total);
+                        $cart_item['sale_discount_total'] = $this->convertToMoney($related_item->currency, $sale_discount_total);
 
                         //  Add the current cart item to the rest of the cart items
                         array_push($cart_items, $cart_item);
@@ -403,7 +425,7 @@ trait CartTraits
                         if( !$already_applied ){
 
                             //  If its a percentage rate based coupon
-                            if ($location_coupon['is_percentage_rate']) {
+                            if ($location_coupon['is_percentage_rate']['status']) {
 
                                 //  Set the percentage rate
                                 $percentage_rate = $location_coupon['percentage_rate'];
@@ -414,10 +436,10 @@ trait CartTraits
                                 $total += ($percentage_rate / 100 * $grand_total);
 
                             //  If its a flat rate based coupon
-                            } elseif ($location_coupon['is_fixed_rate']) {
+                            } elseif ($location_coupon['is_fixed_rate']['status']) {
 
                                 //  Set the fixed rate
-                                $fixed_rate = $location_coupon['fixed_rate'];
+                                $fixed_rate = $location_coupon['fixed_rate']['amount'];
 
                                 /** Add the fixed coupon discount to the total. Note that the 
                                  *  fixed rate cannot be greater than the grand total.
@@ -603,6 +625,17 @@ trait CartTraits
                     //  Merge the data with additional fields
                     $data = array_merge($data, [
 
+                        'is_free' => $data['is_free']['status'],
+
+                        'unit_regular_price' => $data['unit_regular_price']['amount'],
+                        'unit_sale_price' => $data['unit_sale_price']['amount'],
+                        'unit_price' => $data['unit_price']['amount'],
+                        'unit_sale_discount' => $data['unit_sale_discount']['amount'],
+                        
+                        'sub_total' => $data['sub_total']['amount'],
+                        'sale_discount_total' => $data['sale_discount_total']['amount'],
+                        'grand_total' => $data['grand_total']['amount'],
+
                         //  Set the product id
                         'product_id' => $item['id'],
 
@@ -651,6 +684,9 @@ trait CartTraits
 
                     //  Merge the data with additional fields
                     $data = array_merge($data, [
+
+                        //  Set the fixed rate amount
+                        'fixed_rate' => $data['fixed_rate']['amount'],
 
                         //  Set the coupon id
                         'coupon_id' => $coupon['id'],

@@ -129,10 +129,12 @@
 <script>
 
 
+    import miscMixin from './../../../components/_mixins/misc/main.vue';
     import verifyMobileNumberModal from './verifyMobileNumberModal.vue';
     import Loader from './../../../components/_common/loaders/default.vue';
 
     export default {
+        mixins: [miscMixin],
         components: { verifyMobileNumberModal, Loader },
         data () {
 
@@ -199,9 +201,7 @@
                         }),
                         h('span', 'Email')
                     ])
-                },
-                serverErrors: [],
-                serverErrorMessage: ''
+                }
             }
         },
         computed: {
@@ -316,23 +316,6 @@
 
                 }
 
-                return api.call('post', this.loginUrl, loginData)
-                    .then(({data}) => {
-
-                        //  Get the access token
-                        this.token = data['access_token']['accessToken'];
-
-                        //  Set bearer token
-                        this.setBearerToken();
-
-                        //  Store the token in the local storage
-                        this.storeToken();
-
-                        //  Get the authenticated user details
-                        return this.getAuth();
-
-                    });
-
             },
             handleOpenVerifyMobileNumberModal(){
                 this.isOpenVerifyMobileNumberModal = true;
@@ -389,14 +372,15 @@
                 if(this.activeTab == 'emailTab'){
 
                     //  Attempt to login using the auth loginWithEmail method found in the auth.js file
-                    auth.loginWithEmail(this.loginForm.email, this.loginForm.password)
+                    auth.loginWithEmail(this.loginForm.email, this.loginForm.password, this)
                         .then((data) => {
 
                             this.loginSuccess(data);
 
                         }).catch((response) => {
 
-                            this.loginFail(response);
+                            //  Stop loader
+                            this.isLoading = false;
 
                     });
 
@@ -404,26 +388,27 @@
 
                     //  Attempt to login using the auth loginWithMobile method found in the auth.js file
                     auth.loginWithMobile(this.loginForm.mobile_number, this.loginForm.password,
-                                         this.loginForm.password_confirmation, this.verification_code)
+                                         this.loginForm.password_confirmation, this.verification_code, this)
                         .then((data) => {
 
-                            this.loginSuccess(data);
+                            this.loginSuccess();
 
                         }).catch((response) => {
 
-                            this.loginFail(response);
+                            //  Stop loader
+                            this.isLoading = false;
 
                     });
 
                 }
             },
-            loginSuccess(data){
+            loginSuccess(){
 
                 //  Stop loader
                 this.isLoading = false;
 
-                //  Reset the login form
-                this.resetLoginForm();
+                //  resetForm() declared in miscMixin
+                this.resetForm('loginForm');
 
                 //  Login success message
                 this.$Message.success({
@@ -435,56 +420,6 @@
                 this.$router.push({ name: 'show-stores' });
 
             },
-            loginFail(response){
-
-                console.error(response);
-
-                //  Stop loader
-                this.isLoading = false;
-
-                //  Get the error response data
-                let data = (response || {}).data;
-
-                //  Get the response errors
-                var errors = (data || {}).errors;
-
-                //  Set the general error message
-                this.serverErrorMessage = (data || {}).message;
-
-                /** 422: Validation failed. Incorrect credentials
-                 *  429: Too many login attempts.
-                 */
-                if((response || {}).status === 422 || (response || {}).status === 429){
-
-                    //  If we have errors
-                    if(_.size(errors)){
-
-                        //  Set the server errors
-                        this.serverErrors = errors;
-
-                        //  Foreach error
-                        for (var i = 0; i < _.size(errors); i++) {
-                            //  Get the error key e.g 'email', 'password'
-                            var prop = Object.keys(errors)[i];
-                            //  Get the error value e.g 'These credentials do not match our records.'
-                            var value = Object.values(errors)[i][0];
-
-                            //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                            this.serverErrors[prop] = value;
-                        }
-
-                    }
-                }
-
-            },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
-            },
-            resetLoginForm(){
-                this.resetErrors();
-                this.$refs['loginForm'].resetFields();
-            }
         }
     }
 </script>

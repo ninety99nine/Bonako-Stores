@@ -18,17 +18,19 @@ class CreateItemLinesTable extends Migration
             /*  Basic Info  */
             $table->string('name')->nullable();
             $table->string('description', 500)->nullable();
-            
+
             /*  Unit Pricing Info  */
-            $table->float('unit_regular_price')->nullable();
-            $table->float('unit_sale_price')->nullable();
-            $table->float('unit_price')->nullable();
-            $table->float('unit_sale_discount')->nullable();
+            $table->boolean('is_free')->default(false);
+            $table->char('currency', 3)->default('BWP');
+            $table->float('unit_regular_price')->default(0);
+            $table->float('unit_sale_price')->default(0);
+            $table->float('unit_price')->default(0);
+            $table->float('unit_sale_discount')->default(0);
 
             /*  Total Pricing Info  */
-            $table->float('sub_total')->nullable();
-            $table->float('sale_discount_total')->nullable();
-            $table->float('grand_total')->nullable();
+            $table->float('sub_total')->default(0);
+            $table->float('sale_discount_total')->default(0);
+            $table->float('grand_total')->default(0);
 
             /*  Quantity Info  */
             $table->unsignedInteger('quantity')->default(0);

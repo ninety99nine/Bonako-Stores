@@ -17,8 +17,16 @@ class SubscriptionPlan extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'description', 'type', 'frequency', 'duration', 'price'
+        'name', 'description', 'type', 'frequency', 'duration', 'currency', 'price'
     ];
+
+    /*
+     *  Returns the user that owns this transaction
+     */
+    public function owner()
+    {
+        return $this->belongsTo('App\User');
+    }
 
     /** ATTRIBUTES
      *
@@ -28,12 +36,20 @@ class SubscriptionPlan extends Model
         'resource_type',
     ];
 
-    /*
-     *  Returns the user that owns this transaction
+    /**
+     *  Returns the subscription plan currency code and symbol
      */
-    public function owner()
+    public function getCurrencyAttribute($currency_code)
     {
-        return $this->belongsTo('App\User');
+        return $this->unpackCurrency($currency_code);
+    }
+
+    /**
+     *  Returns the subscription plan price
+     */
+    public function getPriceAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
     }
 
 }

@@ -1,6 +1,8 @@
 <template>
 
-    <Card :class="['cursor-pointer', 'mb-1']" @click.native="toggleExpansion()">
+    <Card :class="['single-product-variation', visibleStatus ? 'active' : '', 'cursor-pointer', 'mb-2']"
+          :style="{ background: visibleStatus ? 'ghostwhite' : '' }"
+          @click.native="handleOpenManageProductModal()">
 
         <div :class="['clearfix', 'mb-2']">
 
@@ -12,15 +14,53 @@
                   @click.native.stop="handleOpenManageProductModal()" />
 
             <!-- Product Position  -->
-            <span :class="['float-right', 'border-bottom', 'mr-5']"># {{ position }}</span>
+            <span :class="['float-right', 'border-bottom', 'mr-3']"># {{ position }}</span>
+
+            <!-- Product Unit Price  -->
+            <span v-if="!allowVariants" :class="['float-right', 'mr-3']">
+
+                <!-- Price Poptip -->
+                <pricingPoptip :product="product" placement="top-end"></pricingPoptip>
+
+            </span>
+
+            <span v-if="onSale" :class="['float-right', 'mr-3']">
+
+                <!-- Sale Explanation Poptip -->
+                <Poptip trigger="hover" placement="top" word-wrap width="100">
+
+                    <span  slot="content" :class="['font-weight-bold', 'text-success']">{{ salePercentage }}% off</span>
+
+                    <Badge :key="index" text="Sale" type="success"></Badge>
+
+                </Poptip>
+
+            </span>
+
+            <span v-if="!visibleStatus" :class="['float-right', 'mr-3']">
+
+                <!-- Visible Explanation Poptip -->
+                <Poptip trigger="hover" placement="top" word-wrap width="300" :content="product.visible.description">
+                    <span :style="{ color: 'orange' }">
+                        <Icon type="ios-eye-off" size="20" />
+                        <span>{{ product.visible.name }}</span>
+                    </span>
+                </Poptip>
+
+            </span>
 
         </div>
 
         <div>
 
-            <Badge v-for="(variable, index) in variables" :key="index" :text="variable.value" type="info" :class="['mr-2']"></Badge>
+            <!-- Variables  -->
+            <span v-for="(variable, index) in variables" :key="index" :class="['d-inline-block', 'mr-2']">
+                <Poptip trigger="hover" placement="top-start" word-wrap width="300" :content="variable.name+': '+variable.value">
+                    <Badge :text="variable.value" type="info"></Badge>
+                </Poptip>
+            </span>
 
-            <small v-if="(this.product || {}).allow_variants" :class="['text-primary']">
+            <small v-if="this.allowVariants" :class="['text-primary']">
 
                 <!-- Has variations icon  -->
                 <Icon type="ios-git-branch" size="16" />
@@ -29,17 +69,6 @@
                 <span :class="['font-weight-bold']">Has Variations</span>
 
             </small>
-        </div>
-
-        <div v-if="isExpanded">
-
-            <!-- If we allow variations -->
-            <template v-if="product.allow_variants">
-
-                <!-- Variations - Registered Globally -->
-                <variations :product="product" @isLoadingVariations="isLoadingVariations = $event"></variations>
-
-            </template>
 
         </div>
 
@@ -51,6 +80,7 @@
             <manageProductDrawer
                 :product="product"
                 layoutSize="small"
+                :location="location"
                 @savedProduct="handleSavedProduct($event)"
                 @fetchedProduct="handleFetchedProduct($event)"
                 @visibility="isOpenManageProductModal = $event">
@@ -64,11 +94,19 @@
 
 <script>
 
+    import pricingPoptip from './../pricingPoptip.vue';
+    import statusTag from './../statusTag.vue';
+    import miscMixin from './../../../../../../../components/_mixins/misc/main.vue';
     import manageProductDrawer from './../../../components/manageProductDrawer.vue';
 
     export default {
+        mixins: [miscMixin],
         props: {
             product: {
+                type: Object,
+                default: null
+            },
+            location: {
                 type: Object,
                 default: null
             },
@@ -83,10 +121,9 @@
                 default: null
             }
         },
-        components: { manageProductDrawer },
+        components: { pricingPoptip, statusTag, manageProductDrawer },
         data(){
             return {
-                isExpanded: false,
                 isLoadingVariations: false,
                 isOpenManageProductModal: false
             }
@@ -98,14 +135,47 @@
             position(){
                 return (this.index + 1);
             },
+            allowVariants(){
+                return this.product.allow_variants.status;
+            },
             variables(){
                 return this.product._embedded.variables;
+            },
+            isFree(){
+                return this.product.is_free.status;
+            },
+            onSale(){
+                return this.product._attributes.on_sale.status;
+            },
+            currencySymbol(){
+                return (this.location._embedded.currency || {}).symbol;
+            },
+            unitRegularPrice(){
+                return this.product.unit_regular_price.currency_money;
+            },
+            unitSalePrice(){
+                return this.product.unit_sale_price.currency_money;
+            },
+            unitCostPrice(){
+                return this.product.unit_cost.currency_money
+            },
+            unitSaleDiscount(){
+                return this.product._attributes.unit_sale_discount.currency_money
+            },
+            unitProfit(){
+                return this.product._attributes.unit_profit.currency_money
+            },
+            unitPrice(){
+                return this.product._attributes.unit_price;
+            },
+            salePercentage(){
+                return this.product._attributes.unit_sale_percentage;
+            },
+            visibleStatus(){
+                return this.product.visible.status;
             }
         },
         methods: {
-            toggleExpansion(){
-                this.isExpanded = !this.isExpanded;
-            },
             handleOpenManageProductModal(){
                 this.isOpenManageProductModal = true;
             },

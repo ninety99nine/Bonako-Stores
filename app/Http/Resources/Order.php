@@ -37,9 +37,12 @@ class Order extends JsonResource
 
             /*  Attributes  */
             '_attributes' => [
-                'is_paid' => $this->isPaid(),
-                'is_delivered' => $this->isDelivered(),
+                'is_paid' => $this->is_paid,
+                'is_delivered' => $this->is_delivered,
+                'requires_delivery_confirmation_code' => $this->requires_delivery_confirmation_code,
+
                 'resource_type' => $this->resource_type,
+                'delivery_verified_description' => $this->delivery_verified_description,
                 'payment_short_code' => !empty($this->paymentShortCode) ? collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']) : null,
             ],
 

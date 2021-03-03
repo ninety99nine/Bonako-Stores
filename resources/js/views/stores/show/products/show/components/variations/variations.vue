@@ -3,20 +3,37 @@
     <div>
 
         <!-- Loading Variations Loader -->
-        <Loader v-if="isLoadingVariations" :loading="true" type="text" class="text-left mt-2 mb-2">Loading variations...</Loader>
+        <Loader v-if="isLoadingVariations" :loading="true" type="text" class="mt-2 mb-2">Loading variations...</Loader>
 
-        <div v-if="!isLoadingVariations && !isCreatingVariations" class="mt-4">
+        <!-- Show Variations -->
+        <div v-if="!this.isLoadingVariations && !this.isCreatingVariations && variations.length" class="mt-4">
 
             <!-- Single Product Variation  -->
-            <singleVariation v-for="(variation, index) in variations" :key="index" name="single-product-variation"
+            <singleVariation v-for="(variation, index) in variations" :key="index"
                 :products="variations"
                 :product="variation"
+                :location="location"
                 :index="index"
                 :mask="false">
             </singleVariation>
 
         </div>
 
+        <!-- Warning Message Alert -->
+        <Alert v-if="!isLoading && !variations.length" type="warning" show-icon>
+            <div class="d-flex">
+                <span :style="{ minWidth: 'fit-content' }" :class="['font-weight-bold', 'mr-2']">No variations found</span>
+
+                <!-- Show the description -->
+                <Poptip trigger="hover" placement="top" word-wrap width="300"
+                        content="This product does not have variations">
+
+                    <!-- Show the info icon -->
+                    <Icon type="ios-information-circle-outline" :size="16" />
+
+                </Poptip>
+            </div>
+        </Alert>
 
     </div>
 
@@ -30,6 +47,10 @@
     export default {
         props: {
             product: {
+                type: Object,
+                default: null
+            },
+            location: {
                 type: Object,
                 default: null
             },
@@ -82,20 +103,16 @@
                     api.call('get', this.variationsUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the product
                             self.variations = data['_embedded']['products'] || [];
+
+                            self.$emit('variations', self.variations);
 
                             //  Stop loader
                             self.isLoadingVariations = false;
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingVariations = false;

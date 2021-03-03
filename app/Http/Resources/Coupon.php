@@ -25,6 +25,7 @@ class Coupon extends JsonResource
             'uses_code' => $this->uses_code,
             'code' => $this->code,
             'is_fixed_rate' => $this->is_fixed_rate,
+            'currency' => $this->currency,
             'fixed_rate' => $this->fixed_rate,
             'is_percentage_rate' => $this->is_percentage_rate,
             'percentage_rate' => $this->percentage_rate,

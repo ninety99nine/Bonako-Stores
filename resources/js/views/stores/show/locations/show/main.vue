@@ -2,340 +2,193 @@
 
     <Row>
 
-        <Col :span="12" :offset="6">
+        <Col :span="12" :offset="6" class="mt-5">
+                    
+            <!-- If we are loading, Show Loader -->
+            <Loader v-if="(isEditing && isLoadingLocation)" class="mb-2">Searching location</Loader>
 
-            <Card class="mt-3 pt-2">
+            <Form v-if="locationForm" ref="locationForm" :model="locationForm" :rules="locationFormRules" class="location-form">
 
-                <!-- Heading -->
-                <Divider orientation="left" class="font-weight-bold">Location Details</Divider>
+                <template v-show="visibleSections.includes('location-details')">
 
-                <!-- Server Error Message Alert -->
-                <Alert v-if="serverErrorMessage && !isSavingChanges" type="warning">{{ serverErrorMessage }}</Alert>
+                    <!-- Heading -->
+                    <Divider orientation="left" class="font-weight-bold">Location Details</Divider>
 
-                <!-- If we are loading, Show Loader -->
-                <Loader v-show="isLoadingLocation" class="mt-2">Loading location...</Loader>
+                    <Card>
 
-                <Form v-if="!isLoadingLocation && locationForm" ref="locationForm" :model="locationForm" :rules="locationFormRules">
+                        <div :style="onlineStatusStyle" :class="onlineStatusClass">
 
-                    <div :class="[locationForm.online ? '' : 'bg-grey-light rounded pt-2 px-3']">
+                            <!-- Toggle Online Switch -->
+                            <onlineSwitch :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></onlineSwitch>
 
-                        <!-- Set Online Status -->
-                        <FormItem prop="online" :error="serverOnlineError" class="mb-2">
-                            <div>
-                                <span :style="{ width: '200px' }" class="font-weight-bold">{{ statusText }}: </span>
-                                <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
-                                        content="Turn on to allow subscribers to access this store location">
-                                    <i-Switch v-model="locationForm.online" />
-                                </Poptip>
-                            </div>
-                        </FormItem>
+                            <!-- If we are offline -->
+                            <template v-if="!locationForm.online">
 
-                        <template v-if="!locationForm.online">
+                                <!-- Enter Offline Message Input -->
+                                <offlineMessageTextarea :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></offlineMessageTextarea>
 
-                            <!-- Set Offline Status Message -->
-                            <FormItem prop="offline_message" :error="serverOfflineMessageError" class="mb-2">
-                                <div class="d-flex">
-                                    <span :style="{ width: '150px' }">Offline Message: </span>
-                                    <Input type="textarea" v-model="locationForm.offline_message" placeholder="Enter offline message" :disabled="isSavingChanges"
-                                            maxlength="160" show-word-limit @keyup.enter.native="handleSubmit()">
-                                    </Input>
-                                </div>
-                            </FormItem>
+                            </template>
 
-                            <Divider class="mb-2"></Divider>
+                        </div>
+
+                        <!-- Enter Name Input -->
+                        <nameInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></nameInput>
+
+                        <!-- Enter Call To Action Input -->
+                        <callToActionInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></callToActionInput>
+
+                    </Card>
+
+                    <!-- Heading -->
+                    <Divider orientation="left" :class="['font-weight-bold', 'mb-3', 'mt-4']">Delivery Details</Divider>
+
+                    <Card>
+                        
+                        <!-- Toggle Allow Delivery Switch -->
+                        <allowDeliverySwitch :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDeliverySwitch>
+
+                        <!-- If we allow delivery -->
+                        <template v-if="locationForm.allow_delivery">
+
+                            <!-- Enter Delivery Note Input -->
+                            <deliveryNoteTextarea :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></deliveryNoteTextarea>
+
+                            <Row class="mt-2">
+
+                                <Col :span="12">
+
+                                    <!-- Enter Delivery Flat Fee Input -->
+                                    <deliveryFlatFeeInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></deliveryFlatFeeInput>
+
+                                </Col>
+
+                                <Col :span="12">
+
+                                    <!-- Free delivery Checkbox -->
+                                    <allowFreeDeliveryCheckbox :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowFreeDeliveryCheckbox>
+
+                                </Col>
+
+                            </Row>
+
+                            <!-- Disclaimer: Free Delivery -->
+                            <freeDeliveryAlert :location="locationForm"></freeDeliveryAlert>
+
+                            <!-- Disclaimer: No Price -->
+                            <flatFeeDeliveryAlert :location="locationForm" :currencySymbol="locationCurrencySymbol"></flatFeeDeliveryAlert>
+
+                            <!-- Delivery Destinations Select -->
+                            <deliveryDestinationsSelectInput :locationForm="locationForm" :currencySymbol="locationCurrencySymbol" 
+                                                             :isLoading="isLoading" :serverErrors="serverErrors" :formatPrice="formatPrice">
+                            </deliveryDestinationsSelectInput>
+
+                            <!-- Delivery Days Select -->
+                            <deliveryDaysSelectInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></deliveryDaysSelectInput>
+
+                            <!-- Delivery Times Select -->
+                            <deliveryTimesSelectInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></deliveryTimesSelectInput>
+
+                        </template>
+                        
+                    </Card>
+
+                    <!-- Heading -->
+                    <Divider orientation="left" :class="['font-weight-bold', 'mb-3', 'mt-4']">Pickup Details</Divider>
+
+                    <Card>
+                        
+                        <!-- Toggle Allow Pickup Switch -->
+                        <allowPickupSwitch :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowPickupSwitch>
+
+                        <!-- If we allow pickup -->
+                        <template v-if="locationForm.allow_pickups">
+
+                            <!-- Enter Pickup Note Input -->
+                            <pickupNoteTextarea :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></pickupNoteTextarea>
+
+                            <!-- Pickup Destinations Select -->
+                            <pickupDestinationsSelectInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></pickupDestinationsSelectInput>
+
+                            <!-- Pickup Days Select -->
+                            <pickupDaysSelectInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></pickupDaysSelectInput>
+
+                            <!-- Pickup Times Select -->
+                            <pickupTimesSelectInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></pickupTimesSelectInput>
 
                         </template>
 
-                    </div>
-
-                    <!-- Enter Name -->
-                    <FormItem label="Name" prop="name" :error="serverNameError" class="mb-2">
-                        <Input type="text" v-model="locationForm.name" placeholder="Name" :disabled="isSavingChanges"
-                                maxlength="50" show-word-limit @keyup.enter.native="handleSubmit()">
-                        </Input>
-                    </FormItem>
-
-                    <!-- Call To Action -->
-                    <FormItem label="Call To Action" prop="call_to_action" :error="serverCallToActionError" class="mb-2">
-                        <Input type="text" v-model="locationForm.call_to_action" placeholder="Call to action e.g Buy Grocery" :disabled="isSavingChanges"
-                                maxlength="50" show-word-limit @keyup.enter.native="handleSubmit()">
-                        </Input>
-                    </FormItem>
-
-                    <!-- Enter About Us -->
-                    <FormItem label="About Us" prop="about_us" :error="serverAboutUsError" class="mb-2">
-                        <Input type="textarea" v-model="locationForm.about_us" placeholder="Describe this store location and its offerings" :disabled="isSavingChanges"
-                                maxlength="140" show-word-limit @keyup.enter.native="handleSubmit()">
-                        </Input>
-                    </FormItem>
-
-                    <!-- Enter Contact Us -->
-                    <FormItem label="Contact Us" prop="contact_us" :error="serverContactUsError" class="mb-2">
-                        <Input type="textarea" v-model="locationForm.contact_us" placeholder="Enter contact information for this store location e.g phone number, email e.t.c" :disabled="isSavingChanges"
-                                maxlength="140" show-word-limit @keyup.enter.native="handleSubmit()">
-                        </Input>
-                    </FormItem>
+                    </Card>
 
                     <!-- Heading -->
-                    <Divider orientation="left" class="font-weight-bold">Delivery Details</Divider>
+                    <Divider orientation="left" :class="['font-weight-bold', 'mb-3', 'mt-4']">Payment Details</Divider>
 
-                    <!-- Allow Delivery -->
-                    <FormItem prop="allow_delivery" class="mb-2">
-                        <div>
-                            <span :style="{ width: '200px' }" class="font-weight-bold">Allow Delivery: </span>
-                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
-                                    content="Turn on to allow delivery for orders placed to this location">
-                                <i-Switch v-model="locationForm.allow_delivery" />
-                            </Poptip>
-                        </div>
-                    </FormItem>
+                    <Card>
+                        
+                        <!-- Toggle Allow Payments Switch -->
+                        <allowPaymentsSwitch :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowPaymentsSwitch>
 
-                    <template v-if="locationForm.allow_delivery">
+                        <!-- If we allow payments -->
+                        <template v-if="locationForm.allow_payments">
 
-                        <!-- Set Delivery Policy Message -->
-                        <FormItem prop="delivery_note" :error="serverDeliveryNoteError" class="mb-2">
-                            <div class="d-flex">
-                                <span :style="{ width: '160px' }">Delivery Notice: </span>
-                                <Input type="textarea" v-model="locationForm.delivery_note" placeholder="Enter delivery notice or announcement" :disabled="isSavingChanges"
-                                        maxlength="160" show-word-limit @keyup.enter.native="handleSubmit()">
-                                </Input>
-                            </div>
-                        </FormItem>
+                            <!-- Pickup Days Select -->
+                            <paymentSelectInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></paymentSelectInput>
 
-                        <!-- Set Delivery Flat Fee -->
-                        <FormItem prop="delivery_flat_fee" class="mb-2">
-                            <div class="d-flex">
-                                <span :style="{ width: '160px' }">Delivery Flat Fee: </span>
-                                <Poptip trigger="hover" content="This is a flat fee charged for delivery to any destination" word-wrap class="poptip-w-100">
-                                    <InputNumber v-model="locationForm.delivery_flat_fee" :disabled="isSavingChanges"
-                                                 placeholder="40" class="w-100" @keyup.enter.native="handleSubmit()">
-                                    </InputNumber>
-                                </Poptip>
-                            </div>
+                            <!-- Orange Money Merchant Code Input -->
+                            <orangeMoneyMerchantCodeInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></orangeMoneyMerchantCodeInput>
 
-                            <!-- Flat Fee Desclaimer-->
-                            <Alert v-if="locationForm.delivery_flat_fee != null" type="info" class="my-2">
-                                <span class="font-weight-bold">Note:</span>
-                                <span v-if="locationForm.delivery_flat_fee == 0">Delivery to any destination will be <span class="font-weight-bold text-success">Free Delivery</span></span>
-                                <span v-else>Delivery to any destination will be charged {{ store.currency.symbol + locationForm.delivery_flat_fee }}</span>
-                            </Alert>
+                        </template>
 
-                        </FormItem>
-
-                        <!-- Delivery Destinations -->
-                        <div class="d-flex mb-2">
-                            <span :style="{ width: '160px' }">Destinations: </span>
-                            <Poptip trigger="hover" content="Which destinations do you deliver orders" word-wrap class="poptip-w-100">
-                                <Select v-model="deliveryDestinationNames" filterable multiple allow-create
-                                        @on-create="addDeliveryDestination($event, null, locationForm.delivery_destinations)" class="w-100">
-                                    <Option v-for="(destination, index) in deliveryDestinations" :label="destination.name"
-                                            :value="destination.name" :key="index">
-                                        <span>{{ destination.name }}</span>
-                                        <span :style="{ color:'#ccc' }" class="float-right mr-4">
-                                            Cost: {{ destination.cost ? store.currency.symbol + destination.cost : 'None' }}
-                                        </span>
-                                    </Option>
-                                </Select>
-                            </Poptip>
-                        </div>
-                        <div v-if="locationForm.delivery_destinations.length" class="clearfix mb-2">
-                            <!-- Manage Pricing Button -->
-                            <Button type="primary" size="small" class="float-right"
-                                    @click.native="isOpenManageDestinationsModal = true">
-                                <Icon type="ios-pin-outline" :size="20" class="mr-1"/>
-                                <span>Destination Pricing</span>
-                            </Button>
-                        </div>
-
-                        <!-- Delivery Days -->
-                        <div class="d-flex mb-2">
-                            <span :style="{ width: '160px' }">Delivery Days: </span>
-                            <Poptip trigger="hover" content="Which days do you deliver orders" word-wrap class="poptip-w-100">
-                                <Select v-model="locationForm.delivery_days" filterable multiple class="w-100">
-                                    <Option v-for="(day, index) in deliveryDays" :value="day" :key="index">
-                                        {{ day }}
-                                    </Option>
-                                </Select>
-                            </Poptip>
-                        </div>
-
-                        <!-- Delivery Times -->
-                        <div class="d-flex mb-2">
-                            <span :style="{ width: '160px' }">Delivery Times: </span>
-                            <Poptip trigger="hover" content="Which times do you deliver orders" word-wrap class="poptip-w-100">
-                                <Select v-model="locationForm.delivery_times" filterable multiple allow-create
-                                        @on-create="addDeliveryTime($event, locationForm.delivery_times)" class="w-100">
-                                    <Option v-for="(day, index) in deliveryTimes" :value="day" :key="index">
-                                        {{ day }}
-                                    </Option>
-                                </Select>
-                            </Poptip>
-                        </div>
-
-                    </template>
-
-                    <!-- Allow Pickups -->
-                    <FormItem prop="allow_pickups" class="mb-2">
-                        <div>
-                            <span class="font-weight-bold mr-2">Allow Pickups: </span>
-                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
-                                    content="Turn on to allow customers to pickup their own orders">
-                                <i-Switch v-model="locationForm.allow_pickups" />
-                            </Poptip>
-                        </div>
-                    </FormItem>
-
-                    <template v-if="locationForm.allow_pickups">
-
-                        <!-- Set Pickup Policy Message -->
-                        <FormItem prop="pickup_note" :error="serverPickupNoteError" class="mb-2">
-                            <div class="d-flex">
-                                <span :style="{ width: '160px' }">Pickup Notice: </span>
-                                <Input type="textarea" v-model="locationForm.pickup_note" placeholder="Enter pickup notice or announcement" :disabled="isSavingChanges"
-                                        maxlength="160" show-word-limit @keyup.enter.native="handleSubmit()">
-                                </Input>
-                            </div>
-                        </FormItem>
-
-                        <!-- Pickup Destinations -->
-                        <div class="d-flex mb-2">
-                            <span :style="{ width: '180px' }" class="mt-1">Pickup Destinations: </span>
-                            <Poptip trigger="hover" content="Which destinations do you allow customers to pickup their orders" word-wrap class="poptip-w-100">
-                                <Select v-model="locationForm.pickup_destinations" filterable multiple allow-create
-                                        @on-create="addPickupDestination($event, locationForm.pickup_destinations)" class="w-100">
-                                    <Option v-for="(destination, index) in pickupDestinations" :value="destination" :key="index">
-                                        {{ destination }}
-                                    </Option>
-                                </Select>
-                            </Poptip>
-                        </div>
-
-                        <!-- Pickup Days -->
-                        <div class="d-flex mb-2">
-                            <span :style="{ width: '180px' }">Pickup Days: </span>
-                            <Poptip trigger="hover" content="Which days do you allow customers to pickup their orders" word-wrap class="poptip-w-100">
-                                <Select v-model="locationForm.pickup_days" filterable multiple class="w-100">
-                                    <Option v-for="(day, index) in pickupDays" :value="day" :key="index">
-                                        {{ day }}
-                                    </Option>
-                                </Select>
-                            </Poptip>
-                        </div>
-
-                        <!-- Pickup Times -->
-                        <div class="d-flex mb-2">
-                            <span :style="{ width: '180px' }">Pickup Times: </span>
-                            <Poptip trigger="hover" content="Which times do you allow customers to pickup their orders" word-wrap class="poptip-w-100">
-                                <Select v-model="locationForm.pickup_times" filterable multiple allow-create
-                                    @on-create="addPickupTime($event, locationForm.pickup_times)" class="w-100">
-                                    <Option v-for="(day, index) in pickupTimes" :value="day" :key="index">
-                                        {{ day }}
-                                    </Option>
-                                </Select>
-                            </Poptip>
-                        </div>
-
-                    </template>
-
-                    <!-- Heading -->
-                    <Divider orientation="left" class="font-weight-bold">Payment Details</Divider>
-
-                    <!-- Allow Payments -->
-                    <FormItem prop="allow_payments" class="mb-2">
-                        <div>
-                            <span :style="{ width: '200px' }" class="font-weight-bold">Allow Payments: </span>
-                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
-                                    content="Turn on to allow payments for orders placed to this location">
-                                <i-Switch v-model="locationForm.allow_payments" />
-                            </Poptip>
-                        </div>
-                    </FormItem>
-
-                    <template v-if="locationForm.allow_payments">
-
-                        <!-- Supported Online Payment Methods -->
-                        <FormItem prop="online_payment_methods" class="mb-2">
-                            <div class="d-flex">
-                                <span :style="{ width: '180px' }">Online Payments: </span>
-                                <Select v-model="locationForm.online_payment_methods" multiple :disabled="isLoadingPaymentMethods" class="w-100 mr-2">
-                                    <Option v-for="(paymentMethod, index) in onlinePaymentMethods" :value="paymentMethod.name" :key="index">
-                                        {{ paymentMethod.name }}
-                                    </Option>
-                                </Select>
-                                <!-- Refresh Button -->
-                                <Poptip trigger="hover" content="Refresh the payment methods" word-wrap width="300"
-                                        :style="{ marginTop: '-2px' }">
-                                    <Button class="p-1" @click.native="fetchPaymentMethods()">
-                                        <Icon type="ios-refresh" :size="20" />
-                                    </Button>
-                                </Poptip>
-                            </div>
-                        </FormItem>
-
-                        <!-- Supported offline Payment Methods -->
-                        <FormItem prop="offline_payment_methods" class="mb-2">
-                            <div class="d-flex">
-                                <span :style="{ width: '180px' }">Offline Payments: </span>
-                                <Select v-model="locationForm.offline_payment_methods" multiple :disabled="isLoadingPaymentMethods" class="w-100 mr-2">
-                                    <Option v-for="(paymentMethod, index) in offlinePaymentMethods" :value="paymentMethod.name" :key="index">
-                                        {{ paymentMethod.name }}
-                                    </Option>
-                                </Select>
-                                <!-- Refresh Button -->
-                                <Poptip trigger="hover" content="Refresh the payment methods" word-wrap width="300"
-                                        :style="{ marginTop: '-2px' }">
-                                    <Button class="p-1" @click.native="fetchPaymentMethods()">
-                                        <Icon type="ios-refresh" :size="20" />
-                                    </Button>
-                                </Poptip>
-                            </div>
-                        </FormItem>
-
-                    </template>
+                    </Card>
 
                     <!-- Save Changes Button -->
-                    <FormItem v-if="!isSavingChanges">
+                    <div :class="['clearfix', 'mt-2']">
 
-                        <basicButton :disabled="(!locationHasChanged || isSavingChanges)" :loading="isSavingChanges"
-                                     :ripple="(locationHasChanged && !isSavingChanges)" type="success" size="large"
+                        <basicButton :disabled="(!locationHasChanged || isLoading)" :loading="isSavingChanges"
+                                     :ripple="(locationHasChanged && !isLoading)" type="success" size="large"
                                      class="float-right" @click.native="handleSubmit()">
                             <span>{{ isSavingChanges ? 'Saving...' : 'Save Changes' }}</span>
                         </basicButton>
 
-                    </FormItem>
+                    </div>
+                
+                </template>
 
-                    <!-- If we are loading, Show Loader -->
-                    <Loader v-show="isSavingChanges" class="mt-2">Saving location...</Loader>
+            </Form>
 
-                </Form>
-
-            </Card>
         </Col>
-
-        <!--
-            MODAL EDIT LOCATION DESTINATIONS
-        -->
-        <template v-if="isOpenManageDestinationsModal">
-
-            <manageDestinationsModal
-                :store="store"
-                :location="locationForm"
-                @updated="handleUpdatedDestinations($event)"
-                @visibility="isOpenManageDestinationsModal = $event">
-            </manageDestinationsModal>
-
-        </template>
 
     </Row>
 
 </template>
 <script>
 
-    import basicButton from './../../../../../components/_common/buttons/basicButton.vue';
+    import nameInput from './components/nameInput.vue';
+    import onlineSwitch from './components/onlineSwitch.vue';
+    import freeDeliveryAlert from './components/freeDeliveryAlert.vue';
+    import allowPickupSwitch from './components/allowPickupSwitch.vue';
+    import callToActionInput from './components/callToActionInput.vue';
+    import paymentSelectInput from './components/paymentSelectInput.vue';
+    import pickupNoteTextarea from './components/pickupNoteTextarea.vue';
+    import allowPaymentsSwitch from './components/allowPaymentsSwitch.vue';
+    import allowDeliverySwitch from './components/allowDeliverySwitch.vue';
+    import deliveryNoteTextarea from './components/deliveryNoteTextarea.vue';
+    import deliveryFlatFeeInput from './components/deliveryFlatFeeInput.vue';
+    import flatFeeDeliveryAlert from './components/flatFeeDeliveryAlert.vue';
+    import miscMixin from './../../../../../components/_mixins/misc/main.vue';
+    import pickupDaysSelectInput from './components/pickupDaysSelectInput.vue';
+    import pickupTimesSelectInput from './components/pickupTimesSelectInput.vue';
     import Loader from './../../../../../components/_common/loaders/default.vue';
-    import manageDestinationsModal from './manageDestinationsModal';
+    import offlineMessageTextarea from './components/offlineMessageTextarea.vue';
+    import deliveryDaysSelectInput from './components/deliveryDaysSelectInput.vue';
+    import deliveryTimesSelectInput from './components/deliveryTimesSelectInput.vue';
+    import allowFreeDeliveryCheckbox from './components/allowFreeDeliveryCheckbox.vue';
+    import basicButton from './../../../../../components/_common/buttons/basicButton.vue';
+    import orangeMoneyMerchantCodeInput from './components/orangeMoneyMerchantCodeInput.vue';
+    import pickupDestinationsSelectInput from './components/pickupDestinationsSelectInput.vue';
+    import deliveryDestinationsSelectInput from './components/deliveryDestinationsSelectInput.vue';
 
     export default {
+        mixins: [miscMixin],
         props: {
             store: {
                 type: Object,
@@ -345,57 +198,41 @@
                 type: Object,
                 default: null
             },
-            requestToSaveChanges: {
-                type: Number,
-                default: 0
-            }
+            visibleSections: {
+                type: Array,
+                default: function(){
+                    return ['location-details'];
+                }
+            },
         },
-        components: { basicButton, Loader, manageDestinationsModal },
+        components: { 
+            nameInput, onlineSwitch, freeDeliveryAlert, allowPickupSwitch, callToActionInput, paymentSelectInput, 
+            pickupNoteTextarea, allowPaymentsSwitch, allowDeliverySwitch, deliveryNoteTextarea, deliveryFlatFeeInput, 
+            flatFeeDeliveryAlert, allowFreeDeliveryCheckbox, Loader, pickupDaysSelectInput, pickupTimesSelectInput, 
+            offlineMessageTextarea, deliveryDaysSelectInput, deliveryTimesSelectInput, orangeMoneyMerchantCodeInput,
+            basicButton, pickupDestinationsSelectInput, deliveryDestinationsSelectInput
+        },
         data () {
-
             return {
                 locationForm: null,
-                paymentMethods: [],
+                localLocation: null,
                 isSavingChanges: false,
                 isLoadingLocation: false,
-                locationHasChanged: false,
                 locationBeforeChanges: null,
-                isLoadingPaymentMethods: false,
-                isOpenManageDestinationsModal: false,
-                deliveryDestinations: [],
-                deliveryDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-                deliveryTimes: [
-                    '6am', '7am', '8am', '9am', '10am', '11am', '12pm',
-                    '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm', '9pm', '10pm'
-                ],
-                pickupDestinations: [],
-                pickupDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-                pickupTimes: [
-                    '6am', '7am', '8am', '9am', '10am', '11am', '12pm',
-                    '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm', '9pm', '10pm'
-                ],
                 locationFormRules: {
                     name: [
                         { required: true, message: 'Please enter your location name', trigger: 'blur' },
                         { min: 3, message: 'Location name is too short', trigger: 'change' },
-                        { max: 50, message: 'Location name is too long', trigger: 'change' }
+                        { max: 30, message: 'Location name is too long', trigger: 'change' }
                     ],
                     call_to_action: [
                         { required: true, message: 'Please enter your call to action e.g Buy Grocery', trigger: 'blur' },
                         { min: 3, message: 'Call to action is too short', trigger: 'change' },
-                        { max: 140, message: 'Call to action is too long', trigger: 'change' }
-                    ],
-                    about_us: [
-                        { min: 3, message: 'About us information is too short', trigger: 'change' },
-                        { max: 140, message: 'About us information is too long', trigger: 'change' }
-                    ],
-                    contact_us: [
-                        { min: 3, message: 'Contact us information is too short', trigger: 'change' },
-                        { max: 140, message: 'Contact us information is too long', trigger: 'change' }
+                        { max: 20, message: 'Call to action is too long', trigger: 'change' }
                     ],
                     offline_message: [
                         { min: 3, message: 'Offline message is too short', trigger: 'change' },
-                        { max: 160, message: 'Offline message is too long', trigger: 'change' }
+                        { max: 140, message: 'Offline message is too long', trigger: 'change' }
                     ],
                     delivery_note: [
                         { min: 3, message: 'Delivery notice is too short', trigger: 'change' },
@@ -405,256 +242,104 @@
                         { min: 3, message: 'Pickup notice is too short', trigger: 'change' },
                         { max: 140, message: 'Pickup notice is too long', trigger: 'change' }
                     ]
-
-
-                },
-                serverErrors: [],
-                serverErrorMessage: ''
-            }
-        },
-        watch: {
-            /** Keep track of changes on the location
-             *  This could include location changes without a hard page refresh
-             */
-            location: {
-
-                handler: function (val, oldVal) {
-
-                    //  Reset everything
-                    this.setFormAndCaptureBeforeChanges();
-
-                },
-                deep: true
-
-            },
-            /** Keep track of changes on the location form
-             *  This includes changes as we edit the form details
-             */
-            locationForm: {
-
-                handler: function (val, oldVal) {
-
-                    this.notifyUnsavedChangesStatus();
-
-                },
-                deep: true
-
-            },
-            /** Watch to see if we want to save changes.
-             *  If we do handle the request.
-             */
-            requestToSaveChanges(newVal, oldVal){
-                this.handleSubmit();
+                }
             }
         },
         computed: {
-            serverNameError(){
-                return (this.serverErrors || {}).name;
+            isEditing(){
+                return this.location ? true : false;
             },
-            serverOnlineError(){
-                return (this.serverErrors || {}).online;
-            },
-            serverOfflineMessageError(){
-                return (this.serverErrors || {}).offline_message;
-            },
-            serverCallToActionError(){
-                return (this.serverErrors || {}).call_to_action;
-            },
-            serverAboutUsError(){
-                return (this.serverErrors || {}).about_us;
-            },
-            serverContactUsError(){
-                return (this.serverErrors || {}).contact_us;
-            },
-            serverDeliveryNoteError(){
-                return (this.serverErrors || {}).delivery_note;
-            },
-            serverPickupNoteError(){
-                return (this.serverErrors || {}).pickup_note;
-            },
-            statusText(){
-                return this.locationForm.online ? 'Online' : 'Offline'
+            isLoading(){
+                return this.isLoadingLocation || this.isSavingChanges;
             },
             locationUrl(){
-                return this.location['_links']['self']['href'];
+                return this.location['_links']['self'].href
             },
-            paymentMethodsUrl(){
-                /**  Note "api_home" is defined within the auth.js file.
-                 *   It holds reference to common links for ease of
-                 *   access.
-                 */
-                return api_home['_links']['bos:payment_methods'].href;
+            locationHasChanged(){
+
+                //  Check if the location has been modified
+                var status = !_.isEqual(this.locationForm, this.locationBeforeChanges);
+
+                return status;
+
             },
-            onlinePaymentMethods(){
-                return this.paymentMethods.filter((paymentMethod, index) => {
-                    return paymentMethod.used_online;
+            onlineStatusStyle(){
+                return this.locationForm.online ? {} : { 
+                    background: 'floralwhite' 
+                };
+            },
+            onlineStatusClass(){
+                return this.locationForm.online ? {} : ['p-2', 'mb-3', 'rounded'];
+            },
+            locationCurrency(){
+                return (this.location.currency || {
+                    code: 'BWP',
+                    symbol: 'P'
                 });
             },
-            offlinePaymentMethods(){
-                return this.paymentMethods.filter((paymentMethod, index) => {
-                    return paymentMethod.used_offline;
-                });
+            locationCurrencySymbol(){
+                return this.locationCurrency.symbol;
             },
-            deliveryDestinationNames: {
-                get: function () {
-
-                    //  Return the destination names only
-                    return this.locationForm.delivery_destinations.map((destination, index) => {
-                        return destination.name;
-                    });
-
-                },
-                set: function (names) {
-
-                    var newDestinations = [];
-
-                    //  Get details of the selected destinations
-                    var selectedDestinations = names.map((name, index) => {
-
-                        //  Check if we have any destination already existing with this name
-                        for (let i = 0; i < this.deliveryDestinations.length; i++) {
-
-                            //  If we found a destination that matches the given name
-                            if( this.deliveryDestinations[i].name == name ){
-
-                                //  Return this already existing destination information
-                                return this.deliveryDestinations[i];
-
-                            }
-                        }
-
-                        //  Construct details of this new destination
-                        var newDestination =  {
-                            name: name,
-                            cost: null
-                        };
-
-                        //  Update the delivery destination with this new destination
-                        this.deliveryDestinations.push(newDestination);
-
-                        //  Return this new destination information
-                        return {
-                            name: name,
-                            cost: null
-                        };
-
-                    });
-
-                    //  Update the location delivery details with the selected destinations
-                    this.$set(this.locationForm, 'delivery_destinations', selectedDestinations);
-                }
-            }
         },
         methods: {
-            handleUpdatedDestinations(updatedDestinations){
 
-                //  Update the location destinations
-                this.deliveryDestinations = updatedDestinations;
-                this.$set(this.locationForm, 'delivery_destinations', updatedDestinations);
+            /** Note the use of "async" and "await". This helps us to perform the
+             *  api call and wait for the response before we continue any futher
+             */
+            async prepareLocation(){
 
-            },
-            addDeliveryDestination(name, cost, target){
+                if( this.isEditing ){
 
-                //  If the delivery destination is set to null
-                if( target == null ){
+                    //  Reset tthe location form
+                    this.locationForm = null;
 
-                    //  Convert it into an Array
-                    target = [];
+                    //  Fetch the location
+                    await this.fetchLocation();
 
-                }
-
-                //  Check if the destination already exists
-                var alreadyExists = target.filter((currDestination, index) => {
-                    return currDestination.name == name;
-                }).length ? true : false;
-
-                //  If the destination already exists
-                if( !alreadyExists ){
-
-                    //  Add the destination
-                    target.push({
-                        name: name,
-                        cost: cost
-                    });
-
-                }
-            },
-            addDeliveryTime(time, target){
-
-                //  If the delivery times are set to null
-                if( target == null ){
-
-                    //  Convert it into an Array
-                    target = [];
+                    //  Notify parent of fetched location
+                    this.$emit('updatedLocation', this.localLocation);
 
                 }
 
-                //  Check if the time already exists
-                var alreadyExists = target.filter((currTime, index) => {
-                    return currTime == time;
-                }).length ? true : false;
-
-                //  If the time already exists
-                if( !alreadyExists ){
-
-                    //  Add the time
-                    target.push(time);
-
-                }
-            },
-            addPickupDestination(destination, target){
-
-                //  If the pickup destination is set to null
-                if( target == null ){
-
-                    //  Convert it into an Array
-                    target = [];
-
-                }
-
-                //  Check if the destination already exists
-                var alreadyExists = target.filter((currDestination, index) => {
-                    return currDestination == destination;
-                }).length ? true : false;
-
-                //  If the destination already exists
-                if( !alreadyExists ){
-
-                    //  Add the destination
-                    target.push(destination);
-
-                }
-            },
-            addPickupTime(time, target){
-
-                //  If the pickup times are set to null
-                if( target == null ){
-
-                    //  Convert it into an Array
-                    target = [];
-
-                }
-
-                //  Check if the time already exists
-                var alreadyExists = target.filter((currTime, index) => {
-                    return currTime == time;
-                }).length ? true : false;
-
-                //  If the time already exists
-                if( !alreadyExists ){
-
-                    //  Add the time
-                    target.push(time);
-
-                }
-            },
-            setFormAndCaptureBeforeChanges(){
+                //  Set the form details
                 this.locationForm = this.getLocationForm();
+
+                //  Save the form before any changes occur
                 this.copyLocationBeforeUpdate();
+
+            },
+            async fetchLocation() {
+
+                //  Hold constant reference to the current Vue instance
+                const self = this;
+
+                if( this.locationUrl ){
+
+                    //  Start loader
+                    self.isLoadingLocation = true;
+
+                    //  Use the api call() function, refer to api.js
+                    await api.call('get', this.locationUrl)
+                        .then(({data}) => {
+
+                            //  Get the location
+                            self.localLocation = data || null;
+
+                            //  Stop loader
+                            self.isLoadingLocation = false;
+
+                        })
+                        .catch(response => {
+
+                            //  Stop loader
+                            self.isLoadingLocation = false;
+
+                        });
+                }
             },
             getLocationForm(){
 
-                return Object.assign({},
+                var form = Object.assign({},
                     //  Set the default form details
                     {
                         name: '',
@@ -662,18 +347,20 @@
                         about_us: '',
                         contact_us: '',
                         call_to_action: '',
+                        currency: 'BWP',
                         offline_message: 'Sorry, we are currently offline',
-
 
                         //  Delivery Details
                         allow_delivery: false,
                         delivery_note: '',
-                        delivery_flat_fee: null,
+                        delivery_flat_fee: 0,
+                        allow_free_delivery: false,
                         delivery_destinations: null,
                         delivery_days: null,
                         delivery_times: null,
 
                         //  Pickup Details
+                        allow_pickups: false,
                         pickup_note: '',
                         pickup_destinations: null,
                         pickup_days: null,
@@ -683,32 +370,58 @@
                         allow_payments: false,
                         online_payment_methods: null,
                         offline_payment_methods: null,
+                        orange_money_merchant_code: null,
+
+                        allow_sending_merchant_sms: false
 
                     //  Overide the default form details with the provided location details
                     }, this.location);
 
+                //  If we are editing an existing location
+                if( this.isEditing ){
+
+                    console.log('form 1');
+                    console.log(form);
+
+                    //  Correct the form using the location details
+                    form.online = this.location.online.status;
+                    form.allow_delivery = this.location.allow_delivery.status;
+                    form.allow_free_delivery = this.location.allow_free_delivery.status;
+                    form.allow_pickups = this.location.allow_pickups.status;
+                    form.allow_payments = this.location.allow_payments.status;
+                    form.allow_sending_merchant_sms = this.location.allow_sending_merchant_sms.status;
+                    
+                    form.delivery_flat_fee = this.location.delivery_flat_fee.amount;
+                    form.currency = this.location.currency.code;
+
+
+                    console.log('form 2');
+                    console.log(form);
+
+                }
+
+                return form;
+
             },
+            /**
+             *  We use the $nextTick() method to wait for the DOM to render the
+             *  "deliveryDestinationsSelectInput" component since it updates the
+             *  the "locationForm". The copyLocationBeforeUpdate() will get the
+             *  "locationForm" before the DOM is updated resulting in an older
+             *  version of the "locationForm" since it then gets updated by
+             *  the "deliveryDestinationsSelectInput" component.
+             */
             copyLocationBeforeUpdate(){
 
-                //  Clone the location
-                this.locationBeforeChanges = _.cloneDeep( this.locationForm );
+                //  DOM is not updated yet
+                this.$nextTick(function () {
 
-            },
-            locationHasBeenUpdated(){
+                    //  DOM is updated
 
-                //  Check if the location has been modified
-                return !_.isEqual(this.locationForm, this.locationBeforeChanges);
+                    //  Clone the location before any changes occur
+                    this.locationBeforeChanges = _.cloneDeep( this.locationForm );
 
-            },
-            notifyUnsavedChangesStatus(){
-
-                var status = this.locationHasBeenUpdated();
-
-                //  Notify the parent component of the change status
-                this.$emit('unsavedChanges', status);
-
-                //  Update the local state of the change status
-                this.locationHasChanged = status;
+                });
 
             },
             handleSubmit(){
@@ -734,62 +447,37 @@
                     }
                 })
             },
-            fetchPaymentMethods() {
-
-                //  Hold constant reference to the current Vue instance
-                const self = this;
-
-                //  Start loader
-                self.isLoadingPaymentMethods = true;
-
-                //  Use the api call() function, refer to api.js
-                api.call('get', this.paymentMethodsUrl)
-                    .then(({data}) => {
-
-                        //  Console log the data returned
-                        console.log(data);
-
-                        //  Stop loader
-                        self.isLoadingPaymentMethods = false;
-
-                        //  Get the payment methods
-                        self.paymentMethods = ((data || [])['_embedded'] || [])['payment_methods'];
-
-                    })
-                    .catch(response => {
-
-                        //  Log the responce
-                        console.error(response);
-
-                        //  Stop loader
-                        this.isLoadingPaymentMethods = false;
-
-                    });
-
-            },
             saveLocation() {
 
                 //  Hold constant reference to the current Vue instance
                 const self = this;
 
-                //  Start loader
-                self.isSavingChanges = true;
+                console.log('saveLocation()');
 
-                //  Notify parent that this component is saving data
-                self.$emit('isSaving', self.isSavingChanges);
+                if( this.locationUrl ){
 
-                /** Make an Api call to create the location. We include the
-                 *  location details required for a new location creation.
-                 */
-                let locationData = this.locationForm;
+                    console.log('this.locationUrl');
+                    console.log(this.locationUrl);
 
-                return api.call('put', this.location['_links']['self'].href, locationData)
+                    //  Start loader
+                    self.isSavingChanges = true;
+
+                    /** Make an Api call to create the location. We include the
+                     *  location details required for a new location creation.
+                     */
+                    let data = {
+                        postData: this.locationForm
+                    };
+
+                    console.log('data');
+                    console.log(data);
+
+                api.call('put', this.locationUrl, data)
                     .then(({data}) => {
-
-                        console.log(data);
 
                         //  Stop loader
                         self.isSavingChanges = false;
+
                         self.$emit('isSaving', self.isSavingChanges);
 
                         self.$emit('selectedLocation', data);
@@ -806,83 +494,18 @@
 
                     }).catch((response) => {
 
-                        console.log(response);
-
                         //  Stop loader
                         self.isSavingChanges = false;
 
-                        //  Notify parent that this component is not saving data
-                        self.$emit('isSaving', self.isSavingChanges);
-
-                        //  Get the error response data
-                        let data = (response || {}).data;
-
-                        //  Get the response errors
-                        var errors = (data || {}).errors;
-
-                        //  Set the general error message
-                        self.serverErrorMessage = (data || {}).message;
-
-                        /** 422: Validation failed. Incorrect credentials
-                         */
-                        if((response || {}).status === 422){
-
-                            //  If we have errors
-                            if(_.size(errors)){
-
-                                //  Set the server errors
-                                self.serverErrors = errors;
-
-                                //  Foreach error
-                                for (var i = 0; i < _.size(errors); i++) {
-
-                                    //  Get the error key e.g 'name', 'dedicated_short_code'
-                                    var prop = Object.keys(errors)[i];
-
-                                    //  Get the error value e.g 'The location name is required'
-                                    var value = Object.values(errors)[i][0];
-
-                                    //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                                    self.serverErrors[prop] = value;
-
-                                }
-
-                            }
-
-                        }
-
                 });
-            },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
+                }
             }
         },
         created(){
 
-            this.fetchPaymentMethods();
+            //  Prepare the location
+            this.prepareLocation();
 
-            this.setFormAndCaptureBeforeChanges();
-
-            //  Capture the location delivery destinations
-            ((this.location || {}).delivery_destinations || []).map((destination, index) => {
-                this.addDeliveryDestination(destination.name, destination.cost, this.deliveryDestinations);
-            });
-
-            //  Capture the location delivery times
-            ((this.location || {}).delivery_times || []).map((time, index) => {
-                this.addDeliveryTime(time, this.deliveryTimes);
-            });
-
-            //  Capture the location pickup destinations
-            ((this.location || {}).pickup_destinations || []).map((destination, index) => {
-                this.addPickupDestination(destination, this.pickupDestinations);
-            });
-
-            //  Capture the location pickup times
-            ((this.location || {}).pickup_times || []).map((time, index) => {
-                this.addPickupTime(time, this.pickupTimes);
-            });
         }
     }
 </script>

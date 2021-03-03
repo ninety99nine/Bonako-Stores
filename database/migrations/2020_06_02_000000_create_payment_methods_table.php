@@ -18,9 +18,9 @@ class CreatePaymentMethodsTable extends Migration
             /*  Payment Method Details  */
             $table->string('name')->nullable();
             $table->string('description')->nullable();
-            $table->boolean('used_online')->nullable()->default(false);
-            $table->boolean('used_offline')->nullable()->default(false);
-            $table->boolean('active')->nullable()->default(false);
+            $table->boolean('used_online')->default(false);
+            $table->boolean('used_offline')->default(false);
+            $table->boolean('active')->default(false);
 
             /*  Timestamps  */
             $table->timestamps();

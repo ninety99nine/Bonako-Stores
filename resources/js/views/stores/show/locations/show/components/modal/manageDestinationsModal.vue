@@ -10,7 +10,7 @@
              functionality to enhance the experience. Refer to modalMixin.
         -->
         <Modal
-            width="600"
+            width="800"
             v-model="modalVisible"
             title="Manage Destinations"
             @on-visible-change="detectClose">
@@ -18,14 +18,13 @@
             <!-- Form -->
             <Form ref="locationForm" :model="locationForm">
 
-                <!-- Flat Fee Desclaimer-->
-                <Alert v-if="locationForm.delivery_flat_fee != null" type="info" class="my-3">
-                    <span class="font-weight-bold">Note:</span>
-                    <span v-if="locationForm.delivery_flat_fee == 0">Delivery to any destination will be <span class="font-weight-bold text-success">Free Delivery</span></span>
-                    <span v-else>Delivery to any destination will be charged {{ store.currency.symbol + locationForm.delivery_flat_fee }}</span>
-                </Alert>
+                <!-- Disclaimer: Free Delivery -->
+                <freeDeliveryAlert :location="location"></freeDeliveryAlert>
 
-                <Row :gutter="10" class="mb-2">
+                <!-- Disclaimer: No Price -->
+                <flatFeeDeliveryAlert :location="location" :currencySymbol="currencySymbol"></flatFeeDeliveryAlert>
+
+                <Row :gutter="10" class="m-2">
 
                     <Col :span="10">
 
@@ -35,7 +34,7 @@
 
                     <Col :span="14">
 
-                        <span class="font-weight-bold">Delivery Cost ({{ store.currency.symbol }})</span>
+                        <span class="font-weight-bold">Delivery Cost ({{ currencySymbol }})</span>
 
                     </Col>
 
@@ -53,7 +52,7 @@
                     }">
 
                     <Row :gutter="12" v-for="(destination, index) in locationForm.delivery_destinations" 
-                        :key="index" class="delivery-destination mb-2">
+                         :key="index" :class="['delivery-destination', 'rounded', 'p-2']">
 
                         <Col :span="10">
 
@@ -63,19 +62,26 @@
 
                         </Col>
 
-                        <Col :span="10">
+                        <Col :span="5">
 
                             <!-- Enter Cost -->
-                            <InputNumber v-model.number="destination.cost" class="w-100" placeholder="40"
-                                        :disabled="(locationForm.delivery_flat_fee != null)"
+                            <InputNumber v-model.number="destination.cost" :class="['w-100', 'mr-2']" placeholder="40"
+                                        :disabled="freeDelivery || hasDeliveryFlatFee || destination.allow_free_delivery"
                                         @keyup.enter.native="handleSubmit()">
                             </InputNumber>
 
                         </Col>
 
-                        <Col :span="4">
+                        <Col :span="5">
 
-                            <div class="single-draggable-item-toolbox">
+                            <!-- Free delivery checkbox -->
+                            <Checkbox v-model="destination.allow_free_delivery" :disabled="freeDelivery || hasDeliveryFlatFee">Free delivery</Checkbox>
+
+                        </Col>
+
+                        <Col :span="4" :class="['clearfix']">
+
+                            <div :class="['single-draggable-item-toolbox', 'float-right']">
 
                                 <!-- Remove Destination Button  -->
                                 <Icon type="ios-trash-outline" class="single-draggable-item-icon mr-2" size="20" @click="handleConfirmRemoveDestination(index)" />
@@ -116,32 +122,35 @@
 </template>
 <script>
 
-    
-    import basicButton from './../../../../../components/_common/buttons/basicButton.vue';
-    import modalMixin from './../../../../../components/_mixins/modal/main.vue';
     import draggable from 'vuedraggable';
+    import freeDeliveryAlert from './../freeDeliveryAlert.vue';
+    import flatFeeDeliveryAlert from './../flatFeeDeliveryAlert.vue';
+    import modalMixin from './../../../../../../../components/_mixins/modal/main.vue';
+    import basicButton from './../../../../../../../components/_common/buttons/basicButton.vue';
 
     export default {
         mixins: [ modalMixin ],
-        components: { basicButton, draggable },
+        components: { draggable, freeDeliveryAlert, flatFeeDeliveryAlert, basicButton },
         props: {
-            store: {
-                type: Object,
-                default: null
-            },
             location: {
                 type: Object,
                 default: null
             },
+            currencySymbol: {
+                type: String,
+                default: null
+            },
+            freeDelivery: {
+                type: Boolean
+            },
+            hasDeliveryFlatFee: {
+                type: Boolean
+            },
         },
         data(){
-
             return {
                 locationForm: null
             }
-        },
-        computed: {  
-            
         },
         methods: {
             getlocationForm(){
@@ -157,8 +166,10 @@
 
                 this.locationForm.delivery_destinations.push({
                     name: 'Destination ' + destinationNumber,
-                    cost: null
+                    allow_free_delivery: false,
+                    cost: 0
                 });
+
             },
             handleConfirmRemoveDestination(index){
 
@@ -195,6 +206,7 @@
                     content: 'Destination removed!',
                     duration: 6
                 });
+
             },
             handleSubmit(){
 

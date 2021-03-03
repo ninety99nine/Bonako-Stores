@@ -5,7 +5,7 @@
                 content="How much does this product/service cost you?">
             <InputNumber v-model="productForm.unit_cost" size="small" class="w-100"
                         :disabled="isLoading || !productForm.unit_regular_price" placeholder="50"
-                        :max="maximumCostPrice" :min="0" :step="1" @on-blur="onChange()">
+                        :max="maximumCostPrice" :min="0" :step="1" @on-blur="onChange()" @on-change="onChange()">
             </InputNumber>
         </Poptip>
     </FormItem>
@@ -46,11 +46,18 @@
         },
         methods: {
             onChange(){
-                if(this.productForm.unit_cost === null || this.productForm.unit_cost === undefined){
 
-                    this.productForm.unit_cost = 0;
+                //  Wait for the most updated value of the "unit_cost"
+                this.$nextTick(() => {
 
-                }
+                    if(this.productForm.unit_cost === null || this.productForm.unit_cost === undefined){
+
+                        this.productForm.unit_cost = 0;
+
+                    }
+
+                });
+
             }
         }
     };

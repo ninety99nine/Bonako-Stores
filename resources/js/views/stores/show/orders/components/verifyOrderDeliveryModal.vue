@@ -74,17 +74,21 @@
 <script>
 
     import CodeInput from "vue-verification-code-input";
-    import Loader from './../../../../../components/_common/loaders/default.vue';
+    import miscMixin from './../../../../../components/_mixins/misc/main.vue';
     import modalMixin from './../../../../../components/_mixins/modal/main.vue';
-    var customMixin = require('./../../../../../mixin.js').default;
+    import Loader from './../../../../../components/_common/loaders/default.vue';
 
     export default {
-        mixins: [modalMixin, customMixin],
+        mixins: [miscMixin, modalMixin],
         components: { CodeInput, Loader },
         props: {
             order: {
                 type: Object,
                 default: null
+            },
+            requiresDeliveryConfirmationCode: {
+                type: Boolean,
+                default: false
             }
         },
         data(){
@@ -93,9 +97,7 @@
                 isVerifying: false,
                 isResending: false,
                 renderKey: 1,
-                code: null,
-                serverErrors: [],
-                serverErrorMessage: null,
+                code: null
             }
         },
         computed: {
@@ -147,7 +149,7 @@
                     }).catch((response) => {
 
                         //  Stop loader
-                        self.handleApiFail(response);
+                        this.isResending = false;
 
                     });
             },
@@ -159,12 +161,14 @@
                 //  Start loader
                 self.isVerifying = true;
 
-                var deliverData = {
-                    delivery_confirmation_code: this.code
-                }
+                let data = {
+                        postData: {
+                            delivery_confirmation_code: this.code
+                        }
+                    };
 
                 //  Use the api call() function, refer to api.js
-                api.call('put', this.deliverOrderUrl, deliverData)
+                api.call('put', this.deliverOrderUrl, data)
                     .then(({data}) => {
 
                         //  Stop loader
@@ -175,72 +179,20 @@
                             duration: 6
                         });
 
+                        self.$emit('verified', data);
+
                         /** Note the closeModal() method is imported from the
                          *  modalMixin file. It handles the closing process
                          *  of the modal
                          */
                         self.closeModal();
 
-                        self.$emit('verified', data);
-
                 }).catch((response) => {
 
                     //  Stop loader
-                    self.handleApiFail(response);
+                    this.isVerifying = false;
 
                 });
-            },
-            handleApiFail(response){
-
-                console.error(response);
-
-                //  Stop loader
-                this.isResending = false;
-
-                //  Stop loader
-                this.isVerifying = false;
-
-                //  Get the error response data
-                let data = (response || {}).data;
-
-                //  Get the response errors
-                var errors = (data || {}).errors;
-
-                /**
-                 *  422: Validation failed. Incorrect credentials
-                 */
-                if((response || {}).status === 422){
-
-                    //  If we have errors
-                    if(_.size(errors)){
-
-                        //  Set the server errors
-                        this.serverErrors = errors;
-
-                        //  Foreach error
-                        for (var i = 0; i < _.size(errors); i++) {
-                            //  Get the error key e.g 'email', 'password'
-                            var prop = Object.keys(errors)[i];
-                            //  Get the error value e.g 'These credentials do not match our records.'
-                            var value = Object.values(errors)[i][0];
-
-                            //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                            this.serverErrors[prop] = value;
-                        }
-
-                    }
-
-                }else{
-
-                    //  Set the general error message
-                    this.serverErrorMessage = (data || {}).message;
-
-                }
-
-            },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
             }
         }
     }

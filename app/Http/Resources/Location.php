@@ -3,7 +3,6 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\Currency as CurrencyResource;
 
 class Location extends JsonResource
 {
@@ -21,6 +20,7 @@ class Location extends JsonResource
                 'id' => $this->id,
                 'name' => $this->name,
                 'abbreviation' => $this->abbreviation,
+                'currency' => $this->currency,
                 'about_us' => $this->about_us,
                 'contact_us' => $this->contact_us,
                 'call_to_action' => $this->call_to_action,
@@ -28,6 +28,7 @@ class Location extends JsonResource
                 'offline_message' => $this->offline_message,
                 'allow_delivery' => $this->allow_delivery,
                 'delivery_note' => $this->delivery_note,
+                'allow_free_delivery' => $this->allow_free_delivery,
                 'delivery_flat_fee' => $this->delivery_flat_fee,
                 'delivery_destinations' => $this->delivery_destinations,
                 'delivery_days' => $this->delivery_days,
@@ -42,6 +43,7 @@ class Location extends JsonResource
                 'offline_payment_methods' => $this->offline_payment_methods,
                 'orange_money_merchant_code' => $this->orange_money_merchant_code,
                 'minimum_stock_quantity' => $this->minimum_stock_quantity,
+                'allow_sending_merchant_sms' => $this->allow_sending_merchant_sms,
 
                 /*  Timestamp Info  */
                 'created_at' => $this->created_at,
@@ -246,7 +248,7 @@ class Location extends JsonResource
 
                  /*  Embedded  */
                 '_embedded' => [
-                    'currency' => new CurrencyResource($this->currency)
+                    
                 ]
             ];
         } catch (\Exception $e) {

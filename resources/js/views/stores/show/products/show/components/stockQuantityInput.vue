@@ -2,7 +2,7 @@
 
     <FormItem prop="stock_quantity" :error="serverStockQuantityError" class="mb-3">
 
-        <Poptip trigger="focus" width="350" placement="top-end" word-wrap content="How much stock (Quantity) of this product/service do you have?">
+        <Poptip trigger="focus" width="350" placement="top-start" word-wrap content="How much stock (Quantity) of this product/service do you have?">
             <div :class="['d-flex', 'align-items-center']">
                 <span :style="{ width: '160px' }" :class="['mr-2']">Stock Quantity: </span>
                 <InputNumber v-model="productForm.stock_quantity" size="small" class="w-100" placeholder="10"
@@ -36,7 +36,7 @@
         },
         data(){
             return {
-                minimum_quantity: 1
+                minimum_quantity: 0
             }
         },
         computed: {

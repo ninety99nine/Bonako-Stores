@@ -31,7 +31,7 @@ class Coupon extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'description', 'active', 'always_apply', 'uses_code', 'code', 'is_fixed_rate',
+        'name', 'description', 'active', 'always_apply', 'uses_code', 'code', 'currency', 'is_fixed_rate',
         'fixed_rate', 'is_percentage_rate', 'percentage_rate', 'location_id'
     ];
 
@@ -59,6 +59,22 @@ class Coupon extends Model
     protected $appends = [
         'resource_type',
     ];
+
+    /**
+     *  Returns the coupon currency code and symbol
+     */
+    public function getCurrencyAttribute($currency_code)
+    {
+        return $this->unpackCurrency($currency_code);
+    }
+
+    /**
+     *  Returns the coupon fixed rate
+     */
+    public function getFixedRateAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
 
     public function setActiveAttribute($value)
     {

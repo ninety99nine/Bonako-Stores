@@ -263,8 +263,81 @@ class Order extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type'
+        'resource_type', 'is_paid', 'is_delivered', 'delivery_verified_description', 'requires_delivery_confirmation_code'
     ];
+
+    /**
+     *  This method returns true/false if the order is paid
+     */
+    public function getIsPaidAttribute()
+    {
+        try {
+
+            return $this->paymentStatus->name === 'Paid' ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns true/false if the order is delivered
+     */
+    public function getIsDeliveredAttribute()
+    {
+        try {
+
+            return $this->deliveryStatus->name === 'Delivered' ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns the delivery verified description
+     */
+    public function getDeliveryVerifiedDescriptionAttribute()
+    {
+        try {
+
+            if( $this->delivery_verified ){
+
+                //  Set verified datetime
+                $delivery_verified_at = Carbon::parse($this->delivery_verified_at)->format('H:i d M Y');
+
+            }
+
+            return $this->delivery_verified
+                    ? 'The order delivery was successfully verified at ' . $delivery_verified_at
+                    : 'The order delivery has not been verified';
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns true/false if the order requires a delivery confirmation code
+     */
+    public function getRequiresDeliveryConfirmationCodeAttribute()
+    {
+        try {
+
+            return !empty($this->delivery_confirmation_code) ? true : false;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
 
     public function setDeliveryVerifiedAttribute($value)
     {

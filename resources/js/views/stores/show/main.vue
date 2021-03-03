@@ -104,7 +104,7 @@
 
                             <!-- Show the details text -->
                             <span>Dial </span>
-                            <span class="font-weight-bold text-primary">{{ visitShortCodeDialingCode }}</span>
+                            <span class="font-weight-bold text-primary" :style="{ fontSize: '20px' }">{{ visitShortCodeDialingCode }}</span>
 
                         </Poptip>
 
@@ -164,7 +164,8 @@
 
                     <router-view :store="store" :location="location" :assignedLocations="assignedLocations"
                                  :locationTotals="locationTotals" @refetchLocationOrder="fetchAssignedLocations"
-                                 @navigateToMenuLink="navigateToMenuLink" @fetchLocationTotals="fetchLocationTotals" />
+                                 @navigateToMenuLink="navigateToMenuLink" @fetchLocationTotals="fetchLocationTotals" 
+                                 @updatedLocation="handleUpdatedLocation" />
                 </template>
 
                 <!-- If we are not loading and don't have the store -->
@@ -342,9 +343,6 @@
                     api.call('get', this.storeUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the store
                             self.store = data || null;
 
@@ -359,9 +357,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingStore = false;
@@ -384,9 +379,6 @@
                     api.call('get', this.assignedLocationsUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get my store locations
                             self.assignedLocations = (((data || {})._embedded || {}).locations || []);
 
@@ -395,9 +387,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingLocations = false;
@@ -416,9 +405,6 @@
                     //  Use the api call() function, refer to api.js
                     api.call('get', this.defaultAssignedLocationsUrl)
                         .then(({data}) => {
-
-                            //  Console log the data returned
-                            console.log(data);
 
                             //  Select the default location
                             self.location = (data || {});
@@ -440,9 +426,6 @@
                         })
                         .catch(response => {
 
-                            //  Log the responce
-                            console.error(response);
-
                             //  Stop loader
                             self.isLoadingLocations = false;
 
@@ -460,10 +443,6 @@
                     //  Start loader
                     this.isLoadingLocations = true;
 
-                    this.updateData = {
-                        location_id: this.locationId
-                    };
-
                     for (let x = 0; x < this.assignedLocations.length; x++) {
 
                         //  Find the matching location
@@ -476,12 +455,15 @@
 
                     }
 
-                    //  Use the api call() function, refer to api.js
-                    api.call('put', this.defaultAssignedLocationsUrl, this.updateData)
-                        .then(({data}) => {
+                    let data = {
+                        postData: {
+                            location_id: this.locationId
+                        }
+                    };
 
-                            //  Console log the data returned
-                            console.log(data);
+                    //  Use the api call() function, refer to api.js
+                    api.call('put', this.defaultAssignedLocationsUrl, data)
+                        .then(({data}) => {
 
                             //  Fetch location totals
                             self.fetchLocationTotals();
@@ -491,9 +473,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingLocations = false;
@@ -513,9 +492,6 @@
                 api.call('get', this.orderUrl+'?search='+searchWord)
                     .then(({data}) => {
 
-                        //  Console log the data returned
-                        console.log(data);
-
                         //  Get the orders
                         self.orders = (((data || {})._embedded || {}).orders || []);
 
@@ -524,9 +500,6 @@
 
                     })
                     .catch(response => {
-
-                        //  Log the responce
-                        console.error(response);
 
                         //  Stop loader
                         self.isSearching = false;
@@ -545,9 +518,6 @@
                 api.call('get', this.locationTotalsUrl)
                     .then(({data}) => {
 
-                        //  Console log the data returned
-                        console.log(data);
-
                         //  Get the locations totals
                         self.locationTotals = data;
 
@@ -556,9 +526,6 @@
 
                     })
                     .catch(response => {
-
-                        //  Log the responce
-                        console.error(response);
 
                         //  Stop loader
                         self.isLoadingTotals = false;
@@ -637,6 +604,9 @@
                 window.location.href = href;
 
             },
+            handleUpdatedLocation(location){
+                this.location = location;
+            }
         },
         created(){
 

@@ -22,7 +22,8 @@
 
             <productManager :store="store" :location="location" :assignedLocations="assignedLocations" :layoutSize="layoutSize"
                             :product="product" :products="products" @createdProduct="handleCreatedProduct($event)"
-                            @savedProduct="handleSavedProduct($event)" @fetchedProduct="handleFetchedProduct($event)">
+                            @savedProduct="handleSavedProduct($event)" @fetchedProduct="handleFetchedProduct($event)"
+                            @closeDrawer="closeDrawer()">
             </productManager>
 
         </Drawer>
@@ -108,17 +109,11 @@
                 //  Notify parent of the product created
                 this.$emit('createdProduct', product);
 
-                //  Close the drawer
-                this.closeDrawer();
-
             },
             handleSavedProduct(product){
 
                 //  Notify parent of the product saved
                 this.$emit('savedProduct', product);
-
-                //  Close the drawer
-                this.closeDrawer();
 
             },
             handleFetchedProduct(product){

@@ -3,7 +3,6 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\Currency as CurrencyResource;
 use App\Http\Resources\ItemLines as ItemLinesResource;
 use App\Http\Resources\CouponLines as CouponLinesResource;
 
@@ -27,6 +26,7 @@ class Cart extends JsonResource
         return [
 
             'id' => $this->id,
+            'currency' => $this->currency,
             'sub_total' => $this->sub_total,
             'coupon_total' => $this->coupon_total,
             'sale_discount_total' => $this->sale_discount_total,
@@ -50,7 +50,6 @@ class Cart extends JsonResource
             ],
 
             '_embedded' => [
-                'currency' => new CurrencyResource($this->currency),
                 'coupon_lines' => $coupon_lines,
                 'item_lines' => $item_lines,
             ]

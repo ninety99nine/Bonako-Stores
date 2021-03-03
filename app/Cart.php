@@ -10,7 +10,7 @@ class Cart extends Model
 {
     use CartTraits, CommonTraits;
 
-    protected $with = ['currency', 'itemLines', 'couponLines'];
+    protected $with = ['itemLines', 'couponLines'];
 
     /**
      * The attributes that are mass assignable.
@@ -24,7 +24,7 @@ class Cart extends Model
         'delivery_fee', 'grand_total', 'total_items', 'total_unique_items',
 
         /*  Currency Info  */
-        'currency_id',
+        'currency',
 
         /*  Location Info  */
         'location_id',
@@ -61,14 +61,6 @@ class Cart extends Model
     }
 
     /**
-     *  Returns the currency
-     */
-    public function currency()
-    {
-        return $this->belongsTo('App\Currency');
-    }
-
-    /**
      *  Returns the cart item lines
      */
     public function itemLines()
@@ -83,4 +75,70 @@ class Cart extends Model
     {
         return $this->hasMany(CouponLine::class);
     }
+
+    /** ATTRIBUTES
+     *
+     *  Note that the "resource_type" is defined within CommonTraits
+     *
+     */
+    protected $appends = [
+        'resource_type', ''
+    ];
+
+    /**
+     *  Returns the cart currency code and symbol
+     */
+    public function getCurrencyAttribute($currency_code)
+    {
+        return $this->unpackCurrency($currency_code);
+    }
+
+    /**
+     *  Returns the cart sub total
+     */
+    public function getSubTotalAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the cart coupon total
+     */
+    public function getCouponTotalAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the sale discount total
+     */
+    public function getSaleDiscountTotalAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the coupon and sale discount total
+     */
+    public function getCouponAndSaleDiscountTotalAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the delivery fee
+     */
+    public function getDeliveryFeeAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the delivery fee
+     */
+    public function getGrandTotalAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+    
 }

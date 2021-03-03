@@ -40,7 +40,7 @@
         },
         computed: {
             serverNameError(){
-                return (this.serverErrors || {}).name;
+                return (this.serverErrors || [])['name'];
             }
         }
     };

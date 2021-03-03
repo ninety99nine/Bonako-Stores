@@ -116,7 +116,7 @@ trait OrderTraits
 
                 //  Create a new delivery line resource
                 $this->order->createResourceDeliveryLine($data);
-
+                
                 //  Refresh the instance to load the delivery line
                 $this->order = $this->order->fresh();
 
@@ -835,7 +835,7 @@ trait OrderTraits
                 $website_domain = env('MAIN_WEBSITE_DOMAIN');
 
                 //  Set the grand total
-                $grand_total = $this->activeCart->currency->symbol . $this->convertToMoney($this->activeCart->grand_total);
+                $grand_total = $this->activeCart->grand_total['currency_money'];
 
                 //  Craft the sms message
                 $message = 'Hi '.$merchant_name.', order #'.$this->number.' received for '.$store->name.' '.
@@ -1009,7 +1009,7 @@ trait OrderTraits
             $delivery_confirmation_code = $data['delivery_confirmation_code'];
 
             //  If the order is not delivered
-            if( !$this->isDelivered() ){
+            if( !$this->is_delivered ){
 
                 //  Check if we have a matching delivery confirmation code
                 if( Hash::check($delivery_confirmation_code, $this->delivery_confirmation_code) ){
@@ -1026,7 +1026,7 @@ trait OrderTraits
 
 
                     //  If the order is not paid
-                    if( !$this->isPaid() ){
+                    if( !$this->is_paid ){
 
                         //  Update the order status as "Paid"
                         $this->setPaymentStatusToPaid();
@@ -1178,38 +1178,6 @@ trait OrderTraits
              *  Create new a short code resource
              */
             return ( new \App\ShortCode() )->createResource($data, $model, $user);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method returns true/false if the order is delivered
-     */
-    public function isDelivered()
-    {
-        try {
-
-            return $this->deliveryStatus->name === 'Delivered' ? true : false;
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method returns true/false if the order is paid
-     */
-    public function isPaid()
-    {
-        try {
-
-            return $this->paymentStatus->name === 'Paid' ? true : false;
 
         } catch (\Exception $e) {
 

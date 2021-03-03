@@ -156,7 +156,7 @@ trait SubscriptionTraits
                 'type' => 'subscription',
 
                 //  Set the transaction amount on the data
-                'amount' => $subscription_plan->price,
+                'amount' => $subscription_plan->price['amount'],
 
                 //  Set the transaction description on the data
                 'description' => 'Subscription for '.$subscription_plan->name

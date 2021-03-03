@@ -83,9 +83,6 @@
                     api.call('get', this.productTypesUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Stop loader
                             self.isLoadingProductTypes = false;
 
@@ -94,9 +91,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             this.isLoadingProductTypes = false;

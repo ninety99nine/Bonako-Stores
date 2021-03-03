@@ -1,11 +1,11 @@
 <template>
-    
+
     <Row :gutter="12" class="mt-5">
 
         <Col :span="20" :offset="2">
 
             <h1 class="border-bottom-dashed pb-3 mb-3">Instant Carts</h1>
-            
+
             <!-- We can only add an instant cart if we have a location selected -->
             <div class="clearfix">
 
@@ -17,7 +17,7 @@
                 </basicButton>
 
             </div>
-            
+
             <Card class="pt-2">
 
                 <Table :columns="columns" :data="instantCarts" :loading="isLoading" :style="{ overflow: 'initial' }"></Table>
@@ -38,7 +38,7 @@
 
         </Col>
 
-        <!-- 
+        <!--
             MODAL TO ADD / CLONE / EDIT INSTANT CART
         -->
         <template v-if="isOpenManageInstantCartDrawer">
@@ -55,7 +55,7 @@
                 @createdInstantCart="handleCreatedInstantCart($event)"
                 @visibility="isOpenManageInstantCartDrawer = $event">
             </manageInstantCartDrawer>
-    
+
         </template>
 
     </Row>
@@ -71,10 +71,10 @@
 
     export default {
         mixins: [miscMixin],
-        components: { 
-            manageInstantCartDrawer, Loader, basicButton 
+        components: {
+            manageInstantCartDrawer, Loader, basicButton
         },
-        props: { 
+        props: {
             store: {
                 type: Object,
                 default: null
@@ -132,7 +132,7 @@
                                     size: 'small'
                                 },
                                 style: {
-                                    
+
                                 },
                                 on: {
                                     click: () => {
@@ -187,7 +187,7 @@
 
                 //  If we only have one product
                 if( products.length >= 1 ){
-                    
+
                     //  Set properties
                     var tagName = products.length + (products.length == 1 ? ' product' : ' products');
                     var poptipContent = null;
@@ -231,7 +231,7 @@
 
                         return h('tr', [
                             h('td', [ h('span', product_details) ]),
-                            h('td', [ 
+                            h('td', [
                                 h('span', product_pricing),
                                 h('small', { class: ['text-danger'] }, unit_sale_discount),
                                 h('span', on_sale)
@@ -239,7 +239,7 @@
                         ]);
 
                     });
-                    
+
                     content.push(
                         h('table', {
                             slot: 'content',
@@ -274,11 +274,11 @@
 
                 //  If we only have one coupon
                 if( coupons.length >= 1 ){
-                    
+
                     //  Set properties
                     var tagName = coupons.length + (coupons.length == 1 ? ' coupon' : ' coupons');
                     var tagColor = 'green';
-                    
+
                     var content = [
 
                         h('Tag', {
@@ -297,7 +297,7 @@
                                 class: ['font-weight-bold']
                             }, coupon.name);
                         });
-                        
+
                         content.push(
 
                             h('List', {
@@ -360,8 +360,8 @@
                                         ]),
                                         h('tr', [
                                             h('td', [ h('span', 'Grand Total') ]),
-                                            h('td', [ h('span', { 
-                                                class: ['font-weight-bold', 'border-bottom-dashed', 'border-dark'] 
+                                            h('td', [ h('span', {
+                                                class: ['font-weight-bold', 'border-bottom-dashed', 'border-dark']
                                             }, this.formatPrice(params.row.cart.grand_total, 'P')) ])
                                         ])
                                     ])
@@ -376,7 +376,7 @@
                             ])
                         ]),
                 ];
-                
+
             },
             handleCreateInstantCart(){
                 this.index = null;
@@ -423,9 +423,6 @@
                 //  Use the api call() function, refer to api.js
                 api.call('get', instantCartUrl)
                     .then(({data}) => {
-                        
-                        //  Console log the data returned
-                        console.log(data);
 
                         //  Get the instant carts
                         self.instantCarts = data['_embedded']['instant_carts'] || [];
@@ -433,17 +430,14 @@
                         //  Stop loader
                         self.isLoading = false;
 
-                    })         
-                    .catch(response => { 
-
-                        //  Log the responce
-                        console.error(response);
+                    })
+                    .catch(response => {
 
                         //  Stop loader
                         self.isLoading = false;
 
                     });
-                
+
             }
         },
         created(){
@@ -453,5 +447,5 @@
 
         }
     };
-  
+
 </script>

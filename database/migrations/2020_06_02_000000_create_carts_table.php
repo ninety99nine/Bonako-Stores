@@ -16,18 +16,18 @@ class CreateCartsTable extends Migration
             $table->increments('id');
 
             /*  Cart Info  */
-            $table->boolean('active')->nullable()->default(true);
-            $table->float('sub_total')->nullable();
-            $table->float('coupon_total')->nullable();
-            $table->float('sale_discount_total')->nullable();
-            $table->float('coupon_and_sale_discount_total')->nullable();
-            $table->float('delivery_fee')->nullable();
-            $table->float('grand_total')->nullable();
-            $table->unsignedTinyInteger('total_items')->nullable();
-            $table->unsignedTinyInteger('total_unique_items')->nullable();
+            $table->boolean('active')->default(true);
+            $table->float('sub_total')->default(0);
+            $table->float('coupon_total')->default(0);
+            $table->float('sale_discount_total')->default(0);
+            $table->float('coupon_and_sale_discount_total')->default(0);
+            $table->float('delivery_fee')->default(0);
+            $table->float('grand_total')->default(0);
+            $table->unsignedTinyInteger('total_items')->default(0);
+            $table->unsignedTinyInteger('total_unique_items')->default(0);
 
             /*  Currency Info  */
-            $table->unsignedTinyInteger('currency_id')->default(1);
+            $table->char('currency', 3)->default('BWP');
 
             /*  Location Info  */
             $table->unsignedInteger('location_id')->nullable();

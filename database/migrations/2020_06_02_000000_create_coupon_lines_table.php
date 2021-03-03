@@ -19,10 +19,10 @@ class CreateCouponLinesTable extends Migration
             $table->string('name')->nullable();
             $table->string('description')->nullable();
             $table->string('code');
-            $table->boolean('is_fixed_rate')->nullable()->default(false);
-            $table->float('fixed_rate');
-            $table->tinyInteger('is_percentage_rate')->nullable()->default(false);
-            $table->tinyInteger('percentage_rate');
+            $table->boolean('is_fixed_rate')->default(false);
+            $table->float('fixed_rate')->default(0);
+            $table->tinyInteger('is_percentage_rate')->default(false);
+            $table->tinyInteger('percentage_rate')->default(0);
 
             /*  Coupon Info  */
             $table->unsignedInteger('coupon_id');

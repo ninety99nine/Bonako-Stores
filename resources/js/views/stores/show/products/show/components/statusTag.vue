@@ -2,9 +2,13 @@
 
     <Poptip word-wrap width="300" trigger="hover" placement="top" :style="{ wordBreak: 'break-word' }"
              :title="'Status: '+status.name" :content="status.description">
-        <Tag :color="color">
+
+        <Tag v-if="type == 'Tag'" :color="color">
             <span class="cut-text text-capitalize">{{ status.name }}</span>
         </Tag>
+
+        <Badge v-if="type == 'Badge'" :text="status.name" :type="color"></Badge>
+
     </Poptip>
 
 </template>
@@ -12,9 +16,13 @@
 <script type="text/javascript">
     export default {
         props:{
-            visibilityStatus: {
-                type: Boolean,
+            visible: {
+                type: Object,
                 default: null
+            },
+            type: {
+                type: String,
+                default: 'Tag'
             }
         },
         data(){
@@ -25,12 +33,10 @@
         computed: {
             status(){
 
-                if( typeof this.visibilityStatus === 'boolean' ){
+                if( typeof this.visible === 'object' ){
                     return {
-                        name: this.visibilityStatus ? 'Visible' : 'Hidden',
-                        description: this.visibilityStatus
-                            ? 'This product is visible from the store and can be selected by customers'
-                            : 'This product is hidden from the store and cannot be selected by customers'
+                        name: this.visible.name,
+                        description: this.visible.description
                     };
                 }else{
                     return {

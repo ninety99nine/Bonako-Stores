@@ -21,7 +21,7 @@ class CreateInstantCartsTable extends Migration
             $table->string('description', 500)->nullable();
 
             /*  Status  */
-            $table->boolean('active')->nullable()->default(false);
+            $table->boolean('active')->default(false);
 
             /*  Location Info  */
             $table->unsignedInteger('location_id')->nullable();

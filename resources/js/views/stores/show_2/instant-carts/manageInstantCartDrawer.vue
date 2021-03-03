@@ -1,6 +1,6 @@
 <template>
     <div>
-        <!-- Modal 
+        <!-- Modal
 
              Note: drawerVisible and detectClose() are imported from the drawerMixin.
              They are used to allow for opening and closing the drawer properly
@@ -11,7 +11,7 @@
         -->
         <Drawer
             width="650"
-            :okText="okText" 
+            :okText="okText"
             cancelText="Cancel"
             :title="drawerTitle"
             :maskClosable="false"
@@ -21,12 +21,12 @@
             <Alert v-if="serverErrorMessage && !isCreating && !isSavingChanges" type="warning">{{ serverErrorMessage }}</Alert>
 
             <Form ref="instantCartForm" class="instant-cart-form" :model="instantCartForm" :rules="instantCartFormRules">
-                
+
                 <!-- Set Active Status -->
                 <FormItem prop="active" class="clearfix mb-0">
                     <div class="d-flex float-right">
                         <span class="d-block font-weight-bold mr-2">{{ statusText }}: </span>
-                        <Poptip trigger="hover" title="Turn On/Off" placement="bottom-end" word-wrap width="300" 
+                        <Poptip trigger="hover" title="Turn On/Off" placement="bottom-end" word-wrap width="300"
                                 content="Turn on to allow subscribers to use this instant cart">
                             <i-Switch v-model="instantCartForm.active" :disabled="isLoadingAnything"/>
                         </Poptip>
@@ -37,16 +37,16 @@
                 <FormItem label="Name" prop="name" class="mb-3">
                     <Poptip trigger="focus" placement="top" word-wrap class="poptip-w-100"
                             content="Give your instant cart a name e.g Express Fries & Wings">
-                        <Input type="text" v-model="instantCartForm.name" placeholder="Enter instant cart name" 
+                        <Input type="text" v-model="instantCartForm.name" placeholder="Enter instant cart name"
                                 :disabled="isLoadingAnything" maxlength="50" show-word-limit class="w-100">
                         </Input>
                     </Poptip>
                 </FormItem>
-                
+
                 <!-- Enter Description -->
                 <FormItem label="Description" prop="description" class="mb-3">
                     <Poptip trigger="focus" placement="top" word-wrap class="poptip-w-100" content="Describe your instant cart">
-                        <Input type="textarea" v-model="instantCartForm.description" placeholder="Enter instant cart description" 
+                        <Input type="textarea" v-model="instantCartForm.description" placeholder="Enter instant cart description"
                                 :disabled="isLoadingAnything" maxlength="500" show-word-limit class="w-100">
                         </Input>
                     </Poptip>
@@ -59,7 +59,7 @@
                     <div class="d-flex mb-2">
                         <span class="mt-1 mr-1">Location: </span>
                         <Poptip trigger="hover" content="Which location does this instant cart belong to?" word-wrap class="poptip-w-100">
-                            <Select v-model="instantCartForm.location_id" filterable class="w-100" :disabled="isLoadingAnything" 
+                            <Select v-model="instantCartForm.location_id" filterable class="w-100" :disabled="isLoadingAnything"
                                     placeholder="Select location" @on-change="setLocation">
                                 <Option v-for="(location, index) in locations" :value="location.id" :key="index">{{ location.name }}</Option>
                             </Select>
@@ -86,7 +86,7 @@
                     <Divider orientation="left" class="font-weight-bold mt-4">Products</Divider>
                     <div class="d-flex mb-2">
                         <Poptip trigger="hover" content="Which products do you want to add to this instant cart?" word-wrap class="poptip-w-100">
-                            <Select v-model="selectedProducts" filterable multiple class="w-100" 
+                            <Select v-model="selectedProducts" filterable multiple class="w-100"
                                     :disabled="isLoadingAnything" :key="resetProductSelectorKey">
                                 <Option v-for="(product, index) in products" :value="product.id" :key="index"
                                      :label="product.quantity > 0 ? product.quantity+'x('+product.name+')' : (product.name)">
@@ -99,7 +99,7 @@
                         </Poptip>
                     </div>
                     <div class="clearfix">
-                    
+
                         <span v-if="!instantCartForm.location_id" class="font-weight-bold text-info font-italic float-left my-2">Select location first</span>
                         <span v-else-if="!instantCartForm.products.length" class="font-weight-bold text-info font-italic float-left my-2">Select products for this cart</span>
 
@@ -135,7 +135,7 @@
                         </Poptip>
                     </div>
                     <div class="clearfix">
-                    
+
                         <span v-if="!instantCartForm.location_id" class="font-weight-bold text-info font-italic float-left my-2">Select location first</span>
 
                         <!-- Refresh Button -->
@@ -149,14 +149,14 @@
                     </div>
 
                 </div>
-            
+
                 <template v-if="isEditing">
 
                     <!-- Save Changes Button -->
                     <FormItem v-if="!isSavingChanges">
 
-                        <basicButton :disabled="(!instantCartHasChanged || isSavingChanges || !hasProducts)" :loading="isSavingChanges" 
-                                    :ripple="(instantCartHasChanged && !isSavingChanges && hasProducts)" type="success" size="large" 
+                        <basicButton :disabled="(!instantCartHasChanged || isSavingChanges || !hasProducts)" :loading="isSavingChanges"
+                                    :ripple="(instantCartHasChanged && !isSavingChanges && hasProducts)" type="success" size="large"
                                     class="float-right mt-3" @click.native="handleSubmit()">
                             <span>{{ isSavingChanges ? 'Saving...' : 'Save Changes' }}</span>
                         </basicButton>
@@ -173,8 +173,8 @@
                     <!-- Create Button -->
                     <FormItem v-if="!isCreating">
 
-                        <basicButton :disabled="(!instantCartHasChanged || isCreating || !hasProducts)" :loading="isCreating" 
-                                    :ripple="(instantCartHasChanged && !isCreating && hasProducts)" type="success" size="large" 
+                        <basicButton :disabled="(!instantCartHasChanged || isCreating || !hasProducts)" :loading="isCreating"
+                                    :ripple="(instantCartHasChanged && !isCreating && hasProducts)" type="success" size="large"
                                     class="float-right mt-3" @click.native="handleSubmit()">
                             <span>{{ isCreating ? 'Creating...' : 'Create Instant Cart' }}</span>
                         </basicButton>
@@ -189,7 +189,7 @@
 
             </Form>
 
-            <!-- 
+            <!--
                 MODAL EDIT PRODUCT QUANTITY
             -->
             <template v-if="isOpenProductQuantityModal">
@@ -203,7 +203,7 @@
             </template>
 
         </Drawer>
-        
+
     </div>
 </template>
 <script>
@@ -260,9 +260,6 @@
                 instantCartForm: null,
                 products: [],
                 coupons: [],
-
-                serverErrors: [],
-                serverErrorMessage: ''
             }
         },
         watch: {
@@ -287,7 +284,7 @@
             //  Watch for changes on the instant cart location
             instantCartLocation: {
                 handler: function (newVal, oldVal) {
-                    
+
                         //  Fetch the products
                         this.fetchProducts();
 
@@ -299,7 +296,7 @@
             //  Watch for changes on anything loading
             isLoadingAnything: {
                 handler: function (newVal, oldVal) {
-                    
+
                     //  If everything stops loading and we haven't saved the original form yet
                     if(newVal == false && this.formBeforeChanges == null){
 
@@ -332,14 +329,14 @@
                 set(selectedProductIds){
 
                     this.instantCartForm.products = selectedProductIds.map((selectedProductId) => {
-                        
+
                         var filteredProducts = this.products.filter((product) => {
                             return product.id == selectedProductId;
                         });
 
                         return filteredProducts[0];
                     });
-                    
+
                 }
             },
             okText(){
@@ -363,7 +360,7 @@
 
                 //  Notify the parent component of the change status
                 this.$emit('unsavedChanges', status);
-                
+
                 return status;
 
             },
@@ -404,7 +401,7 @@
         },
         methods: {
             setForm(){
-                
+
                 this.instantCartForm = _.cloneDeep(Object.assign({},
                     //  Set the default form details
                     {
@@ -421,10 +418,10 @@
                     }, this.instantCart));
 
                 if( this.instantCart ){
-                    
+
                     //  Set the products
                     this.instantCartForm['products'] = this.instantCart['_embedded'].products.map((product) => {
-                        
+
                         product.quantity = product.pivot.quantity;
 
                         return product;
@@ -439,7 +436,7 @@
 
             },
             copyFormBeforeUpdate(){
-                
+
                 //  Clone the product
                 this.formBeforeChanges = _.cloneDeep( this.instantCartForm );
 
@@ -455,16 +452,13 @@
                 //  Use the api call() function, refer to api.js
                 api.call('get', this.productsUrl)
                     .then(({data}) => {
-                        
-                        //  Console log the data returned
-                        console.log(data);
 
                         //  Get the instant carts
                         self.products = data['_embedded']['products'] || [];
 
                         //  Add the default quantity to the products
                         self.products = (this.products || []).map((product, index) => {
-                            
+
                             //  Set the product quantity to "1"
                             this.$set(this.products[index], 'quantity', 1);
 
@@ -478,17 +472,14 @@
                         //  Stop loader
                         self.isLoadingProducts = false;
 
-                    })         
-                    .catch(response => { 
-
-                        //  Log the responce
-                        console.error(response);
+                    })
+                    .catch(response => {
 
                         //  Stop loader
                         self.isLoadingProducts = false;
 
                     });
-                
+
             },
             fetchCoupons() {
 
@@ -501,9 +492,6 @@
                 //  Use the api call() function, refer to api.js
                 api.call('get', this.couponsUrl)
                     .then(({data}) => {
-                        
-                        //  Console log the data returned
-                        console.log(data);
 
                         //  Get the instant carts
                         self.coupons = data['_embedded']['coupons'] || [];
@@ -511,17 +499,14 @@
                         //  Stop loader
                         self.isLoadingCoupons = false;
 
-                    })         
-                    .catch(response => { 
-
-                        //  Log the responce
-                        console.error(response);
+                    })
+                    .catch(response => {
 
                         //  Stop loader
                         self.isLoadingCoupons = false;
 
                     });
-                
+
             },
             fetchLocations() {
 
@@ -534,9 +519,6 @@
                 //  Use the api call() function, refer to api.js
                 api.call('get', this.locationsUrl)
                     .then(({data}) => {
-                        
-                        //  Console log the data returned
-                        console.log(data);
 
                         //  Get the instant carts
                         self.locations = data['_embedded']['locations'] || [];
@@ -544,17 +526,14 @@
                         //  Stop loader
                         self.isLoadingLocations = false;
 
-                    })         
-                    .catch(response => { 
-
-                        //  Log the responce
-                        console.error(response);
+                    })
+                    .catch(response => {
 
                         //  Stop loader
                         self.isLoadingLocations = false;
 
                     });
-                
+
             },
             setLocation(locationId){
 
@@ -579,18 +558,18 @@
                 this.$set(this.instantCartForm, 'products', updatedProducts);
 
                 for (let x = 0; x < this.products.length; x++) {
-                    
+
                     for (let y = 0; y < updatedProducts.length; y++) {
-                    
+
                         if(this.products[x].id == updatedProducts[y].id){
-                            
+
                             //  Set the product quantity to the updated quantity
                             this.$set(this.products[x], 'quantity', updatedProducts[y].quantity);
 
                         }
-                    
-                    }  
-                    
+
+                    }
+
                 }
 
                 //  Reset the product selection key to force a re-render of the component
@@ -603,11 +582,11 @@
                 this.resetErrors();
 
                 //  Validate the instant cart form
-                this.$refs['instantCartForm'].validate((valid) => 
-                {   
+                this.$refs['instantCartForm'].validate((valid) =>
+                {
                     //  If the validation passed
                     if (valid) {
-                        
+
                         //  If we are editing
                         if( this.isEditing ){
 
@@ -630,14 +609,6 @@
                     }
                 })
             },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
-            },
-            resetProductForm(){
-                this.resetErrors();
-                this.$refs['instantCartForm'].resetFields();
-            },
             saveInstantCart() {
 
                 //  Hold constant reference to the current Vue instance
@@ -652,12 +623,12 @@
                 /** Make an Api call to save the instant cart. We include the
                  *  instant cart details required for saving this instant cart
                  */
-                let instantCartData = this.instantCartForm;
+                let data = {
+                        postData: self.instantCartForm
+                    };
 
-                return api.call('put', this.instantCartUrl, instantCartData)
+                return api.call('put', this.instantCartUrl, data)
                     .then(({data}) => {
-                
-                        console.log(data);
 
                         //  Stop loader
                         self.isSavingChanges = false;
@@ -673,16 +644,14 @@
                             duration: 6
                         });
 
-                        //  Reset the form
-                        self.resetProductForm();
-                        
+                        //  resetForm() declared in miscMixin
+                        self.resetForm('instantCartForm');
+
                         self.copyFormBeforeUpdate();
-                        
+
                         self.closeDrawer();
-                        
+
                     }).catch((response) => {
-                
-                        console.log(response);
 
                         //  Stop loader
                         self.isSavingChanges = false;
@@ -705,24 +674,24 @@
 
                 //  Notify parent that this component is creating
                 this.$emit('isCreating', this.isCreating);
-                
+
                 /** Make an Api call to create the instant cart. We include the
-                 *  instant cart details required for a new instant cart 
+                 *  instant cart details required for a new instant cart
                  *  creation.
                  */
-                let instantCartData = this.instantCartForm;
+                let data = {
+                        postData: self.instantCartForm
+                    };
 
-                return api.call('post', this.createInstantCartUrl, instantCartData)
+                return api.call('post', this.createInstantCartUrl, data)
                     .then(({data}) => {
-                
-                        console.log(data);
 
                         //  Stop loader
                         self.isCreating = false;
 
                         //  Notify parent that this component is not creating
                         self.$emit('isCreating', self.isCreating);
-    
+
                         //  Notify parent of the instant cart created
                         self.$emit('createdInstantCart', data);
 
@@ -732,14 +701,12 @@
                             duration: 6
                         });
 
-                        //  Reset the form
-                        self.resetProductForm();
-                        
+                        //  resetForm() declared in miscMixin
+                        self.resetForm('instantCartForm');
+
                         self.closeDrawer();
-                        
+
                     }).catch((response) => {
-                
-                        console.log(response);
 
                         //  Stop loader
                         self.isCreating = false;

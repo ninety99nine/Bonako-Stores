@@ -136,14 +136,55 @@ trait CommonTraits
 
         }
     }
-    /*
-     *  Returns the amount in money format
+
+    /**
+     *  Returns the currency and symbol
+     * 
+     *  @param  string  $code e.g "BWP"
      */
-    public function convertToMoney($amount = 0)
+    public function unpackCurrency($code = null)
+    {
+        try {
+                
+            $currencies = [
+                'BWP' => 'P'
+            ];
+
+            $symbol = $currencies[$code] ?? '';
+
+            return [
+                'code' => $code,
+                'symbol' => $symbol
+            ];
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  Returns the amount in money format
+     * 
+     *  @param  string  $currency e.g "BWP"
+     *  @param  float     $amount e.g 5.00
+     */
+    public function convertToMoney($currency = null, $amount = 0)
     {
         try {
 
-            return number_format($amount, 2, '.', ',');
+            //  Set the currency symbol
+            $symbol = $currency['symbol'] ?? '';
+            
+            //  Convert amount to money format
+            $money = number_format($amount, 2, '.', ',');
+
+            return [
+                'currency_money' => $symbol.$money,
+                'money' => $money,
+                'amount' => $amount
+            ];
 
         } catch (\Exception $e) {
 

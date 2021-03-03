@@ -17,54 +17,57 @@
                         <Col :span="24">
 
                             <!-- If we are loading, Show Loader -->
-                            <Loader v-if="!productForm" class="mb-2">Preparing product</Loader>
 
-                            <Form v-else ref="productForm" :model="productForm" :rules="productFormRules" class="product-form">
+                            <Loader v-if="isCreating" class="mb-2">Creating product</Loader>
+                            <Loader v-else-if="isSavingChanges" class="mb-2">Saving product</Loader>
+                            <Loader v-else-if="!productForm" class="mb-2">Preparing product</Loader>
 
-                                <template v-if="!isVariationProduct">
+                            <Form v-if="productForm" ref="productForm" :model="productForm" :rules="productFormRules" class="product-form">
 
-                                    <!-- Toggle Visibility Switch -->
-                                    <visibilitySwitch :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></visibilitySwitch>
-
-                                </template>
+                                <!-- Toggle Visibility Switch -->
+                                <visibilitySwitch :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></visibilitySwitch>
 
                                 <!-- Toggle Allow Variations Switch -->
-                                <allowVariationsSwitch :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"
-                                                       :parentFetchVariations="fetchVariations" :isEditing="isEditing"></allowVariationsSwitch>
+                                <allowVariationsSwitch :productForm="productForm" :isLoading="isLoading"
+                                                       :serverErrors="serverErrors" :isEditing="isEditing"
+                                                       :productHasChanged="productHasChanged"
+                                                       @restoreProductForm="restoreProductForm">
+                                </allowVariationsSwitch>
 
                                 <!-- Enter Name -->
                                 <nameInput :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></nameInput>
+
+                                <!-- Select Type -->
+                                <typeSelectInput :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></typeSelectInput>
+
+                                <!-- Enter Description -->
+                                <descriptionInput :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></descriptionInput>
+
+                                <!-- Show Description Checkbox -->
+                                <showDescriptionCheckbox :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></showDescriptionCheckbox>
 
                                 <!-- If we allow variations -->
                                 <template v-if="productForm.allow_variants">
 
                                     <!-- Variant Attributes -->
-                                    <variantAttributes :productForm="productForm" :product="localProduct" :isLoading="isLoading"
-                                                       :serverErrors="serverErrors" @generatedVariations="prepareProduct()"
-                                                       @isCreatingVariations="isCreatingVariations = $event">
+                                    <variantAttributes :productForm="productForm" :product="localProduct" :isLoading="isLoading" :variations="variations"
+                                                       :serverErrors="serverErrors" @variantAttributesHasChanged="variantAttributesHasChanged = $event"
+                                                       @isCreatingVariations="isCreatingVariations = $event"
+                                                       @generatedVariations="handleGeneratedVariations()">
                                     </variantAttributes>
 
                                     <!-- Variations Heading -->
-                                    <Divider orientation="left" class="font-weight-bold">Variations</Divider>
+                                    <Divider v-if="!isLoadingVariations && !isCreatingVariations" orientation="left" class="font-weight-bold">Variations</Divider>
 
                                     <!-- Variations - Registered Globally -->
-                                    <variations :product="localProduct" :isLoading="isLoading" :isCreatingVariations="isCreatingVariations"
-                                                @isLoadingVariations="isLoadingVariations = $event">
+                                    <variations :location="location" :product="localProduct" :isLoading="isLoading" :isCreatingVariations="isCreatingVariations"
+                                                @isLoadingVariations="isLoadingVariations = $event" @variations="variations = $event">
                                     </variations>
 
                                 </template>
 
                                 <!-- If we don't allow variations -->
                                 <template v-else>
-
-                                    <!-- Select Type -->
-                                    <typeSelectInput :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></typeSelectInput>
-
-                                    <!-- Enter Description -->
-                                    <descriptionInput :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></descriptionInput>
-
-                                    <!-- Show Description Checkbox -->
-                                    <showDescriptionCheckbox :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></showDescriptionCheckbox>
 
                                     <!-- Enter SKU & Barcode -->
                                     <Row :gutter="12">
@@ -90,6 +93,13 @@
 
                                     <!-- Pricing -->
                                     <Row :gutter="12">
+
+                                        <Col :span="24">
+
+                                            <!-- Show Description Checkbox -->
+                                            <isFreeCheckbox :productForm="productForm" :isLoading="isLoading" :serverErrors="serverErrors"></isFreeCheckbox>
+
+                                        </Col>
 
                                         <Col :span="8">
 
@@ -119,13 +129,47 @@
                                                 This is a <span :class="['font-weight-bold', 'text-success']">FREE</span> product
                                             </Alert>
 
+                                            <Alert v-if="noPrice" type="warning" class="mt-2">
+                                                Enter your product price
+                                            </Alert>
+
                                             <Alert v-if="!isFree && onSale" type="success" class="mt-2">
                                                 <Row>
-                                                    <Col :span="12">
-                                                        Sale: <span :class="['font-weight-bold', 'text-success']">{{ salePercentage }}%</span>
+                                                    <Col :span="8">
+                                                        <!-- Sale Explanation Poptip -->
+                                                        <Poptip trigger="hover" placement="top-start" word-wrap width="300"
+                                                                content="This is the percentage saved by the customer buying this product">
+
+                                                            Sale: <span :class="['font-weight-bold', 'text-success']">{{ salePercentage }}% off</span>
+
+                                                            <!-- Show the info icon -->
+                                                            <Icon type="ios-information-circle-outline" :size="16" />
+
+                                                        </Poptip>
                                                     </Col>
-                                                    <Col :span="12">
-                                                        Save: <span :class="['font-weight-bold', 'text-success']">{{ saleSavings }}</span>
+                                                    <Col :span="8">
+                                                        <!-- Save Explanation Poptip -->
+                                                        <Poptip trigger="hover" placement="top" word-wrap width="300"
+                                                                content="This is the amount saved by the customer buying this product">
+
+                                                            Save: <span :class="['font-weight-bold', 'text-success']">{{ saleSavings }}</span>
+
+                                                            <!-- Show the info icon -->
+                                                            <Icon type="ios-information-circle-outline" :size="16" />
+
+                                                        </Poptip>
+                                                    </Col>
+                                                    <Col :span="8">
+                                                        <!-- Profit Explanation Poptip -->
+                                                        <Poptip trigger="hover" placement="top-end" word-wrap width="300"
+                                                                content="This is the profit made by selling this product">
+
+                                                            Profit: <span :class="['font-weight-bold', 'text-success']">{{ profit }}</span>
+
+                                                            <!-- Show the info icon -->
+                                                            <Icon type="ios-information-circle-outline" :size="16" />
+
+                                                        </Poptip>
                                                     </Col>
                                                 </Row>
                                             </Alert>
@@ -157,6 +201,8 @@
                                         </Col>
 
                                     </Row>
+
+                                    <Alert v-if="quantityDescription" type="success" class="mt-2">{{ quantityDescription }}</Alert>
 
                                     <!-- Inventory Heading -->
                                     <Divider orientation="left" class="font-weight-bold mt-4">Inventory</Divider>
@@ -191,29 +237,38 @@
 
                                     </Row>
 
-                                    <!-- Locations -->
-                                    <Row v-if="!isVariationProduct" :gutter="12">
+                                    <Alert :type="stockStatus.type" class="mt-2">{{ stockStatus.text }}</Alert>
 
-                                        <Col :span="24">
+                                    <template v-if="!isVariationProduct">
 
-                                            <!-- Select Locations -->
-                                            <locationSelectInput :productForm="productForm" :isLoading="isLoading" :assignedLocations="assignedLocations"
-                                                                 :location="location" :parentFetchProductLocations="fetchProductLocations"
-                                                                 :serverErrors="serverErrors">
-                                            </locationSelectInput>
+                                        <!-- Locations Heading -->
+                                        <Divider orientation="left" class="font-weight-bold mt-4">Locations</Divider>
 
-                                        </Col>
+                                        <!-- Locations -->
+                                        <Row :gutter="12">
 
-                                    </Row>
+                                            <Col :span="24">
+
+                                                <!-- Select Locations -->
+                                                <locationSelectInput :productForm="productForm" :isLoading="isLoading" :assignedLocations="assignedLocations"
+                                                                    :location="location" :parentFetchProductLocations="fetchProductLocations"
+                                                                    :serverErrors="serverErrors">
+                                                </locationSelectInput>
+
+                                            </Col>
+
+                                        </Row>
+
+                                    </template>
 
                                 </template>
 
-                                <!-- If we are editting -->
+                                <!-- If we are editting and not using variations -->
                                 <template v-if="isEditing">
 
                                     <!-- Save Changes Button -->
-                                    <basicButton :disabled="(!productHasChanged || isSavingChanges)" :loading="isSavingChanges"
-                                                 :ripple="(productHasChanged && !isSavingChanges)" type="success" size="large"
+                                    <basicButton :disabled="(!productHasChanged || isSavingChanges || variantAttributesHasChanged)" :loading="isSavingChanges"
+                                                 :ripple="(productHasChanged && !isSavingChanges && !variantAttributesHasChanged)" type="success" size="large"
                                                  :class="['float-right', 'mt-5']" @click.native="handleSubmit()">
                                         <span>{{ isSavingChanges ? 'Saving...' : 'Save Changes' }}</span>
                                     </basicButton>
@@ -221,7 +276,7 @@
                                 </template>
 
                                 <!-- If we are creating -->
-                                <template v-else>
+                                <template v-if="!isEditing">
 
                                     <!-- Create Button -->
                                     <basicButton :disabled="(!productHasChanged || isCreating)" :loading="isCreating"
@@ -261,13 +316,14 @@
 
     import skuInput from './components/skuInput.vue';
     import nameInput from './components/nameInput.vue';
-    import statusTag from './../components/statusTag.vue';
+    import statusTag from './components/statusTag.vue';
     import barcodeInput from './components/barcodeInput.vue';
+    import isFreeCheckbox from './components/isFreeCheckbox.vue';
     import salePriceInput from './components/salePriceInput.vue';
     import costPriceInput from './components/costPriceInput.vue';
     import typeSelectInput from './components/typeSelectInput.vue';
     import descriptionInput from './components/descriptionInput.vue';
-    import visibilitySwitch from './components/visibilitySwitch.vue';
+    import visibilitySwitch from './components/visibilitySwitch.vue';    
     import regularPriceInput from './components/regularPriceInput.vue';
     import stockQuantityInput from './components/stockQuantityInput.vue';
     import locationSelectInput from './components/locationSelectInput.vue';
@@ -283,15 +339,13 @@
     import allowMaximumQuantityPerOrderCheckbox from './components/allowMaximumQuantityPerOrderCheckbox.vue';
     import allowMultipleQuantityPerOrderCheckbox from './components/allowMultipleQuantityPerOrderCheckbox.vue';
 
-
     export default {
         mixins: [miscMixin],
         components: {
-            skuInput, nameInput, statusTag, barcodeInput, salePriceInput, costPriceInput, typeSelectInput,
-            descriptionInput, visibilitySwitch, regularPriceInput, stockQuantityInput, locationSelectInput,
-            allowVariationsSwitch, Loader, variantAttributes, showDescriptionCheckbox, autoManageStockCheckbox,
-            basicButton, maximumQuantityPerOrderInput, allowStockManagementCheckbox, allowMaximumQuantityPerOrderCheckbox,
-            allowMultipleQuantityPerOrderCheckbox
+            skuInput, nameInput, statusTag, barcodeInput, isFreeCheckbox, salePriceInput, costPriceInput, 
+            typeSelectInput, descriptionInput, visibilitySwitch, regularPriceInput, stockQuantityInput, locationSelectInput,
+            allowVariationsSwitch, Loader, variantAttributes, showDescriptionCheckbox, autoManageStockCheckbox,basicButton, 
+            maximumQuantityPerOrderInput, allowStockManagementCheckbox, allowMaximumQuantityPerOrderCheckbox, allowMultipleQuantityPerOrderCheckbox
         },
         props: {
             store: {
@@ -325,11 +379,12 @@
         },
         data(){
             return {
+                variations: [],
                 location_ids: [],
                 productForm: null,
+                closeDrawer: true,
                 isCreating: false,
                 localProduct: null,
-                serverErrors: null,
                 productFormRules: {
 
                 },
@@ -338,7 +393,9 @@
                 isLoadingLocations: false,
                 isLoadingVariations: false,
                 isCreatingVariations: false,
+
                 productBeforeChanges: null,
+                variantAttributesHasChanged: false,
             }
         },
         watch: {
@@ -402,29 +459,106 @@
                 return this.product ? true : false;
             },
             isFree(){
-                return this.productForm.unit_regular_price === 0 ||
-                       (this.productForm.unit_regular_price === this.productForm.unit_sale_price)
+                return this.productForm.is_free;
+            },
+            noPrice(){
+                return !this.isFree && this.productForm.unit_regular_price == 0;
             },
             onSale(){
-                return (this.productForm.unit_sale_price > 0);
+                return !this.productForm.is_free && this.productForm.unit_sale_price > 0 &&
+                       (this.productForm.unit_sale_price < this.productForm.unit_regular_price);
+            },
+            locationCurrency(){
+                return (this.location.currency || {});
+            },
+            locationCurrencySymbol(){
+                return this.locationCurrency.symbol;
+            },
+            locationCurrencyCode(){
+                return this.locationCurrency.code;
             },
             salePercentage(){
 
-                var percentage = (this.productForm.unit_sale_price / this.productForm.unit_regular_price) * 100;
+                //  Calculate the difference
+                var difference = (this.productForm.unit_regular_price - this.productForm.unit_sale_price);
+
+                var percentage = (difference / this.productForm.unit_regular_price) * 100;
 
                 return Math.round(percentage);
-            },
-            currencySymbol(){
-                return (this.location._embedded.currency || {}).symbol;
             },
             saleSavings(){
 
                 var saleSavings = (this.productForm.unit_regular_price - this.productForm.unit_sale_price);
 
                 //  The formatPrice() method is defined from the miscMixin
-                return this.formatPrice(saleSavings, this.currencySymbol);
+                return this.formatPrice(saleSavings, this.locationCurrencySymbol);
 
-            }
+            },
+            profit(){
+
+                if( this.productForm.unit_sale_price === 0 ){
+                    var unitPrice = this.productForm.unit_regular_price;
+                }else{
+                    var unitPrice = this.productForm.unit_sale_price;
+                }
+
+                var unitCost = this.productForm.unit_cost;
+
+                var profit = unitPrice - unitCost;
+
+                if( profit < 0 ) profit = 0;
+
+                //  The formatPrice() method is defined from the miscMixin
+                return this.formatPrice(profit, this.locationCurrencySymbol);
+
+            },
+            quantityDescription(){
+
+                if( this.productForm.allow_multiple_quantity_per_order == false ){
+
+                    return 'Allow only 1 quantity per order';
+
+                }else if( this.productForm.allow_multiple_quantity_per_order && this.productForm.allow_maximum_quantity_per_order == false ){
+
+                    return 'Allow unlimited quantity per order';
+
+                }else if( this.productForm.allow_multiple_quantity_per_order && this.productForm.allow_maximum_quantity_per_order == true ){
+
+                    return 'Allow only a maximum of '+this.productForm.maximum_quantity_per_order+' quantities per order';
+
+                }
+            },
+            allowStockManagement(){
+                return this.productForm.allow_stock_management;
+            },
+            stockQuantity(){
+                return this.productForm.stock_quantity;
+            },
+            stockStatus(){
+
+                if( this.allowStockManagement == false ){
+
+                    return {
+                        text: 'Unlimited stock',
+                        type: 'success'
+                    }
+
+                }else if( this.allowStockManagement && this.stockQuantity > 0 ){
+
+                    return {
+                        text: 'Limited stock',
+                        type: 'success'
+                    }
+
+                }else{
+
+                    return {
+                        text: 'No stock!',
+                        type: 'warning'
+                    }
+
+                }
+            },
         },
         methods: {
 
@@ -435,9 +569,13 @@
 
                 if( this.isEditing ){
 
+                    //  Reset tthe product form
+                    this.productForm = null;
+
                     //  Fetch the product
                     await this.fetchProduct();
 
+                    //  Notify parent of fetched product
                     this.$emit('fetchedProduct', this.localProduct);
 
                     //  If this product is not a variation
@@ -445,14 +583,6 @@
 
                         //  Fetch the product locations
                         await this.fetchProductLocations();
-
-                    }
-
-                    //  If the product allows variations
-                    if( (this.localProduct || {}).allow_variants ){
-
-                        //  Fetch the product variations
-                        await this.fetchVariations();
 
                     }
 
@@ -487,9 +617,6 @@
                     await api.call('get', this.productUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the product
                             self.localProduct = data || null;
 
@@ -498,9 +625,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingProduct = false;
@@ -521,9 +645,6 @@
                     //  Use the api call() function, refer to api.js
                     await api.call('get', this.productLocationsUrl)
                         .then(({data}) => {
-
-                            //  Console log the data returned
-                            console.log(data);
 
                             //  Stop loader
                             self.isLoadingLocations = false;
@@ -547,9 +668,6 @@
                         })
                         .catch(response => {
 
-                            //  Log the responce
-                            console.error(response);
-
                             //  Stop loader
                             this.isLoadingLocations = false;
 
@@ -558,46 +676,10 @@
                 }
 
             },
-            async fetchVariations() {
-
-                //  If we have the product url
-                if( this.productVariationsUrl ){
-
-                    //  Hold constant reference to the current Vue instance
-                    const self = this;
-
-                    //  Start loader
-                    self.isLoadingVariations = true;
-
-                    //  Use the api call() function, refer to api.js
-                    api.call('get', this.productVariationsUrl)
-                        .then(({data}) => {
-
-                            //  Console log the data returned
-                            console.log(data);
-
-                            //  Get the product variations
-                            self.variations = data['_embedded']['products'] || [];
-
-                            //  Stop loader
-                            self.isLoadingVariations = false;
-
-                        })
-                        .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
-
-                            //  Stop loader
-                            self.isLoadingVariations = false;
-
-                        });
-                }
-            },
             getProductForm(){
 
                 //  Clone the product Object (if any) as a new Object
-                return _.cloneDeep(Object.assign({},
+                var form = _.cloneDeep(Object.assign({},
                     //  Set the default form details
                     {
 
@@ -616,14 +698,16 @@
                         variant_attributes: [],
 
                         //  Pricing Management
+                        is_free: false,
+                        currency: this.locationCurrencyCode,
                         unit_regular_price: 0,
                         unit_sale_price : 0,
                         unit_cost: 0,
 
                         //  Quantity Management
-                        allow_multiple_quantity_per_product: true,
-                        allow_maximum_quantity_per_product : false,
-                        maximum_quantity_per_product: 5,
+                        allow_multiple_quantity_per_order: true,
+                        allow_maximum_quantity_per_order : false,
+                        maximum_quantity_per_order: 5,
 
                         //  Stock Management
                         allow_stock_management: false,
@@ -633,11 +717,41 @@
                     //  Overide the default form details with the provided product Object
                     }, this.localProduct));
 
+                if( this.localProduct ){
+
+                    form.show_description = this.localProduct.show_description.status;
+                    form.visible = this.localProduct.visible.status;
+
+                    form.allow_variants = this.localProduct.allow_variants.status;
+
+                    form.is_free = this.localProduct.is_free.status;
+                    form.currency = this.localProduct.currency.code;
+                    form.unit_regular_price = this.localProduct.unit_regular_price.amount;
+                    form.unit_sale_price = this.localProduct.unit_sale_price.amount;
+                    form.unit_cost = this.localProduct.unit_cost.amount;
+
+                    form.allow_multiple_quantity_per_order = this.localProduct.allow_multiple_quantity_per_order.status;
+                    form.allow_maximum_quantity_per_order = this.localProduct.allow_maximum_quantity_per_order.status;
+                    
+                    form.allow_stock_management = this.localProduct.allow_stock_management.status;
+                    form.auto_manage_stock = this.localProduct.auto_manage_stock.status;
+                    form.stock_quantity = this.localProduct.stock_quantity.value;
+
+                }
+
+                return form;
+
             },
             copyProductBeforeUpdate(){
 
                 //  Clone the product before any changes occur
                 this.productBeforeChanges = _.cloneDeep( this.productForm );
+
+            },
+            restoreProductForm(){
+
+                //  Restore the product form to its original state
+                this.productForm = _.cloneDeep(this.productBeforeChanges);
 
             },
             closeProduct(){
@@ -677,40 +791,94 @@
 
                 }
             },
-            handleSubmit(){
+            async handleGeneratedVariations(variantAttributes){
+
+                this.$set(this.productForm, 'variant_attributes', variantAttributes);
+
+                if( this.productHasChanged ){
+
+                    //  Make sure the drawer is not closed while handling submit
+                    this.closeDrawer = false;
+
+                    //  Save changes
+                    await this.handleSubmit();
+
+                    //  Reset the close drawer to its normal state
+                    this.closeDrawer = true;
+
+                }
+
+                this.prepareProduct();
+
+
+            },
+            async handleSubmit(){
 
                 //  Reset the server errors
                 this.resetErrors();
 
-                //  Validate the product form
-                this.$refs['productForm'].validate((valid) =>
-                {
-                    //  If the validation passed
-                    if (valid) {
+                /**
+                 *  Declare and return a promise. This is so that we wait on the saveProduct() or createProduct()
+                 *  API Calls when they are triggered, so that we wait for the call to be successful before
+                 *  we run other methods that follow soon after the handleSubmit()
+                 */
+                var promise = await new Promise(resolve => {
 
-                        //  If we are editing
-                        if( this.isEditing ){
+                    //  Validate the product form
+                    this.$refs['productForm'].validate((valid) =>
+                    {
+                        //  If the validation passed
+                        if (valid) {
 
-                            //  Attempt to save product
-                            this.saveProduct();
+                            //  If we are editing
+                            if( this.isEditing ){
 
-                        }else{
+                                //  Make a promise to save the product
+                                resolve(new Promise(resolve => {
 
-                            //  Attempt to save product
-                            this.createProduct();
+                                    //  Resolve the promise by Attempting to save product
+                                    resolve( this.saveProduct() );
 
+                                }));
+
+                            }else{
+
+                                //  Make a promise to create the product
+                                resolve(new Promise(resolve => {
+
+                                    //  Resolve the promise by Attempting to create product
+                                    resolve( this.createProduct() );
+
+                                }));
+
+                            }
+
+                        //  If the validation failed
+                        } else {
+
+                            this.$Message.warning({
+                                content: 'Sorry, you cannot update product',
+                                duration: 6
+                            });
+
+                            //  Resolve the promise
+                            resolve();
                         }
 
-                    //  If the validation failed
-                    } else {
-                        this.$Message.warning({
-                            content: 'Sorry, you cannot update yet',
-                            duration: 6
-                        });
-                    }
-                })
+                    });
+                });
+
+                //  If we should close the drawer
+                if( this.closeDrawer ){
+
+                    //  Notify the parent
+                    this.$emit('closeDrawer');
+
+                }
+
+                return promise;
             },
-            saveProduct() {
+            async saveProduct() {
 
                 //  Hold constant reference to the current Vue instance
                 const self = this;
@@ -721,12 +889,12 @@
                 /** Make an Api call to create the product. We include the
                  *  product details required for a new product creation.
                  */
-                let productData = this.productForm;
+                let data = {
+                    postData: this.productForm,
+                };
 
-                return api.call('put', this.productUrl, productData)
+                return await api.call('put', this.productUrl, data, this)
                     .then(({data}) => {
-
-                        console.log(data);
 
                         //  Stop loader
                         self.isSavingChanges = false;
@@ -739,17 +907,21 @@
 
                         self.copyProductBeforeUpdate();
 
+                        //  Notify parent on changes
                         self.$emit('savedProduct', data);
 
                     }).catch((response) => {
 
-                        console.log(response);
+                        this.$Message.warning({
+                            content: 'Sorry, you cannot update product',
+                            duration: 6
+                        });
+
+                        //  Don't close the drawer
+                        this.closeDrawer = false;
 
                         //  Stop loader
                         self.isSavingChanges = false;
-
-                        //  Handle API Fail
-                        this.handleApiFail(response);
 
                 });
             },
@@ -761,24 +933,18 @@
                 //  Start loader
                 self.isCreating = true;
 
-                //  Notify parent that this component is creating
-                self.$emit('isCreating', self.isCreating);
-
                 /** Make an Api call to create the product. We include the
                  *  product details required for a new product creation.
                  */
-                let productData = this.productForm;
+                let data = {
+                        postData: this.productForm
+                    };
 
-                return api.call('post', this.createProductUrl, productData)
+                return api.call('post', this.createProductUrl, data)
                     .then(({data}) => {
-
-                        console.log(data);
 
                         //  Stop loader
                         self.isCreating = false;
-
-                        //  Notify parent that this component is not creating
-                        self.$emit('isCreating', self.isCreating);
 
                         //  Notify parent of the product created
                         self.$emit('createdProduct', data);
@@ -789,67 +955,23 @@
                             duration: 6
                         });
 
-                        //  Reset the form
-                        self.resetProductForm();
+                        //  resetForm() declared in miscMixin
+                        self.resetForm('productForm');
 
                     }).catch((response) => {
 
-                        console.log(response);
+                        this.$Message.warning({
+                            content: 'Sorry, you cannot create product',
+                            duration: 6
+                        });
+
+                        //  Don't close the drawer
+                        this.closeDrawer = false;
 
                         //  Stop loader
                         self.isCreating = false;
 
-                        //  Notify parent that this component is not creating
-                        self.$emit('isCreating', self.isCreating);
-
-                        //  Handle API Fail
-                        this.handleApiFail(response);
-
                 });
-            },
-            handleApiFail(response){
-
-                //  Get the error response data
-                let data = (response || {}).data;
-
-                //  Get the response errors
-                var errors = (data || {}).errors;
-
-                //  Set the general error message
-                self.serverErrorMessage = (data || {}).message;
-
-                /** 422: Validation failed. Incorrect credentials
-                 */
-                if((response || {}).status === 422){
-
-                    //  If we have errors
-                    if(_.size(errors)){
-
-                        //  Foreach error
-                        for (var i = 0; i < _.size(errors); i++) {
-
-                            //  Get the error key e.g 'name', 'dedicated_short_code'
-                            var prop = Object.keys(errors)[i];
-
-                            //  Get the error value e.g 'The product name is required'
-                            var value = Object.values(errors)[i][0];
-
-                            //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                            self.serverErrors[prop] = value;
-
-                        }
-
-                    }
-
-                }
-            },
-            resetProductForm(){
-                this.resetErrors();
-                this.$refs['productForm'].resetFields();
-            },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
             },
         },
         created(){

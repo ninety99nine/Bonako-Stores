@@ -13,8 +13,6 @@ class Location extends Model
     use LocationTraits;
     use CommonTraits;
 
-    protected $with = ['currency'];
-
     /**
      * The table associated with the model.
      *
@@ -22,11 +20,12 @@ class Location extends Model
      */
     protected $casts = [
         'online' => 'boolean',                      //  Return the following 1/0 as true/false
+        'allow_free_delivery' => 'boolean',         //  Return the following 1/0 as true/false
         'allow_delivery' => 'boolean',              //  Return the following 1/0 as true/false
         'allow_pickups' => 'boolean',               //  Return the following 1/0 as true/false
         'allow_payments' => 'boolean',              //  Return the following 1/0 as true/false
-        'allow_sending_merchant_sms' => 'boolean',           //  Return the following 1/0 as true/false
-
+        'allow_sending_merchant_sms' => 'boolean',  //  Return the following 1/0 as true/false
+        
         'delivery_destinations' => 'array',
         'delivery_days' => 'array',
         'delivery_times' => 'array',
@@ -43,11 +42,11 @@ class Location extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'abbreviation', 'about_us', 'contact_us', 'call_to_action', 'online', 'offline_message',
-        'allow_delivery', 'delivery_note', 'delivery_flat_fee', 'delivery_destinations', 'delivery_days',
-        'delivery_times', 'allow_pickups', 'pickup_note', 'pickup_destinations', 'pickup_days',
+        'name', 'abbreviation', 'about_us', 'contact_us', 'call_to_action', 'online', 'allow_free_delivery', 
+        'offline_message', 'allow_delivery', 'delivery_note', 'delivery_flat_fee', 'delivery_destinations', 
+        'delivery_days', 'delivery_times', 'allow_pickups', 'pickup_note', 'pickup_destinations', 'pickup_days',
         'pickup_times', 'allow_payments', 'online_payment_methods', 'offline_payment_methods',
-        'currency_id', 'orange_money_merchant_code', 'minimum_stock_quantity',
+        'currency', 'orange_money_merchant_code', 'minimum_stock_quantity',
         'allow_sending_merchant_sms', 'user_id', 'store_id',
     ];
 
@@ -77,14 +76,6 @@ class Location extends Model
     public function favourites()
     {
         return $this->hasMany('App\Favourite');
-    }
-
-    /**
-     *  Returns the currency
-     */
-    public function currency()
-    {
-        return $this->belongsTo('App\Currency');
     }
 
     /**
@@ -180,6 +171,100 @@ class Location extends Model
         'resource_type',
     ];
 
+    /**
+     *  Returns the location online status and description
+     */
+    public function getOnlineAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Online' : 'Offline',
+            'description' => $value ? 'This location is online and can be visited by customers'
+                                    : 'This location is offline and cannot be visited by customers'
+        ];
+    }
+
+    /**
+     *  Returns the location allow delivery status and description
+     */
+    public function getAllowDeliveryAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'This location supports delivery of orders'
+                                    : 'This location does not support delivery of orders'
+        ];
+    }
+
+    /**
+     *  Returns the location allow free delivery status and description
+     */
+    public function getAllowFreeDeliveryAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'This location supports free delivery of orders'
+                                    : 'This location does not support free delivery of orders'
+        ];
+    }
+
+    /**
+     *  Returns the location allow pickups status and description
+     */
+    public function getAllowPickupsAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'This location allows customers to pickup their orders'
+                                    : 'This location does not allow customers to pickup their orders'
+        ];
+    }
+
+    /**
+     *  Returns the location allow payments status and description
+     */
+    public function getAllowPaymentsAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'This location supports online payment of orders'
+                                    : 'This location does not support online payment of orders'
+        ];
+    }
+
+    /**
+     *  Returns the location allow sending merchant sms status and description
+     */
+    public function getAllowSendingMerchantSmsAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'This location supports sending sms alerts to merchant mobile number'
+                                    : 'This location does not support sending sms alerts to merchant mobile number'
+        ];
+    }
+
+    /**
+     *  Returns the location currency code and symbol
+     */
+    public function getCurrencyAttribute($currency_code)
+    {
+        return $this->unpackCurrency($currency_code);
+    }
+
+    /**
+     *  Returns the unit regular price
+     */
+    public function getDeliveryFlatFeeAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
     public function getOnlinePaymentMethodsAttribute($value)
     {
         //  Convert to array
@@ -194,6 +279,32 @@ class Location extends Model
 
     public function getDeliveryDestinationsAttribute($value)
     {
+        $destinations = is_null($value) ? [] : json_decode($value, true);
+
+        return collect($destinations)->map(function($destination){
+            
+            //  Convert cost to money
+            $destination['cost'] =  $this->convertToMoney($this->currency, $destination['cost']);
+
+            //  Allow free delivery status value
+            $value = $destination['allow_free_delivery'];
+
+            $destination['allow_free_delivery'] = [
+                'status' => $value ? true : false,
+                'name' => $value ? 'Yes' : 'No',
+                'description' => $value ? 'This destination supports free delivery of orders'
+                                        : 'This destination does not support free delivery of orders'
+            ];
+
+            //  Returnt the destination
+            return $destination;
+
+        })->toArray();
+
+        $amount = $this->is_free['status'] ? 0 : $value;
+
+        return $this->convertToMoney($this->currency, $amount);
+
         //  Convert to array
         return is_null($value) ? [] : json_decode($value, true);
     }

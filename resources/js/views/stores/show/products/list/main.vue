@@ -37,7 +37,7 @@
                                 <!-- Add Product Button -->
                                 <basicButton :type="addButtonType" size="default" icon="ios-add" :showIcon="true"
                                             :ripple="!productsExist && !isLoading" :class="['float-right', 'ml-2']"
-                                            :disabled="productsHaveChanged || isLoading"
+                                            :disabled="(productsExist && productsHaveChanged) || isLoading"
                                             @click.native="handleAddProduct()">
                                     <span>Add Product</span>
                                 </basicButton>
@@ -83,32 +83,40 @@
 
                         </Col>
 
-                        <Col :span="4" :class="['clearfix']">
+                        <Col :span="8" :class="['clearfix']">
 
                             <!-- Arrange Products Switch -->
-                            <div :class="['float-left', 'mt-1', 'ml-3']">
+                            <div v-if="!productsHaveChanged" :class="['float-left', 'mt-1', 'ml-3']">
                                 <span :style="{ width: '200px' }" class="font-weight-bold">Arrange Products: </span>
                                 <Poptip trigger="hover" word-wrap width="300" content="Turn on to drag and drop and change the arrangement of products">
                                     <i-Switch v-model="arrangeProducts" :disabled="!products.length || isLoading || productsHaveChanged" />
                                 </Poptip>
                             </div>
 
-                        </Col>
+                            <template v-if="products.length && productsHaveChanged">
 
-                        <Col :span="4" :class="['clearfix']">
+                                <!-- Save Changes Button -->
+                                <basicButton type="success" size="default"
+                                            :class="['float-right', 'ml-2']" :ripple="productsHaveChanged && !isLoading"
+                                            :disabled="isLoading" :loading="isLoading"
+                                            @click.native="updateProductArrangement()">
+                                    <span>Save Changes</span>
+                                </basicButton>
 
-                            <!-- Save Changes Button -->
-                            <basicButton v-if="products.length && productsHaveChanged" type="success" size="default"
-                                        :class="['float-right', 'ml-2']" :ripple="productsHaveChanged && !isLoading"
-                                        :disabled="isLoading" :loading="isLoading"
-                                        @click.native="updateProductArrangement()">
-                                <span>Save Changes</span>
-                            </basicButton>
+                                <Button v-if="productsHaveChanged" type="default"
+                                        size="default" :class="['float-right']"
+                                        @click.native="resetProducts()"
+                                        :disabled="isLoading">
+                                    <span>Cancel</span>
+                                </Button>
+
+                            </template>
 
                             <!-- Refresh Button -->
                             <Button v-else type="default" size="default" :class="['float-right']"
-                                    @click.native="fetchProducts()">
-                                <Icon type="ios-refresh" class="mr-1" :size="20" />
+                                :loading="isLoading" :disabled="isLoading"
+                                @click.native="fetchProducts()">
+                                <Icon v-show="!isLoading" type="ios-refresh" class="mr-1" :size="20" />
                                 <span>Refresh</span>
                             </Button>
 
@@ -119,6 +127,15 @@
                     <!-- Product Table -->
                     <Table v-show="!arrangeProducts" class="product-table" :columns="dynamicColumns" :data="products" :loading="isLoading"
                             no-data-text="No products found" :style="{ overflow: 'visible' }">
+
+                        <!-- Price Poptip -->
+                        <pricingPoptip slot-scope="{ row, index }" slot="price" :product="row"></pricingPoptip>
+
+                        <!-- Sale Poptip -->
+                        <salePoptip slot-scope="{ row, index }" slot="sale" :product="row"></salePoptip>
+
+                        <!-- Price Poptip -->
+                        <stockPoptip slot-scope="{ row, index }" slot="stock" :product="row"></stockPoptip>
 
                         <template slot-scope="{ row, index }" slot="action">
 
@@ -189,7 +206,7 @@
                         :index="index"
                         :product="product"
                         :products="products"
-                        @deleted="$emit('deleted')"
+                        @deleted="handleDeletedProduct($event)"
                         @visibility="isOpenDeleteProductModal = $event">
                     </deleteProductModal>
 
@@ -207,7 +224,10 @@
 
     import draggable from 'vuedraggable';
     import singleProduct from './../show/main.vue';
-    import statusTag from './../components/statusTag.vue';
+    import statusTag from './../show/components/statusTag.vue';
+    import salePoptip from './../show/components/salePoptip.vue';
+    import stockPoptip from './../show/components/stockPoptip.vue';
+    import pricingPoptip from './../show/components/pricingPoptip.vue';
     import deleteProductModal from './../components/deleteProductModal.vue';
     import manageProductDrawer from './../components/manageProductDrawer.vue';
     import miscMixin from './../../../../../components/_mixins/misc/main.vue';
@@ -216,7 +236,8 @@
     export default {
         mixins: [ miscMixin ],
         components: {
-            draggable, singleProduct, statusTag, deleteProductModal, manageProductDrawer, basicButton
+            draggable, singleProduct, statusTag, salePoptip, stockPoptip, pricingPoptip, deleteProductModal, 
+            manageProductDrawer, basicButton
         },
         props: {
             store: {
@@ -247,7 +268,7 @@
                 products: [],
                 index: null,
                 tableColumnsToShowByDefault: [
-                    'Selector', 'Name', 'Stock', 'Price', 'Visibility Status', 'Created Date'
+                    'Selector', 'Name', 'Stock', 'Sale', 'Price', 'Visibility Status', 'Created Date'
                 ],
                 statuses: [
                     {
@@ -321,7 +342,6 @@
                     {
                         title: 'Name',
                         sortable: true,
-                        sortable: true,
                         render: (h, params) => {
 
                             var sku = (params.row.sku || 'N/A');
@@ -342,7 +362,7 @@
                                     title: 'Product Info'
                                 }
                             }, [
-                                h('span', name ),
+                                h('span', name),
                                 h('List', {
                                         slot: 'content',
                                         props: {
@@ -359,97 +379,6 @@
                     });
                 }
 
-                //  Stock
-                if(this.tableColumnsToShowByDefault.includes('Stock')){
-                    allowedColumns.push(
-                    {
-                        title: 'Stock',
-                        sortable: true,
-                        render: (h, params) => {
-
-                            var stock_quantity = (params.row.allow_stock_management) ? (params.row.stock_quantity) : 'N/A';
-                            var stock_quantity_desc = (params.row.allow_stock_management) ? (params.row.stock_quantity) + ' Available': 'N/A';
-
-                            return h('Poptip', {
-                                style: {
-                                    width: '100%',
-                                    textAlign:'left'
-                                },
-                                props: {
-                                    width: 280,
-                                    wordWrap: true,
-                                    trigger:'hover',
-                                    placement: 'top',
-                                    title: 'Stock',
-                                    content: stock_quantity_desc
-                                }
-                            }, [
-                                h('span', stock_quantity)
-                            ])
-
-                        }
-                    });
-                }
-
-                //  Price
-                if(this.tableColumnsToShowByDefault.includes('Price')){
-                    allowedColumns.push(
-                    {
-                        title: 'Price',
-                        sortable: true,
-                        render: (h, params) => {
-
-                            var unitRegularPrice = (params.row.unit_regular_price || 0);
-                            var unitSalePrice = (params.row.unit_sale_price || 0);
-                            var unitCostPrice = (params.row.unit_cost || 0);
-                            var unitSaleDiscount = (params.row._attributes.unit_sale_discount || 0);
-                            var unitProfit = (params.row._attributes.unit_profit || 0);
-                            var unitPrice = (params.row._attributes.unit_price || 0);
-                            var currency = (this.location._embedded.currency || {});
-                            var symbol = (currency.symbol || '');
-
-                            return h('Poptip', {
-                                style: {
-                                    width: '100%',
-                                    textAlign:'left'
-                                },
-                                props: {
-                                    width: 280,
-                                    wordWrap: true,
-                                    trigger:'hover',
-                                    placement: 'top-end',
-                                    title: 'Pricing'
-                                }
-                            }, [
-                                h('span', this.formatPrice(unitPrice, symbol) ),
-                                h('List', {
-                                        slot: 'content',
-                                        props: {
-                                            slot: 'content',
-                                            size: 'small'
-                                        }
-                                    }, [
-                                        h('ListItem', 'Regular Price: '+this.formatPrice(unitRegularPrice, symbol) ),
-                                        h('ListItem', 'Sale Price: '+this.formatPrice(unitSalePrice, symbol) ),
-                                        h('ListItem', {
-                                            class: ['text-danger']
-                                        }, 'Discount: '+this.formatPrice(unitSaleDiscount, symbol) ),
-                                        h('ListItem', {
-                                            class: ['text-danger']
-                                        }, 'Cost: '+this.formatPrice(unitCostPrice, symbol) ),
-                                        h('ListItem', {
-                                            class: ['text-success']
-                                        }, 'Profit: '+this.formatPrice(unitProfit, symbol) ),
-                                        h('ListItem', {
-                                            class: ['font-weight-bold', 'mt-2'],
-                                            style: { outline: 'double' }
-                                        },'Price: '+this.formatPrice(unitPrice, symbol) )
-                                    ])
-                            ])
-                        }
-                    })
-                }
-
                 //  Visibility Status
                 if(this.tableColumnsToShowByDefault.includes('Visibility Status')){
                     allowedColumns.push(
@@ -459,11 +388,45 @@
                             //  Visibility Status Badge
                             return h(statusTag, {
                                 props: {
-                                    visibilityStatus: params.row.visible
+                                    type: 'Badge',
+                                    visible: params.row.visible
                                 }
                             })
                         }
                     })
+                }
+
+                //  Price
+                if(this.tableColumnsToShowByDefault.includes('Price')){
+                    allowedColumns.push(
+                        {
+                            title: 'Price',
+                            slot: 'price',
+                            width: 100,
+                        }
+                    );
+                }
+
+                //  Sale
+                if(this.tableColumnsToShowByDefault.includes('Sale')){
+                    allowedColumns.push(
+                        {
+                            title: 'Sale',
+                            slot: 'sale',
+                            width: 100
+                        }
+                    );
+                }
+
+                //  Stock
+                if(this.tableColumnsToShowByDefault.includes('Stock')){
+                    allowedColumns.push(
+                        {
+                            title: 'Stock',
+                            slot: 'stock',
+                            width: 150,
+                        }
+                    );
                 }
 
                 //  Created Date
@@ -505,6 +468,9 @@
             },
         },
         methods: {
+            resetProducts(){
+                this.products = _.cloneDeep(this.productsBeforeChanges);
+            },
             handleAddProduct(){
                 this.index = null;
                 this.product = null;
@@ -542,11 +508,20 @@
                 //  Add the new created product to the top of the list
                 this.products.unshift(product);
 
+                this.copyProductsBeforeUpdate();
+
+            },
+            handleDeletedProduct(){
+
+                this.fetchProducts();
+
             },
             handleSavedProduct(product){
 
                 //  Update the product
                 this.$set(this.products, this.index, product);
+
+                this.copyProductsBeforeUpdate();
 
             },
             copyProductsBeforeUpdate(){
@@ -570,9 +545,6 @@
                     api.call('get', this.productsUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the products
                             self.products = data['_embedded']['products'] || [];
 
@@ -584,9 +556,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoading = false;
@@ -606,23 +575,21 @@
                     //  Start loader
                     self.isLoading = true;
 
-                    //  Store data
-                    let arrangementData = {
-                        location_id: this.location.id,
-                        product_arrangements: self.products.map((product, index) => {
-                            return {
-                                "id": product.id,
-                                "arrangement": (index + 1)
-                            };
-                        })
-                    }
+                    let data = {
+                            postData: {
+                                location_id: this.location.id,
+                                product_arrangements: self.products.map((product, index) => {
+                                    return {
+                                        "id": product.id,
+                                        "arrangement": (index + 1)
+                                    };
+                                })
+                            }
+                        };
 
                     //  Use the api call() function, refer to api.js
-                    return api.call('post', this.productArrangementUrl, arrangementData)
+                    return api.call('post', this.productArrangementUrl, data)
                         .then(({data}) => {
-
-                            //  Console log the data returned
-                            console.log(data);
 
                             //  Stop loader
                             self.isLoading = false;
@@ -640,9 +607,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoading = false;

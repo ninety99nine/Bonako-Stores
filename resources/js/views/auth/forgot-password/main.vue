@@ -3,7 +3,7 @@
     <Row>
         <Col span="8" :offset="8">
             <Card class="auth-form mt-5 pt-2">
-                
+
                 <!-- Heading -->
                 <Divider orientation="left" class="font-weight-bold">Reset Your Password</Divider>
 
@@ -16,7 +16,7 @@
                 <Alert v-if="serverSuccessMessage && !isLoading" type="success">{{ serverSuccessMessage }}</Alert>
 
                 <Form ref="passwordResetForm" :model="passwordResetForm" :rules="passwordResetFormRules">
-                    
+
                     <!-- Enter Email -->
                     <FormItem prop="email" :error="serverEmailError">
                         <Input type="email" v-model="passwordResetForm.email" placeholder="Email" :disabled="isLoading"
@@ -30,7 +30,7 @@
 
                     <!-- Register Link -->
                     <router-link to="register">Create Account?</router-link>
-                    
+
                     <!-- Send Button -->
                     <FormItem v-if="!isLoading">
                         <Button type="primary" icon="ios-paper-plane-outline" class="float-right" :disabled="isLoading" @click="handleSubmit()">
@@ -48,10 +48,12 @@
 
 </template>
 <script>
-    
+
+    import miscMixin from './../../../components/_mixins/misc/main.vue';
     import Loader from './../../../components/_common/loaders/default.vue';
 
     export default {
+        mixins: [miscMixin],
         components: { Loader },
         data () {
             return {
@@ -65,10 +67,7 @@
                         { required: true, message: 'Please enter your email', trigger: 'blur' },
                         { type: 'email', message: 'Please enter a valid email', trigger: 'blur' }
                     ]
-                },
-                serverErrors: [],
-                serverErrorMessage: '',
-                serverSuccessMessage: ''
+                }
             }
         },
         computed: {
@@ -83,11 +82,11 @@
                 this.resetErrors();
 
                 //  Validate the password reset form
-                this.$refs['passwordResetForm'].validate((valid) => 
-                {   
+                this.$refs['passwordResetForm'].validate((valid) =>
+                {
                     //  If the validation passed
                     if (valid) {
-                        
+
                         //  Attempt to send password reset link
                         this.attemptSendPasswordResetLink();
 
@@ -107,7 +106,7 @@
 
                 //  Start loader
                 self.isLoading = true;
-                
+
                 //  Attempt to send the password reset link using the auth sendPasswordResetLink method found in the auth.js file
                 auth.sendPasswordResetLink(this.passwordResetForm.email)
                     .then((data) => {
@@ -118,11 +117,8 @@
                         //  Indicate that the email has already been sent
                         self.emailSent = true;
 
-                        //  Reset the password reset form
-                        self.resetForm();
-
-                        //  Get the returned success message 
-                        self.serverSuccessMessage = data.message;
+                        //  resetForm() declared in miscMixin
+                        self.resetForm('passwordResetForm');
 
                         //  Password reset link sent success message
                         self.$Message.success({
@@ -131,56 +127,13 @@
                         });
 
                         message
-                        
+
                     }).catch((response) => {
-                
-                        console.log(response);
 
                         //  Stop loader
                         self.isLoading = false;
 
-                        //  Get the error response data
-                        let data = (response || {}).data;
-                            
-                        //  Get the response errors
-                        var errors = (data || {}).errors;
-
-                        //  Set the general error message
-                        self.serverErrorMessage = (data || {}).message;
-
-                        /** 422: Validation failed. Incorrect credentials
-                         */
-                        if((response || {}).status === 422){
-
-                            //  If we have errors
-                            if(_.size(errors)){
-                                
-                                //  Set the server errors
-                                self.serverErrors = errors;
-
-                                //  Foreach error
-                                for (var i = 0; i < _.size(errors); i++) {
-                                    //  Get the error key e.g 'email'
-                                    var prop = Object.keys(errors)[i];
-                                    //  Get the error value e.g 'The account using the email provided does not exist'
-                                    var value = Object.values(errors)[i][0];
-
-                                    //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                                    self.serverErrors[prop] = value;
-                                }
-
-                            }
-                        }
-
                 });
-            },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
-            },
-            resetForm(){
-                this.resetErrors();
-                this.$refs['passwordResetForm'].resetFields();
             }
         }
     }

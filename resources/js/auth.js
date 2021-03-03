@@ -172,11 +172,15 @@ class Auth {
         /**  Make an Api call to verify if we have an account
          *   that matches the given email address.
          */
-        let accountData = {
-            email: email
+        let data = {
+            postData: {
+                email: email
+            }
         };
 
-        return api.call('post', this.accountExistsUrl, accountData);
+
+        return api.call('post', this.accountExistsUrl, data);
+
     }
 
     checkIfMobileAccountExists (mobile_number)
@@ -184,11 +188,13 @@ class Auth {
         /**  Make an Api call to verify if we have an account
          *   that matches the given mobile number.
          */
-        let accountData = {
-            mobile_number: mobile_number
+        let data = {
+            postData: {
+                mobile_number: mobile_number
+            }
         };
 
-        return api.call('post', this.accountExistsUrl, accountData);
+        return api.call('post', this.accountExistsUrl, data);
     }
 
     sendMobileAccountVerificationCode (mobile_number)
@@ -196,11 +202,13 @@ class Auth {
         /**  Make an Api call to send the mobile account 6 digit verification
          *   code to the given mobile number.
          */
-        let accountData = {
-            mobile_number: mobile_number
+        let data = {
+            postData: {
+                mobile_number: mobile_number
+            }
         };
 
-        return api.call('post', this.sendMobileAccountVerificationCodeUrl, accountData);
+        return api.call('post', this.sendMobileAccountVerificationCodeUrl, data);
     }
 
     verifyMobileAccountVerificationCode (mobile_number, code)
@@ -208,25 +216,29 @@ class Auth {
         /**  Make an Api call to send the mobile account 6 digit verification
          *   code to the given mobile number.
          */
-        let accountData = {
-            mobile_number: mobile_number,
-            code: code
+        let data = {
+            postData: {
+                mobile_number: mobile_number,
+                code: code
+            }
         };
 
-        return api.call('post', this.verifyMobileAccountVerificationCodeUrl, accountData);
+        return api.call('post', this.verifyMobileAccountVerificationCodeUrl, data);
     }
 
-    loginWithEmail (email, password)
+    loginWithEmail (email, password, vueInstance)
     {
         /**  Make an Api call to get the API Login endpoint. We include the user's
          *   email and password required for validation and authentication.
          */
-        let loginData = {
-            email: email,
-            password: password
+        let data = {
+            postData: {
+                email: email,
+                password: password
+            }
         };
 
-        return api.call('post', this.loginUrl, loginData)
+        return api.call('post', this.loginUrl, data, vueInstance)
             .then(({data}) => {
 
                 //  Get the access token
@@ -244,34 +256,30 @@ class Auth {
             });
     }
 
-    loginWithMobile (mobile_number, password, password_confirmation = null, verification_code = null)
+    loginWithMobile (mobile_number, password, password_confirmation = null, verification_code = null, vueInstance)
     {
         /**  Make an Api call to get the API Login endpoint. We include the user's
          *   email and password required for validation and authentication.
          */
-        let loginData = {
-            mobile_number: mobile_number,
-            password: password
+        let data = {
+            postData: {
+                mobile_number: mobile_number,
+                password: password
+            }
         };
-
-        console.log('loginData 1');
-        console.log(loginData);
 
         //  If the password confirmation and the verification code has been provided
         if( password_confirmation ){
 
             //  Set the password confirmation on the login data
-            loginData.password_confirmation = password_confirmation;
+            data.postData.password_confirmation = password_confirmation;
 
             //  Set the verification code on the login data
-            loginData.verification_code = verification_code;
+            data.postData.verification_code = verification_code;
 
         }
 
-        console.log('loginData 2');
-        console.log(loginData);
-
-        return api.call('post', this.loginUrl, loginData)
+        return api.call('post', this.loginUrl, data, vueInstance)
             .then(({data}) => {
 
                 //  Get the access token
@@ -294,15 +302,17 @@ class Auth {
         /**  Make an Api call to get the API Register endpoint. We include the user's
          *   registration details required for account creation.
          */
-        let registrationData = {
-            first_name: first_name,
-            last_name: last_name,
-            email: email,
-            password: password,
-            password_confirmation: password_confirmation
+        let data = {
+            postData: {
+                first_name: first_name,
+                last_name: last_name,
+                email: email,
+                password: password,
+                password_confirmation: password_confirmation
+            }
         };
 
-        return api.call('post', this.registerUrl, registrationData)
+        return api.call('post', this.registerUrl, data)
             .then(({data}) => {
 
                 //  Get the access token
@@ -325,26 +335,28 @@ class Auth {
         /**  Make an Api call to send the password reset link. We include the
          *    user's details required to send the password reset link.
          */
-        let userData = {
-            email: email,
+        let data = {
+            postData: {
+                email: email,
 
-            /** We need to include the "password_reset_url" which is our endpoint
-             *  where the user will be redirected to after they receive and click
-             *  on the password reset button from their email. The password reset
-             *  token and user email will also be attached to this provided url
-             *  as query parameters e.g:
-             *
-             *  "https://{password_reset_url}?token=...&email=..."
-             *
-             * This is the link that we want the endpoint to attach the token
-             *
-             */
+                /** We need to include the "password_reset_url" which is our endpoint
+                 *  where the user will be redirected to after they receive and click
+                 *  on the password reset button from their email. The password reset
+                 *  token and user email will also be attached to this provided url
+                 *  as query parameters e.g:
+                 *
+                 *  "https://{password_reset_url}?token=...&email=..."
+                 *
+                 * This is the link that we want the endpoint to attach the token
+                 *
+                 */
 
-             // This will generate "https://www.app-domain.com/#/reset-password"
-            password_reset_url: window.location.origin + "/" + VueInstance.$router.resolve({name: 'reset-password'}).href
+                 // This will generate "https://www.app-domain.com/#/reset-password"
+                password_reset_url: window.location.origin + "/" + VueInstance.$router.resolve({name: 'reset-password'}).href
+            }
         };
 
-        return api.call('post', this.sendPasswordResetLinkUrl, userData);
+        return api.call('post', this.sendPasswordResetLinkUrl, data);
     }
 
     resetPassword (email, token, password, password_confirmation )
@@ -352,14 +364,16 @@ class Auth {
         /**  Make an Api call to reset the user's password. We include the
          *   user's details required to reset the password
          */
-        let userData = {
-            email: email,
-            token: token,
-            password: password,
-            password_confirmation: password_confirmation
+        let data = {
+            postData: {
+                email: email,
+                token: token,
+                password: password,
+                password_confirmation: password_confirmation
+            }
         };
 
-        return api.call('post', this.resetPasswordUrl, userData)
+        return api.call('post', this.resetPasswordUrl, data)
             .then(({data}) => {
 
                 //  Get the access token

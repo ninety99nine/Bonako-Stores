@@ -5,7 +5,7 @@
         <Col :span="12" :offset="6">
 
             <Card class="mt-3 pt-2">
-                
+
                 <!-- Heading -->
                 <Divider orientation="left" class="font-weight-bold">Location Details</Divider>
 
@@ -16,27 +16,27 @@
                 <Loader v-show="isLoadingLocation" class="mt-2">Loading location...</Loader>
 
                 <Form v-if="!isLoadingLocation && locationForm" ref="locationForm" :model="locationForm" :rules="locationFormRules">
-                    
+
                     <div :class="[locationForm.online ? '' : 'bg-grey-light rounded pt-2 px-3']">
 
                         <!-- Set Online Status -->
                         <FormItem prop="online" :error="serverOnlineError" class="mb-2">
                             <div>
                                 <span :style="{ width: '200px' }" class="font-weight-bold">{{ statusText }}: </span>
-                                <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300" 
+                                <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
                                         content="Turn on to allow subscribers to access this store location">
                                     <i-Switch v-model="locationForm.online" />
                                 </Poptip>
                             </div>
                         </FormItem>
-                        
+
                         <template v-if="!locationForm.online">
 
                             <!-- Set Offline Status Message -->
                             <FormItem prop="offline_message" :error="serverOfflineMessageError" class="mb-2">
                                 <div class="d-flex">
                                     <span :style="{ width: '150px' }">Offline Message: </span>
-                                    <Input type="textarea" v-model="locationForm.offline_message" placeholder="Enter offline message" :disabled="isSavingChanges" 
+                                    <Input type="textarea" v-model="locationForm.offline_message" placeholder="Enter offline message" :disabled="isSavingChanges"
                                             maxlength="160" show-word-limit @keyup.enter.native="handleSubmit()">
                                     </Input>
                                 </div>
@@ -50,40 +50,40 @@
 
                     <!-- Enter Name -->
                     <FormItem label="Name" prop="name" :error="serverNameError" class="mb-2">
-                        <Input type="text" v-model="locationForm.name" placeholder="Name" :disabled="isSavingChanges" 
+                        <Input type="text" v-model="locationForm.name" placeholder="Name" :disabled="isSavingChanges"
                                 maxlength="50" show-word-limit @keyup.enter.native="handleSubmit()">
                         </Input>
                     </FormItem>
 
                     <!-- Call To Action -->
                     <FormItem label="Call To Action" prop="call_to_action" :error="serverCallToActionError" class="mb-2">
-                        <Input type="text" v-model="locationForm.call_to_action" placeholder="Call to action e.g Buy Grocery" :disabled="isSavingChanges" 
+                        <Input type="text" v-model="locationForm.call_to_action" placeholder="Call to action e.g Buy Grocery" :disabled="isSavingChanges"
                                 maxlength="50" show-word-limit @keyup.enter.native="handleSubmit()">
                         </Input>
                     </FormItem>
 
                     <!-- Enter About Us -->
                     <FormItem label="About Us" prop="about_us" :error="serverAboutUsError" class="mb-2">
-                        <Input type="textarea" v-model="locationForm.about_us" placeholder="Describe this store location and its offerings" :disabled="isSavingChanges" 
+                        <Input type="textarea" v-model="locationForm.about_us" placeholder="Describe this store location and its offerings" :disabled="isSavingChanges"
                                 maxlength="140" show-word-limit @keyup.enter.native="handleSubmit()">
                         </Input>
                     </FormItem>
 
                     <!-- Enter Contact Us -->
                     <FormItem label="Contact Us" prop="contact_us" :error="serverContactUsError" class="mb-2">
-                        <Input type="textarea" v-model="locationForm.contact_us" placeholder="Enter contact information for this store location e.g phone number, email e.t.c" :disabled="isSavingChanges" 
+                        <Input type="textarea" v-model="locationForm.contact_us" placeholder="Enter contact information for this store location e.g phone number, email e.t.c" :disabled="isSavingChanges"
                                 maxlength="140" show-word-limit @keyup.enter.native="handleSubmit()">
                         </Input>
                     </FormItem>
-                
+
                     <!-- Heading -->
                     <Divider orientation="left" class="font-weight-bold">Delivery Details</Divider>
-                        
+
                     <!-- Allow Delivery -->
                     <FormItem prop="allow_delivery" class="mb-2">
                         <div>
                             <span :style="{ width: '200px' }" class="font-weight-bold">Allow Delivery: </span>
-                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300" 
+                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
                                     content="Turn on to allow delivery for orders placed to this location">
                                 <i-Switch v-model="locationForm.allow_delivery" />
                             </Poptip>
@@ -91,23 +91,23 @@
                     </FormItem>
 
                     <template v-if="locationForm.allow_delivery">
-                        
+
                         <!-- Set Delivery Policy Message -->
                         <FormItem prop="delivery_note" :error="serverDeliveryNoteError" class="mb-2">
                             <div class="d-flex">
                                 <span :style="{ width: '160px' }">Delivery Notice: </span>
-                                <Input type="textarea" v-model="locationForm.delivery_note" placeholder="Enter delivery notice or announcement" :disabled="isSavingChanges" 
+                                <Input type="textarea" v-model="locationForm.delivery_note" placeholder="Enter delivery notice or announcement" :disabled="isSavingChanges"
                                         maxlength="160" show-word-limit @keyup.enter.native="handleSubmit()">
                                 </Input>
                             </div>
                         </FormItem>
-                        
+
                         <!-- Set Delivery Flat Fee -->
                         <FormItem prop="delivery_flat_fee" class="mb-2">
                             <div class="d-flex">
                                 <span :style="{ width: '160px' }">Delivery Flat Fee: </span>
                                 <Poptip trigger="hover" content="This is a flat fee charged for delivery to any destination" word-wrap class="poptip-w-100">
-                                    <InputNumber v-model="locationForm.delivery_flat_fee" :disabled="isSavingChanges" 
+                                    <InputNumber v-model="locationForm.delivery_flat_fee" :disabled="isSavingChanges"
                                                  placeholder="40" class="w-100" @keyup.enter.native="handleSubmit()">
                                     </InputNumber>
                                 </Poptip>
@@ -119,16 +119,16 @@
                                 <span v-if="locationForm.delivery_flat_fee == 0">Delivery to any destination will be <span class="font-weight-bold text-success">Free Delivery</span></span>
                                 <span v-else>Delivery to any destination will be charged {{ store.currency.symbol + locationForm.delivery_flat_fee }}</span>
                             </Alert>
-                            
+
                         </FormItem>
-                        
+
                         <!-- Delivery Destinations -->
                         <div class="d-flex mb-2">
                             <span :style="{ width: '160px' }">Destinations: </span>
                             <Poptip trigger="hover" content="Which destinations do you deliver orders" word-wrap class="poptip-w-100">
-                                <Select v-model="deliveryDestinationNames" filterable multiple allow-create 
+                                <Select v-model="deliveryDestinationNames" filterable multiple allow-create
                                         @on-create="addDeliveryDestination($event, null, locationForm.delivery_destinations)" class="w-100">
-                                    <Option v-for="(destination, index) in deliveryDestinations" :label="destination.name" 
+                                    <Option v-for="(destination, index) in deliveryDestinations" :label="destination.name"
                                             :value="destination.name" :key="index">
                                         <span>{{ destination.name }}</span>
                                         <span :style="{ color:'#ccc' }" class="float-right mr-4">
@@ -146,7 +146,7 @@
                                 <span>Destination Pricing</span>
                             </Button>
                         </div>
-                        
+
                         <!-- Delivery Days -->
                         <div class="d-flex mb-2">
                             <span :style="{ width: '160px' }">Delivery Days: </span>
@@ -158,12 +158,12 @@
                                 </Select>
                             </Poptip>
                         </div>
-                        
+
                         <!-- Delivery Times -->
                         <div class="d-flex mb-2">
                             <span :style="{ width: '160px' }">Delivery Times: </span>
                             <Poptip trigger="hover" content="Which times do you deliver orders" word-wrap class="poptip-w-100">
-                                <Select v-model="locationForm.delivery_times" filterable multiple allow-create 
+                                <Select v-model="locationForm.delivery_times" filterable multiple allow-create
                                         @on-create="addDeliveryTime($event, locationForm.delivery_times)" class="w-100">
                                     <Option v-for="(day, index) in deliveryTimes" :value="day" :key="index">
                                         {{ day }}
@@ -173,12 +173,12 @@
                         </div>
 
                     </template>
-                    
+
                     <!-- Allow Pickups -->
                     <FormItem prop="allow_pickups" class="mb-2">
                         <div>
                             <span class="font-weight-bold mr-2">Allow Pickups: </span>
-                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300" 
+                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
                                     content="Turn on to allow customers to pickup their own orders">
                                 <i-Switch v-model="locationForm.allow_pickups" />
                             </Poptip>
@@ -186,22 +186,22 @@
                     </FormItem>
 
                     <template v-if="locationForm.allow_pickups">
-                    
+
                         <!-- Set Pickup Policy Message -->
                         <FormItem prop="pickup_note" :error="serverPickupNoteError" class="mb-2">
                             <div class="d-flex">
                                 <span :style="{ width: '160px' }">Pickup Notice: </span>
-                                <Input type="textarea" v-model="locationForm.pickup_note" placeholder="Enter pickup notice or announcement" :disabled="isSavingChanges" 
+                                <Input type="textarea" v-model="locationForm.pickup_note" placeholder="Enter pickup notice or announcement" :disabled="isSavingChanges"
                                         maxlength="160" show-word-limit @keyup.enter.native="handleSubmit()">
                                 </Input>
                             </div>
                         </FormItem>
-                    
+
                         <!-- Pickup Destinations -->
                         <div class="d-flex mb-2">
                             <span :style="{ width: '180px' }" class="mt-1">Pickup Destinations: </span>
                             <Poptip trigger="hover" content="Which destinations do you allow customers to pickup their orders" word-wrap class="poptip-w-100">
-                                <Select v-model="locationForm.pickup_destinations" filterable multiple allow-create 
+                                <Select v-model="locationForm.pickup_destinations" filterable multiple allow-create
                                         @on-create="addPickupDestination($event, locationForm.pickup_destinations)" class="w-100">
                                     <Option v-for="(destination, index) in pickupDestinations" :value="destination" :key="index">
                                         {{ destination }}
@@ -209,7 +209,7 @@
                                 </Select>
                             </Poptip>
                         </div>
-                        
+
                         <!-- Pickup Days -->
                         <div class="d-flex mb-2">
                             <span :style="{ width: '180px' }">Pickup Days: </span>
@@ -221,12 +221,12 @@
                                 </Select>
                             </Poptip>
                         </div>
-                        
+
                         <!-- Pickup Times -->
                         <div class="d-flex mb-2">
                             <span :style="{ width: '180px' }">Pickup Times: </span>
                             <Poptip trigger="hover" content="Which times do you allow customers to pickup their orders" word-wrap class="poptip-w-100">
-                                <Select v-model="locationForm.pickup_times" filterable multiple allow-create 
+                                <Select v-model="locationForm.pickup_times" filterable multiple allow-create
                                     @on-create="addPickupTime($event, locationForm.pickup_times)" class="w-100">
                                     <Option v-for="(day, index) in pickupTimes" :value="day" :key="index">
                                         {{ day }}
@@ -234,17 +234,17 @@
                                 </Select>
                             </Poptip>
                         </div>
-                    
+
                     </template>
-                
+
                     <!-- Heading -->
                     <Divider orientation="left" class="font-weight-bold">Payment Details</Divider>
-                    
+
                     <!-- Allow Payments -->
                     <FormItem prop="allow_payments" class="mb-2">
                         <div>
                             <span :style="{ width: '200px' }" class="font-weight-bold">Allow Payments: </span>
-                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300" 
+                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
                                     content="Turn on to allow payments for orders placed to this location">
                                 <i-Switch v-model="locationForm.allow_payments" />
                             </Poptip>
@@ -254,9 +254,9 @@
                     <template v-if="locationForm.allow_payments">
 
                         <!-- Supported Online Payment Methods -->
-                        <FormItem prop="online_payment_methods" class="mb-2">  
+                        <FormItem prop="online_payment_methods" class="mb-2">
                             <div class="d-flex">
-                                <span :style="{ width: '180px' }">Online Payments: </span>  
+                                <span :style="{ width: '180px' }">Online Payments: </span>
                                 <Select v-model="locationForm.online_payment_methods" multiple :disabled="isLoadingPaymentMethods" class="w-100 mr-2">
                                     <Option v-for="(paymentMethod, index) in onlinePaymentMethods" :value="paymentMethod.name" :key="index">
                                         {{ paymentMethod.name }}
@@ -273,9 +273,9 @@
                         </FormItem>
 
                         <!-- Supported offline Payment Methods -->
-                        <FormItem prop="offline_payment_methods" class="mb-2">  
+                        <FormItem prop="offline_payment_methods" class="mb-2">
                             <div class="d-flex">
-                                <span :style="{ width: '180px' }">Offline Payments: </span>  
+                                <span :style="{ width: '180px' }">Offline Payments: </span>
                                 <Select v-model="locationForm.offline_payment_methods" multiple :disabled="isLoadingPaymentMethods" class="w-100 mr-2">
                                     <Option v-for="(paymentMethod, index) in offlinePaymentMethods" :value="paymentMethod.name" :key="index">
                                         {{ paymentMethod.name }}
@@ -290,14 +290,14 @@
                                 </Poptip>
                             </div>
                         </FormItem>
-                        
+
                     </template>
-                    
+
                     <!-- Save Changes Button -->
                     <FormItem v-if="!isSavingChanges">
 
-                        <basicButton :disabled="(!locationHasChanged || isSavingChanges)" :loading="isSavingChanges" 
-                                     :ripple="(locationHasChanged && !isSavingChanges)" type="success" size="large" 
+                        <basicButton :disabled="(!locationHasChanged || isSavingChanges)" :loading="isSavingChanges"
+                                     :ripple="(locationHasChanged && !isSavingChanges)" type="success" size="large"
                                      class="float-right" @click.native="handleSubmit()">
                             <span>{{ isSavingChanges ? 'Saving...' : 'Save Changes' }}</span>
                         </basicButton>
@@ -312,7 +312,7 @@
             </Card>
         </Col>
 
-        <!-- 
+        <!--
             MODAL EDIT LOCATION DESTINATIONS
         -->
         <template v-if="isOpenManageDestinationsModal">
@@ -325,17 +325,19 @@
             </manageDestinationsModal>
 
         </template>
-        
+
     </Row>
 
 </template>
 <script>
-    
+
     import basicButton from './../../../../../components/_common/buttons/basicButton.vue';
     import Loader from './../../../../../components/_common/loaders/default.vue';
+    import miscMixin from './../../../../../components/_mixins/misc/main.vue';
     import manageDestinationsModal from './manageDestinationsModal';
 
     export default {
+        mixins: [miscMixin],
         props: {
             store: {
                 type: Object,
@@ -365,15 +367,15 @@
                 deliveryDestinations: [],
                 deliveryDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
                 deliveryTimes: [
-                    '6am', '7am', '8am', '9am', '10am', '11am', '12pm', 
+                    '6am', '7am', '8am', '9am', '10am', '11am', '12pm',
                     '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm', '9pm', '10pm'
-                ],       
-                pickupDestinations: [],         
-                pickupDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],         
+                ],
+                pickupDestinations: [],
+                pickupDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
                 pickupTimes: [
-                    '6am', '7am', '8am', '9am', '10am', '11am', '12pm', 
+                    '6am', '7am', '8am', '9am', '10am', '11am', '12pm',
                     '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm', '9pm', '10pm'
-                ],        
+                ],
                 locationFormRules: {
                     name: [
                         { required: true, message: 'Please enter your location name', trigger: 'blur' },
@@ -408,10 +410,8 @@
                         { max: 140, message: 'Pickup notice is too long', trigger: 'change' }
                     ]
 
-                    
-                },
-                serverErrors: [],
-                serverErrorMessage: ''
+
+                }
             }
         },
         watch: {
@@ -566,7 +566,7 @@
                 //  If the destination already exists
                 if( !alreadyExists ){
 
-                    //  Add the destination 
+                    //  Add the destination
                     target.push({
                         name: name,
                         cost: cost
@@ -592,7 +592,7 @@
                 //  If the time already exists
                 if( !alreadyExists ){
 
-                    //  Add the time 
+                    //  Add the time
                     target.push(time);
 
                 }
@@ -615,7 +615,7 @@
                 //  If the destination already exists
                 if( !alreadyExists ){
 
-                    //  Add the destination 
+                    //  Add the destination
                     target.push(destination);
 
                 }
@@ -638,7 +638,7 @@
                 //  If the time already exists
                 if( !alreadyExists ){
 
-                    //  Add the time 
+                    //  Add the time
                     target.push(time);
 
                 }
@@ -649,7 +649,7 @@
             },
             getLocationForm(){
 
-                return Object.assign({},
+                var form = Object.assign({},
                     //  Set the default form details
                     {
                         name: '',
@@ -658,7 +658,7 @@
                         contact_us: '',
                         call_to_action: '',
                         offline_message: 'Sorry, we are currently offline',
-                        
+
 
                         //  Delivery Details
                         allow_delivery: false,
@@ -682,9 +682,13 @@
                     //  Overide the default form details with the provided location details
                     }, this.location);
 
+                form.delivery_flat_fee = this.location.delivery_flat_fee.amount;
+
+                return form;
+
             },
             copyLocationBeforeUpdate(){
-                
+
                 //  Clone the location
                 this.locationBeforeChanges = _.cloneDeep( this.locationForm );
 
@@ -712,11 +716,11 @@
                 this.resetErrors();
 
                 //  Validate the location form
-                this.$refs['locationForm'].validate((valid) => 
-                {   
+                this.$refs['locationForm'].validate((valid) =>
+                {
                     //  If the validation passed
                     if (valid) {
-                        
+
                         //  Attempt to create location
                         this.saveLocation();
 
@@ -736,7 +740,7 @@
 
                 //  Start loader
                 self.isLoadingPaymentMethods = true;
-                
+
                 /**  Note "api_home" is defined within the auth.js file.
                  *   It holds reference to common links for ease of
                  *   access.
@@ -746,9 +750,6 @@
                 //  Use the api call() function, refer to api.js
                 api.call('get', url)
                     .then(({data}) => {
-                        
-                        //  Console log the data returned
-                        console.log(data);
 
                         //  Stop loader
                         self.isLoadingPaymentMethods = false;
@@ -756,17 +757,14 @@
                         //  Get the payment methods
                         self.paymentMethods = ((data || [])['_embedded'] || [])['payment_methods'];
 
-                    })         
-                    .catch(response => { 
-
-                        //  Log the responce
-                        console.error(response);
+                    })
+                    .catch(response => {
 
                         //  Stop loader
                         this.isLoadingPaymentMethods = false;
 
                     });
-                
+
             },
             saveLocation() {
 
@@ -782,12 +780,12 @@
                 /** Make an Api call to create the location. We include the
                  *  location details required for a new location creation.
                  */
-                let locationData = this.locationForm;
+                let data = {
+                        postData: this.locationForm
+                    };
 
-                return api.call('put', this.location['_links']['self'].href, locationData)
+                return api.call('put', this.location['_links']['self'].href, data)
                     .then(({data}) => {
-                
-                        console.log(data);
 
                         //  Stop loader
                         self.isSavingChanges = false;
@@ -800,14 +798,12 @@
                             content: 'Your location has been updated!',
                             duration: 6
                         });
-                            
+
                         self.copyLocationBeforeUpdate();
 
                         self.notifyUnsavedChangesStatus();
-                        
+
                     }).catch((response) => {
-                
-                        console.log(response);
 
                         //  Stop loader
                         self.isSavingChanges = false;
@@ -815,48 +811,7 @@
                         //  Notify parent that this component is not saving data
                         self.$emit('isSaving', self.isSavingChanges);
 
-                        //  Get the error response data
-                        let data = (response || {}).data;
-                            
-                        //  Get the response errors
-                        var errors = (data || {}).errors;
-
-                        //  Set the general error message
-                        self.serverErrorMessage = (data || {}).message;
-
-                        /** 422: Validation failed. Incorrect credentials
-                         */
-                        if((response || {}).status === 422){
-
-                            //  If we have errors
-                            if(_.size(errors)){
-                                
-                                //  Set the server errors
-                                self.serverErrors = errors;
-
-                                //  Foreach error
-                                for (var i = 0; i < _.size(errors); i++) {
-
-                                    //  Get the error key e.g 'name', 'dedicated_short_code'
-                                    var prop = Object.keys(errors)[i];
-
-                                    //  Get the error value e.g 'The location name is required'
-                                    var value = Object.values(errors)[i][0];
-
-                                    //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                                    self.serverErrors[prop] = value;
-
-                                }
-
-                            }
-
-                        }
-
                 });
-            },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
             }
         },
         created(){

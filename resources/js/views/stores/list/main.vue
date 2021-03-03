@@ -182,9 +182,6 @@
                         })
                         .catch(response => {
 
-                            //  Log the responce
-                            console.error(response);
-
                             //  Stop loader
                             self.isLoading = false;
 

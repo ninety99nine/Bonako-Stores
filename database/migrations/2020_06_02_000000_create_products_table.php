@@ -28,9 +28,11 @@ class CreateProductsTable extends Migration
             $table->json('variant_attributes')->nullable();
 
             /*  Pricing Management  */
-            $table->float('unit_regular_price')->nullable();
-            $table->float('unit_sale_price')->nullable();
-            $table->float('unit_cost')->nullable();
+            $table->boolean('is_free')->default(false);
+            $table->char('currency', 3)->default('BWP');
+            $table->float('unit_regular_price')->default(0);
+            $table->float('unit_sale_price')->default(0);
+            $table->float('unit_cost')->default(0);
 
             /*  Quantity Management  */
             $table->boolean('allow_multiple_quantity_per_order')->default(true);
@@ -40,7 +42,7 @@ class CreateProductsTable extends Migration
             /*  Stock Management  */
             $table->boolean('allow_stock_management')->default(false);
             $table->boolean('auto_manage_stock')->default(true);
-            $table->unsignedInteger('stock_quantity')->default(100);
+            $table->unsignedInteger('stock_quantity')->default(0);
 
             /*  Ownership Management  */
             $table->unsignedInteger('parent_product_id')->nullable();

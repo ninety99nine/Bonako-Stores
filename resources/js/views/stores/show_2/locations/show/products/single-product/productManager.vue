@@ -404,9 +404,11 @@
 
     import basicButton from './../../../../../../../components/_common/buttons/basicButton.vue';
     import Loader from './../../../../../../../components/_common/loaders/default.vue';
+    import miscMixin from './../../../../../../../components/_mixins/misc/main.vue';
     import VueTagsInput from '@johmun/vue-tags-input';
 
     export default {
+        mixins: [miscMixin],
         props: {
             store: {
                 type: Object,
@@ -458,9 +460,6 @@
                 isLoadingVariations: false,
                 isCreatingVariations: false,
                 variantAttributesBeforeChange: null,
-
-                serverErrors: [],
-                serverErrorMessage: ''
             }
         },
         watch: {
@@ -665,12 +664,12 @@
                 /** Make an Api call to create the product. We include the
                  *  product details required for a new product creation.
                  */
-                let productData = this.productForm;
+                let data = {
+                        postData: this.productForm
+                    };
 
-                return api.call('put', this.productUrl, productData)
+                return api.call('put', this.productUrl, data)
                     .then(({data}) => {
-
-                        console.log(data);
 
                         //  Stop loader
                         self.isSavingChanges = false;
@@ -690,50 +689,11 @@
 
                     }).catch((response) => {
 
-                        console.log(response);
-
                         //  Stop loader
                         self.isSavingChanges = false;
 
                         //  Notify parent that this component is not saving data
                         self.$emit('isSaving', self.isSavingChanges);
-
-                        //  Get the error response data
-                        let data = (response || {}).data;
-
-                        //  Get the response errors
-                        var errors = (data || {}).errors;
-
-                        //  Set the general error message
-                        self.serverErrorMessage = (data || {}).message;
-
-                        /** 422: Validation failed. Incorrect credentials
-                         */
-                        if((response || {}).status === 422){
-
-                            //  If we have errors
-                            if(_.size(errors)){
-
-                                //  Set the server errors
-                                self.serverErrors = errors;
-
-                                //  Foreach error
-                                for (var i = 0; i < _.size(errors); i++) {
-
-                                    //  Get the error key e.g 'name', 'dedicated_short_code'
-                                    var prop = Object.keys(errors)[i];
-
-                                    //  Get the error value e.g 'The product name is required'
-                                    var value = Object.values(errors)[i][0];
-
-                                    //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                                    self.serverErrors[prop] = value;
-
-                                }
-
-                            }
-
-                        }
 
                 });
             },
@@ -751,18 +711,18 @@
                 /** Make an Api call to create the product. We include the
                  *  product details required for a new product creation.
                  */
-                let productData = this.productForm;
+                let data = {
+                        postData: this.productForm
+                    };
 
                 //  Set the product store details
-                productData['store_id'] = (this.store || {}).id
+                data['postData']['store_id'] = (this.store || {}).id
 
                 //  Set the product location details
-                productData['location_id'] = (this.location || {}).id
+                data['postData']['location_id'] = (this.location || {}).id
 
-                return api.call('post', this.createProductUrl, productData)
+                return api.call('post', this.createProductUrl, data)
                     .then(({data}) => {
-
-                        console.log(data);
 
                         //  Stop loader
                         self.isCreating = false;
@@ -779,12 +739,10 @@
                             duration: 6
                         });
 
-                        //  Reset the form
-                        self.resetProductForm();
+                        //  resetForm() declared in miscMixin
+                        self.resetForm('productForm');
 
                     }).catch((response) => {
-
-                        console.log(response);
 
                         //  Stop loader
                         self.isCreating = false;
@@ -792,57 +750,8 @@
                         //  Notify parent that this component is not creating
                         self.$emit('isCreating', self.isCreating);
 
-                        //  Get the error response data
-                        let data = (response || {}).data;
-
-                        //  Get the response errors
-                        var errors = (data || {}).errors;
-
-                        //  Set the general error message
-                        self.serverErrorMessage = (data || {}).message;
-
-                        /** 422: Validation failed. Incorrect credentials
-                         */
-                        if((response || {}).status === 422){
-
-                            //  If we have errors
-                            if(_.size(errors)){
-
-                                //  Set the server errors
-                                self.serverErrors = errors;
-
-                                //  Foreach error
-                                for (var i = 0; i < _.size(errors); i++) {
-
-                                    //  Get the error key e.g 'name', 'dedicated_short_code'
-                                    var prop = Object.keys(errors)[i];
-
-                                    //  Get the error value e.g 'The product name is required'
-                                    var value = Object.values(errors)[i][0];
-
-                                    //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                                    self.serverErrors[prop] = value;
-
-                                }
-
-                            }
-
-                        }
-
                 });
             },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
-            },
-            resetProductForm(){
-                this.resetErrors();
-                this.$refs['productForm'].resetFields();
-            },
-
-
-
-
             fetchVariations() {
 
                 //  If we have the product url
@@ -858,9 +767,6 @@
                     api.call('get', this.variationsUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the product
                             self.variations = data['_embedded']['products'] || [];
 
@@ -869,9 +775,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingVariations = false;
@@ -975,20 +878,18 @@
                 //  Hold constant reference to the vue instance
                 const self = this;
 
-                //  Product data to update
-                let updateData = self.productForm.variant_attributes;
-
-                if( (updateData || []).length ){
+                if( (self.productForm.variant_attributes || []).length ){
 
                     //  Start loader
                     self.isCreatingVariations = true;
 
-                    //  Use the api call() function located in resources/js/api.js
-                    api.call('post', this.variationsUrl, updateData)
-                        .then(({data}) => {
+                    let data = {
+                            postData: self.productForm.variant_attributes
+                        };
 
-                            //  Console log the data returned
-                            console.log(data);
+                    //  Use the api call() function located in resources/js/api.js
+                    api.call('post', this.variationsUrl, data)
+                        .then(({data}) => {
 
                             //  Stop loader
                             self.isCreatingVariations = false;
@@ -1006,11 +907,9 @@
                         })
                         .catch(response => {
 
-                            //  Log the responce
-                            console.log(response);
-
                             //  Stop loader
                             self.isCreatingVariations = false;
+
                         });
 
                 }

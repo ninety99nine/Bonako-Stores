@@ -414,9 +414,6 @@
                     api.call('get', this.storeUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the store
                             self.store = data || null;
 
@@ -427,9 +424,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingStore = false;
@@ -452,9 +446,6 @@
                     api.call('get', this.locationUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the location
                             self.location = data || null;
 
@@ -463,9 +454,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingLocation = false;

@@ -5,7 +5,7 @@
         <Poptip trigger="hover" width="350" placement="top-start" word-wrap
                 content="Do you want the customer to be able to enter the quantity of this product (How many they want) when ordering?">
             <Checkbox v-model="productForm.allow_multiple_quantity_per_order"
-                    :disabled="isLoading">Limit multiple products per order</Checkbox>
+                    :disabled="isLoading">Allow multiple products per order</Checkbox>
         </Poptip>
 
     </FormItem>

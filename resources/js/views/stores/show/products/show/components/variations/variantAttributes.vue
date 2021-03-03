@@ -3,26 +3,35 @@
     <div>
 
         <!-- Variant Attributes -->
-        <div :class="['bg-grey-light', 'border', 'mt-2', 'p-2']">
+        <div :class="['rounded', 'border', 'mt-2', 'p-3']" :style="{ background: 'ghostwhite' }">
 
-            <Col :span="6">
-                <span class="font-weight-bold">Option name</span>
-            </Col>
+            <Row v-for="(attribute, index) in variantAttributesForm" :gutter="20" :key="index">
 
-            <Col :span="16">
-                <span class="font-weight-bold">Option values</span>
-            </Col>
+                <Col :span="24">
 
-            <Row v-for="(attribute, index) in productForm.variant_attributes" :gutter="20" :key="index">
+                    <!-- Attribute Position  -->
+                    <small :class="['font-weight-bold', 'd-inline-block', 'mb-2']">Variation # {{ (index + 1) }}</small>
+
+                    <!-- Attribute Instruction -->
+                    <FormItem prop="option_instruction" class="mb-2">
+                        <Poptip trigger="focus" width="300" placement="top-start" word-wrap
+                                content="Provide attribute instruction e.g Select color">
+                            <Input v-model="variantAttributesForm[index].instruction" type="text" placeholder="Instruction e.g Select color"
+                                class="w-100" maxlength="50" :disabled="isCreatingVariations || isLoading">
+                            </Input>
+                        </Poptip>
+                    </FormItem>
+
+                </Col>
 
                 <Col :span="6">
 
                     <!-- Attribute Name -->
                     <FormItem prop="option_name" class="mb-2">
                         <Poptip trigger="focus" width="300" placement="top-start" word-wrap
-                                content="Provide an attribute name e.g Size or Material">
-                            <Input v-model="productForm.variant_attributes[index].name" type="text" placeholder="e.g Sizes"
-                                class="w-100" maxlength="50">
+                                content="Provide attribute name e.g Size or Material">
+                            <Input v-model="variantAttributesForm[index].name" type="text" placeholder="e.g Sizes"
+                                class="w-100" maxlength="50" :disabled="isCreatingVariations || isLoading">
                             </Input>
                         </Poptip>
                     </FormItem>
@@ -37,74 +46,95 @@
                                 content="Provide attribute values e.g Small, Medium, Large">
                             <vue-tags-input
                                 v-model="variantAttributeValue[index]" :tags="variantAttributeTags(attribute.values)" class="w-100"
-                                @tags-changed="updateVariantAttributeOptions($event, index)" placeholder="Add variation options"
-                                @adding-duplicate="handleAddingDuplicate($event)"
-                                avoid-adding-duplicates />
+                                @tags-changed="updateVariantAttributeOptions($event, index)" placeholder="Add variation options" size="small"
+                                :disabled="isCreatingVariations" />
                         </Poptip>
                     </FormItem>
 
                 </Col>
 
-                <Col :span="2" v-if="(productForm.variant_attributes || {}).length > 1">
+                <Col :span="2" v-if="(variantAttributesForm || {}).length > 1">
 
                     <!-- Remove Variant Button  -->
                     <Poptip confirm
                             title="Are you sure you want to remove this variant? After removing the variant we will delete all the current variations and create new ones."
-                            ok-text="Yes" cancel-text="No" width="300" placement="left"
+                            ok-text="Yes" cancel-text="No" width="350" placement="left"
                             @on-ok="removeVariantAttribute(index)">
-                        <Icon type="ios-trash-outline" size="20"/>
+                        <Icon type="ios-trash-outline" size="20" />
                     </Poptip>
 
                 </Col>
 
+                <!-- Divider (Show if not the last variant attribute) -->
+                <Divider v-if="(index + 1) != variantAttributesForm.length" class="mt-2 mb-2"></Divider>
 
             </Row>
 
             <Row :gutter="12">
 
-                <Col v-if="!hasInvalidVariants" :span="24">
+                <Col v-if="hasInvalidVariants" :span="24" class="mt-2">
 
                     <!-- Alert -->
-                    <Alert type="warning">Provide variation names and options</Alert>
+                    <Alert type="warning">
+                        <template v-if="this.hasEmptyVariantNamesOrValues">Provide variation names and options (Avoid empty names or values)</template>
+                        <template v-else-if="this.hasDuplicateVariantNames">Avoid using duplicate option names</template>
+                        <template v-else-if="this.hasDuplicateVariantValues">Avoid using duplicate option values</template>
+                    </Alert>
 
                 </Col>
 
-                <Col :span="8">
+                <Col :span="24" :class="['clearfix', 'mt-4']">
 
-                    <!-- Generate Variations Button  -->
-                    <Poptip confirm
-                            title="Create new variations?"
-                            ok-text="Yes" cancel-text="No" width="300" placement="top-start"
-                            @on-ok="generateVariations()">
+                    <span :class="['float-left']">
 
-                        <basicButton
-                            :disabled="!hasInvalidVariants || isCreatingVariations"
-                            type="success" size="small"
-                            customClass="mt-3 mb-3"
-                            :ripple="false">
-                            Create Variations
-                        </basicButton>
-                    </Poptip>
+                        <!-- Generate Variations Button  -->
+                        <Poptip confirm
+                                title="Create new variations?"
+                                ok-text="Yes" cancel-text="No" width="300" placement="top-start"
+                                @on-ok="generateVariations()">
 
-                </Col>
+                            <basicButton
+                                :disabled="isCreatingVariations || isLoading || !variantAttributesHasChanged || hasInvalidVariants"
+                                :ripple="!isCreatingVariations && !isLoading && !hasInvalidVariants && variantAttributesHasChanged"
+                                :style="{ width: 'fit-content', position:'relative' }"
+                                type="success" size="small">
+                                Create Variations
+                            </basicButton>
 
-                <Col :span="16" class="clearfix">
+                        </Poptip>
+
+                    </span>
+
                     <basicButton
-                        customClass="mt-3 mb-3" :style="{ width: 'fit-content', position:'relative' }"
-                        @click.native="addVariantAttribute()"
+                        v-if="variantAttributesHasChanged"
                         :disabled="isCreatingVariations"
+                        :class="['float-left', 'ml-2']"
                         type="default" size="small"
-                        class="float-right"
-                        :ripple="false">
+                        @click.native="reset()">
+                        Cancel
+                    </basicButton>
+
+                    <basicButton
+                        :disabled="isCreatingVariations || isLoading"
+                        @click.native="addVariantAttribute()"
+                        type="default" size="small"
+                        class="float-right">
                         + Add Another Variant
                     </basicButton>
                 </Col>
+
             </Row>
 
         </div>
 
+        <!-- Disclaimer: Free Product -->
+        <Alert v-if="!isCreatingVariations && !isLoading && !hasInvalidVariants && variantAttributesHasChanged && variations.length"
+               type="warning" :class="['mt-2', 'py-3', 'px-2']">
+            Note that creating variations will replace your existing variations with new variations. Only matching variations will not be removed.
+        </Alert>
+
         <!-- Creating Variations Loader -->
-        <Loader v-if="isCreatingVariations" :loading="true" type="text" :class="['text-left', 'mt-2', 'mb-2']">Creating variations...</Loader>
+        <Loader v-if="isCreatingVariations" :loading="true" type="text" :class="['mt-2', 'mb-2']">Creating variations...</Loader>
 
     </div>
 
@@ -121,6 +151,12 @@
             productForm: {
                 type: Object,
                 default: null
+            },
+            variations: {
+                type: Array,
+                default: function(){
+                    return [];
+                }
             },
             product: {
                 type: Object,
@@ -142,6 +178,8 @@
             return {
                 variantAttributeValue: [],
                 isCreatingVariations: false,
+                variantAttributesForm: null,
+                variantAttributesBeforeChanges: null
             }
         },
         watch: {
@@ -150,6 +188,13 @@
 
                 //  Notify parent on changes
                 this.$emit('isCreatingVariations', newVal);
+
+            },
+            //  Watch changes on variantAttributesHasChanged
+            variantAttributesHasChanged (newVal, oldVal) {
+
+                //  Notify parent on changes
+                this.$emit('variantAttributesHasChanged', newVal);
 
             }
         },
@@ -160,31 +205,109 @@
                 }
             },
             hasInvalidVariants(){
+                return this.hasEmptyVariantNamesOrValues || this.hasDuplicateVariantNames || this.hasDuplicateVariantValues;
+            },
+            hasEmptyVariantNamesOrValues(){
 
                 //  Check if we have variant attributes
-                if((this.productForm.variant_attributes || {}).length){
+                if((this.variantAttributesForm || []).length){
 
-                    for(var x=0; x < (this.productForm.variant_attributes || {}).length; x++){
+                    for(var x=0; x < this.variantAttributesForm.length; x++){
 
                         //  Get the current variant key e.g size, color, material, e.t.c
-                        let attribute_name = this.productForm.variant_attributes[x].name;
+                        let attribute_name = this.variantAttributesForm[x].name;
 
                         //  Get the current variant value e.g ["SM", "M", "L"], ["Blue", "Red"] or ["Cotton", "Nylon"]
-                        let attribute_values = this.productForm.variant_attributes[x].values;
+                        let attribute_values = this.variantAttributesForm[x].values;
 
                         // If the name or options have not been set then this is not valid variant attribute
                         if( !attribute_name || !attribute_values.length ){
 
-                            return false;
+                            return true;
 
                         }
                     }
                 }
 
-                return true;
-            }
+                return false;
+            },
+            hasDuplicateVariantNames(){
+
+                //  Check if we have variant attributes
+                if((this.variantAttributesForm || []).length){
+
+                    var names = [];
+
+                    for(var x=0; x < this.variantAttributesForm.length; x++){
+
+                        //  Get the current variant key e.g size, color, material, e.t.c
+                        let attribute_name = this.variantAttributesForm[x].name.toLowerCase();
+
+                        //  Check if the name is already used
+                        if( names.includes(attribute_name) ){
+
+                            return true;
+
+                        }
+
+                        names.push(attribute_name);
+
+                    }
+                }
+
+                return false;
+            },
+            hasDuplicateVariantValues(){
+
+                //  Check if we have variant attributes
+                if((this.variantAttributesForm || []).length){
+
+                    var values = [];
+
+                    for(var x=0; x < this.variantAttributesForm.length; x++){
+
+                        //  Get the current variant value e.g ["SM", "M", "L"], ["Blue", "Red"] or ["Cotton", "Nylon"]
+                        let attribute_values = this.variantAttributesForm[x].values;
+
+                        for(var y=0; y < attribute_values.length; y++){
+
+                            //  Get the current variant value e.g "SM", "M", "L", "Blue", "Red", "Cotton", "Nylon"
+                            let attribute_value = attribute_values[y].toLowerCase();
+
+                            //  Check if the name is already used
+                            if( values.includes(attribute_value) ){
+
+                                return true;
+
+                            }
+
+                            values.push( attribute_value );
+
+                        }
+                    }
+                }
+
+                return false;
+            },
+            variantAttributesHasChanged(){
+
+                //  Check if the variant attributes has been modified
+                var status = !_.isEqual(this.variantAttributesForm, this.variantAttributesBeforeChanges);
+
+                return status;
+
+            },
         },
         methods: {
+            reset(){
+                this.variantAttributesForm = _.cloneDeep(this.variantAttributesBeforeChanges);
+            },
+            getVariantAttributesForm(){
+
+                //  Clone the product variant attributes Object into a new Object
+                return _.cloneDeep(this.productForm.variant_attributes);
+
+            },
             variantAttributeTags(variant_attributes){
                 return variant_attributes.map(attribute => {
                     return {
@@ -193,37 +316,56 @@
                 });
             },
             updateVariantAttributeOptions(tags, index){
-                 this.productForm.variant_attributes[index].values = tags.map(tag => {
+
+                var lower_case_tags = [];
+
+                //  Filter non-duplicate tags
+                var tags = tags.filter(tag => {
+
+                    var tag = tag.text.toLowerCase();
+
+                    if( lower_case_tags.includes(tag) ){
+
+                        this.$Message.warning({
+                            content: 'The tag "'+tag+'" is a duplicate',
+                            duration: 6
+                        });
+
+                        return false;
+
+                    }
+
+                    lower_case_tags.push(tag);
+
+                    return true;
+
+                });
+
+                 this.variantAttributesForm[index].values = tags.map(tag => {
                     return tag.text
                 });
             },
             addVariantAttribute(){
 
-                if( this.productForm.variant_attributes == null ){
+                if( this.variantAttributesForm == null ){
 
-                    this.productForm.variant_attributes = [];
+                    this.variantAttributesForm = [];
 
                 }
 
-                this.productForm.variant_attributes.push({  name: 'Color', values: ['Blue', 'Red'] });
+                this.variantAttributesForm.push({
+                    name: 'Color',
+                    values: ['Blue', 'Red'],
+                    instruction: 'Select option'
+                });
             },
             removeVariantAttribute(index) {
 
                 //  If we have more that one variant attribute
-                if( this.productForm.variant_attributes.length > 1 ){
+                if( this.variantAttributesForm.length > 1 ){
 
                     //  Remove the variant attribute
-                    this.productForm.variant_attributes.splice(index, 1);
-
-                    /** Update the product details. This is so that we can actually save the current
-                     *  variant attributes of the product.
-                     */
-                    self.handleSubmit();
-
-                    /** Re-fetch the product variations so that they can pick up the changes of the
-                     *  parent variant attributes.
-                     */
-                    self.fetchVariations();
+                    this.variantAttributesForm.splice(index, 1);
 
                 }else{
 
@@ -236,28 +378,35 @@
                 }
 
             },
+            copyVariantAttributesBeforeUpdate(){
+
+                //  Clone the variant attributes before any changes occur
+                this.variantAttributesBeforeChanges = _.cloneDeep( this.variantAttributesForm );
+
+            },
             generateVariations() {
 
                 //  Hold constant reference to the vue instance
                 const self = this;
 
-                //  Product data to update
-                let updateData = self.productForm.variant_attributes;
-
-                if( (updateData || []).length ){
+                if( (self.variantAttributesForm || []).length ){
 
                     //  Start loader
                     self.isCreatingVariations = true;
 
-                    //  Use the api call() function located in resources/js/api.js
-                    api.call('post', this.variationsUrl, updateData)
-                        .then(({data}) => {
+                    let data = {
+                            postData: self.variantAttributesForm
+                        };
 
-                            //  Console log the data returned
-                            console.log(data);
+                    //  Use the api call() function located in resources/js/api.js
+                    api.call('post', this.variationsUrl, data)
+                        .then(({data}) => {
 
                             //  Stop loader
                             self.isCreatingVariations = false;
+
+                            //  Copy the variant attributes before any updates occur
+                            this.copyVariantAttributesBeforeUpdate();
 
                             /**
                              *  Note that we need to use the $nextTick() method to get the latest data of the
@@ -268,22 +417,37 @@
                             self.$nextTick(() => {
 
                                 //  Notify parent
-                                self.$emit('generatedVariations');
+                                self.$emit('generatedVariations', self.variantAttributesForm);
 
                             });
 
                         })
                         .catch(response => {
 
-                            //  Log the responce
-                            console.log(response);
-
                             //  Stop loader
                             self.isCreatingVariations = false;
+
                         });
 
                 }
             }
+        },
+        created(){
+
+            //  Set the form details
+            this.variantAttributesForm = this.getVariantAttributesForm();
+
+            //  Copy the variant attributes before any updates occur
+            this.copyVariantAttributesBeforeUpdate();
+
+            //  If the product does not already have variant attributes
+            if( !(this.variantAttributesForm || []).length ){
+
+                //  Add the default variable attributes
+                this.addVariantAttribute();
+
+            }
+
         }
     };
 

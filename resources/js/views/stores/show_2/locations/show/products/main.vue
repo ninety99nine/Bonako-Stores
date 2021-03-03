@@ -182,9 +182,6 @@
                     return api.call('get', this.locationUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the location
                             self.location = data || null;
 
@@ -195,9 +192,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoading = false;
@@ -231,9 +225,6 @@
                 api.call('get', productUrl)
                     .then(({data}) => {
 
-                        //  Console log the data returned
-                        console.log(data);
-
                         //  Get the products
                         self.products = data['_embedded']['products'] || [];
 
@@ -244,9 +235,6 @@
 
                     })
                     .catch(response => {
-
-                        //  Log the responce
-                        console.error(response);
 
                         //  Stop loader
                         self.isLoading = false;
@@ -265,23 +253,21 @@
                     //  Start loader
                     self.isLoading = true;
 
-                    //  Store data
-                    let arrangementData = {
-                        location_id: this.location.id,
-                        product_arrangements: self.products.map((product, index) => {
-                            return {
-                                "id": product.id,
-                                "arrangement": (index + 1)
-                            };
-                        })
-                    }
+                    let data = {
+                            postData: {
+                                location_id: this.location.id,
+                                product_arrangements: self.products.map((product, index) => {
+                                    return {
+                                        "id": product.id,
+                                        "arrangement": (index + 1)
+                                    };
+                                })
+                            }
+                        };
 
                     //  Use the api call() function, refer to api.js
-                    return api.call('put', this.productArrangementUrl, arrangementData)
+                    return api.call('put', this.productArrangementUrl, data)
                         .then(({data}) => {
-
-                            //  Console log the data returned
-                            console.log(data);
 
                             self.copyProductsBeforeUpdate();
 
@@ -290,9 +276,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoading = false;

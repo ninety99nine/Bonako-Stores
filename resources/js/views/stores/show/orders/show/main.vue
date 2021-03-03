@@ -9,7 +9,7 @@
                 <Col :span="24" :class="['border-bottom-dashed', 'mb-4', 'mt-3', 'pb-4']">
 
                     <!-- If we are loading, Show Loader -->
-                    <Loader v-if="isLoadingOrder" class="mb-2"></Loader>
+                    <Loader v-if="isLoadingOrder" class="mb-2">Searching order</Loader>
 
                     <!-- Order #, Statuses & Watch Video Button -->
                     <Row v-else-if="!isLoadingOrder && localOrder" :gutter="12">
@@ -78,7 +78,7 @@
 
                     <Col :span="16">
 
-                        <!-- Error Message Alert -->
+                        <!-- Warning Message Alert -->
                         <Alert v-if="isPendingPayment" type="warning" show-icon>
 
                             <Row>
@@ -145,7 +145,7 @@
                             </Row>
                         </Alert>
 
-                        <!-- Error Message Alert -->
+                        <!-- Success Message Alert -->
                         <Alert v-if="isPaid" type="success" show-icon>
                             <span class="font-weight-bold">Paid</span>
 
@@ -156,6 +156,57 @@
                                 <Icon type="ios-information-circle-outline" :size="16" />
 
                             </Poptip>
+                        </Alert>
+
+                        <!-- Warning Message Alert -->
+                        <Alert v-if="isPaid && isUndelivered" type="warning" show-icon>
+                            <span class="font-weight-bold">Undelivered</span>
+
+                            <!-- Show the status description -->
+                            <Poptip trigger="hover" placement="top-start" word-wrap width="300" :content="deliveryStatus.description">
+
+                                <!-- Show the info icon -->
+                                <Icon type="ios-information-circle-outline" :size="16" />
+
+                            </Poptip>
+                        </Alert>
+
+                        <!-- Success Message Alert -->
+                        <Alert v-if="isDelivered" type="success" show-icon>
+
+                            <Row>
+
+                                <Col :span="8">
+
+                                    <span class="font-weight-bold">Delivered</span>
+
+                                    <!-- Show the status description -->
+                                    <Poptip trigger="hover" placement="top-start" word-wrap width="300" :content="deliveryStatus.description">
+
+                                        <!-- Show the info icon -->
+                                        <Icon type="ios-information-circle-outline" :size="16" />
+
+                                    </Poptip>
+
+                                </Col>
+
+                                <Col v-if="deliveryVerified" :span="16">
+
+                                    <Icon type="ios-checkmark-circle" class="text-success" :size="16" />
+                                    <span class="font-weight-bold">Delivery Verified</span>
+
+                                    <!-- Show the status description -->
+                                    <Poptip trigger="hover" placement="top" word-wrap width="300" :content="deliveryVerifiedDescription">
+
+                                        <!-- Show the info icon -->
+                                        <Icon type="ios-information-circle-outline" :size="16" />
+
+                                    </Poptip>
+
+                                </Col>
+
+                            </Row>
+
                         </Alert>
 
                         <!-- Cart Items, Deliver Button, Edit Button -->
@@ -194,7 +245,7 @@
                                 </span>
 
                                 <span slot-scope="{ row, index }" slot="price">
-                                    {{ formatPrice(row.unit_regular_price) }}
+                                    {{ row.unit_regular_price.currency_money }}
                                 </span>
 
                                 <span slot-scope="{ row, index }" slot="quantity">
@@ -202,11 +253,11 @@
                                 </span>
 
                                 <span slot-scope="{ row, index }" slot="discount" :class="['text-danger']">
-                                    {{ row.sale_discount_total > 0 ? '- ' : '' }}{{ formatPrice(row.sale_discount_total) }}
+                                    {{ row.sale_discount_total.amount > 0 ? '- ' : '' }}{{ row.sale_discount_total.currency_money }}
                                 </span>
 
                                 <span slot-scope="{ row, index }" slot="grand_total">
-                                    {{ formatPrice(row.grand_total) }}
+                                    {{ row.grand_total.currency_money }}
                                 </span>
 
                             </Table>
@@ -239,27 +290,27 @@
 
                                     <ul :style="{ listStyle: 'none', lineHeight: '2em' }">
                                         <li :class="['border-bottom', 'my-2']">
-                                            <span :class="['font-weight-bold']">{{ formatPrice(subTotal) }}</span>
+                                            <span :class="['font-weight-bold']">{{ subTotal.currency_money }}</span>
                                         </li>
                                         <li>
                                             <span :class="['text-danger']">
-                                                {{ couponTotal > 0 ? '-' : '' }}
-                                                {{ formatPrice(couponTotal) }}
+                                                {{ couponTotal.amount > 0 ? '-' : '' }}
+                                                {{ couponTotal.currency_money }}
                                             </span>
                                         </li>
                                         <li>
                                             <span :class="['text-danger']">
-                                                {{ saleDiscountTotal > 0 ? '-' : '' }}
-                                                {{ formatPrice(saleDiscountTotal) }}
+                                                {{ saleDiscountTotal.amount > 0 ? '-' : '' }}
+                                                {{ saleDiscountTotal.currency_money }}
                                             </span>
                                         </li>
                                         <li :class="['text-success', 'border-bottom']">
-                                            {{ deliveryFee > 0 ? '+' : '' }}
-                                            {{ formatPrice(deliveryFee) }}
+                                            {{ deliveryFee.amount > 0 ? '+' : '' }}
+                                            {{ deliveryFee.currency_money }}
                                         </li>
                                         <li :style="{ borderBottom: 'double' }" class="py-2">
                                             <span :class="['font-weight-bold']">
-                                                {{ formatPrice(grandTotal) }}
+                                                {{ grandTotal.currency_money }}
                                             </span>
                                         </li>
                                     </ul>
@@ -299,7 +350,7 @@
                                 </span>
 
                                 <span slot-scope="{ row, index }" slot="rate">
-                                    {{ row.is_fixed_rate ? currenySymbol+row.fixed_rate : row.is_percentage_rate ? row.percentage_rate+'%' : '' }}
+                                    {{ row.is_fixed_rate ? row.fixed_rate.currency_money : row.is_percentage_rate ? row.percentage_rate+'%' : '' }}
                                 </span>
 
                             </Table>
@@ -489,37 +540,38 @@
 
                         </Card>
 
-                        <!--
-                            MODAL TO VERIFY ORDER DELIVERY
-                        -->
-                        <template v-if="isOpenVerifyOrderDeliveryModal">
-
-                            <verifyOrderDeliveryModal
-                                :order="order"
-                                @verified="handleVerifiedOrder"
-                                @visibility="isOpenVerifyOrderDeliveryModal = $event">
-                            </verifyOrderDeliveryModal>
-
-                        </template>
-
-                        <!--
-                            MODAL TO GENERATE PAYMENT SHORTCODE
-                        -->
-                        <template v-if="isOpenGeneratePaymentShortcode">
-
-                            <generatePaymentShortcodeModal
-                                :order="order"
-                                @sentPaymentRequest="handleSentPaymentRequest"
-                                @visibility="isOpenGeneratePaymentShortcode = $event">
-                            </generatePaymentShortcodeModal>
-
-                        </template>
-
                     </Col>
 
                 </template>
 
             </Row>
+
+            <!--
+                MODAL TO VERIFY ORDER DELIVERY
+            -->
+            <template v-if="isOpenVerifyOrderDeliveryModal">
+
+                <verifyOrderDeliveryModal
+                    :order="order"
+                    @verified="handleVerifiedOrder"
+                    @visibility="isOpenVerifyOrderDeliveryModal = $event"
+                    :requiresDeliveryConfirmationCode="requiresDeliveryConfirmationCode">
+                </verifyOrderDeliveryModal>
+
+            </template>
+
+            <!--
+                MODAL TO GENERATE PAYMENT SHORTCODE
+            -->
+            <template v-if="isOpenGeneratePaymentShortcode">
+
+                <generatePaymentShortcodeModal
+                    :order="order"
+                    @sentPaymentRequest="handleSentPaymentRequest"
+                    @visibility="isOpenGeneratePaymentShortcode = $event">
+                </generatePaymentShortcodeModal>
+
+            </template>
 
         </Col>
 
@@ -533,10 +585,11 @@
     import verifyOrderDeliveryModal from './../components/verifyOrderDeliveryModal.vue';
     import countdown from './../../../../../components/_common/countdown/default.vue';
     import Loader from './../../../../../components/_common/loaders/default.vue';
+    import miscMixin from './../../../../../components/_mixins/misc/main.vue';
     import statusTag from './../components/statusTag.vue';
-    import moment from 'moment';
 
     export default {
+        mixins: [miscMixin],
         props: {
             store: {
                 type: Object,
@@ -571,6 +624,7 @@
                 itemLineColumns: [
                     {
                         title: 'Name',
+                        width: 200,
                         slot: 'name'
                     },
                     {
@@ -594,6 +648,7 @@
                 couponLineColumns: [
                     {
                         title: 'Name',
+                        width: 200,
                         slot: 'name'
                     },
                     {
@@ -667,6 +722,18 @@
             isDelivered(){
                 return this.localOrder._attributes.is_delivered
             },
+            isUndelivered(){
+                return !this.localOrder._attributes.is_delivered
+            },
+            deliveryVerified(){
+                return !this.localOrder._attributes.delivery_verified
+            },
+            deliveryVerifiedDescription(){
+                return this.localOrder._attributes.delivery_verified_description
+            },
+            requiresDeliveryConfirmationCode(){
+                return this.localOrder._attributes.requires_delivery_confirmation_code
+            },
             activeCart(){
                 return (this.localOrder._embedded.active_cart || {});
             },
@@ -698,15 +765,9 @@
                     return [];
                 }
             },
-            moment: function () {
-                return moment();
-            },
             createdDateTime(){
-                return moment(this.localOrder.created_at).format('MMM DD, YYYY')
-                       +' at '+moment(this.localOrder.created_at).format('h:mma');
-            },
-            currenySymbol(){
-                return (((this.activeCart._embedded || {}).currency || {}).symbol || '');
+                return this.formatDateTime(this.localOrder.created_at, 'MMM DD, YYYY')
+                        +' at '+ this.formatDateTime(this.localOrder.created_at, 'h:mma');
             },
             transaction(){
                 return (this.localOrder._embedded.transaction || {});
@@ -799,10 +860,6 @@
 
                 }
             },
-            formatPrice(money) {
-                let val = (money/1).toFixed(2).replace(',', '.');
-                return this.currenySymbol + val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            },
             /** Note the use of "async" and "await". This helps us to perform the
              *  api call and wait for the response before we continue any futher
              */
@@ -818,9 +875,6 @@
                 await api.call('get', this.orderUrl)
                     .then(({data}) => {
 
-                        //  Console log the data returned
-                        console.log(data);
-
                         //  Get the order
                         self.localOrder = data || null;
 
@@ -829,9 +883,6 @@
 
                     })
                     .catch(response => {
-
-                        //  Log the responce
-                        console.error(response);
 
                         //  Stop loader
                         self.isLoadingOrder = false;
@@ -853,9 +904,6 @@
                     api.call('get', this.receivedLocationUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the received location
                             self.receivedLocation = data;
 
@@ -864,9 +912,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingReceivedLocation = false;
@@ -889,9 +934,6 @@
                     api.call('get', this.sharedLocationsUrl)
                         .then(({data}) => {
 
-                            //  Console log the data returned
-                            console.log(data);
-
                             //  Get the shared locations
                             self.sharedLocations = (((data || {})._embedded || {}).locations || []);
 
@@ -903,9 +945,6 @@
 
                         })
                         .catch(response => {
-
-                            //  Log the responce
-                            console.error(response);
 
                             //  Stop loader
                             self.isLoadingSharedLocations = false;
@@ -939,16 +978,15 @@
                         //  Start loader
                         self.isUpdatingSharedLocations = true;
 
-                        this.updateData = {
-                            location_ids: this.selectedSharedLocationIds
-                        };
+                        let data = {
+                                postData: {
+                                    location_ids: this.selectedSharedLocationIds
+                                }
+                            };
 
                         //  Use the api call() function, refer to api.js
-                        api.call('post', this.sharedLocationsUrl, this.updateData)
+                        api.call('post', this.sharedLocationsUrl, data)
                             .then(({data}) => {
-
-                                //  Console log the data returned
-                                console.log(data);
 
                                 //  Get the shared locations
                                 self.sharedLocations = (((data || {})._embedded || {}).locations || []);
@@ -961,9 +999,6 @@
 
                             })
                             .catch(response => {
-
-                                //  Log the responce
-                                console.error(response);
 
                                 //  Stop loader
                                 self.isUpdatingSharedLocations = false;
@@ -980,8 +1015,6 @@
                 this.isOpenGeneratePaymentShortcode = true;
             },
             handleVerifiedOrder(){
-
-                this.isOpenVerifyOrderDeliveryModal = false;
 
                 //  Fetch the order
                 this.prepareOrder();

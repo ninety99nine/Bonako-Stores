@@ -59,10 +59,10 @@
     import CodeInput from "vue-verification-code-input";
     import Loader from './../../../components/_common/loaders/default.vue';
     import modalMixin from './../../../components/_mixins/modal/main.vue';
-    var customMixin = require('./../../../mixin.js').default;
+    import miscMixin from './../../../components/_mixins/misc/main.vue';
 
     export default {
-        mixins: [modalMixin, customMixin],
+        mixins: [modalMixin, miscMixin],
         components: { CodeInput, Loader },
         props: {
             userAccount: {
@@ -76,7 +76,6 @@
         },
         data(){
             return {
-                serverErrorMessage: null,
                 isVerifying: false,
                 isSending: false,
                 renderKey: 1,
@@ -113,7 +112,7 @@
                     }).catch((response) => {
 
                         //  Stop loader
-                        self.handleApiFail(response);
+                        self.isSending = false;
 
                     });
             },
@@ -169,29 +168,9 @@
                     }).catch((response) => {
 
                         //  Stop loader
-                        self.handleApiFail(response);
+                        this.isVerifying = false;
 
                     });
-            },
-            handleApiFail(response){
-
-                console.error(response);
-
-                //  Stop loader
-                this.isSending = false;
-
-                //  Stop loader
-                this.isVerifying = false;
-
-                //  Get the error response data
-                let data = (response || {}).data;
-
-                //  Get the response errors
-                var errors = (data || {}).errors;
-
-                //  Set the general error message
-                this.serverErrorMessage = (data || {}).message;
-
             }
         },
         created(){

@@ -99,8 +99,6 @@
 
                     }).catch((response) => {
 
-                        console.log(response);
-
                         //  Stop loader
                         self.isDeleting = false;
 

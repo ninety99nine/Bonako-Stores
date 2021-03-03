@@ -71,9 +71,11 @@
 </template>
 <script>
 
+    import miscMixin from './../../../components/_mixins/misc/main.vue';
     import Loader from './../../../components/_common/loaders/default.vue';
 
     export default {
+        mixins: [miscMixin],
         components: { Loader },
         data () {
 
@@ -119,9 +121,7 @@
                         { required: true, message: 'Confirm your password.', trigger: 'blur' },
                         { validator: samePasswordValidator, trigger: 'change' }
                     ]
-                },
-                serverErrors: [],
-                serverErrorMessage: ''
+                }
             }
         },
         computed: {
@@ -180,8 +180,8 @@
                         //  Stop loader
                         self.isLoading = false;
 
-                        //  Reset the registration form
-                        self.resetRegisterForm();
+                        //  resetForm() declared in miscMixin
+                        self.resetForm('registerForm');
 
                         //  Registration success message
                         this.$Message.success({
@@ -194,55 +194,10 @@
 
                     }).catch((response) => {
 
-                        console.log(response);
-
                         //  Stop loader
                         self.isLoading = false;
 
-                        //  Get the error response data
-                        let data = (response || {}).data;
-
-                        //  Get the response errors
-                        var errors = (data || {}).errors;
-
-                        //  Set the general error message
-                        self.serverErrorMessage = (data || {}).message;
-
-
-                        /** 422: Validation failed. Incorrect credentials
-                         */
-                        if((response || {}).status === 422){
-
-                            //  If we have errors
-                            if(_.size(errors)){
-
-                                //  Set the server errors
-                                self.serverErrors = errors;
-
-                                //  Foreach error
-                                for (var i = 0; i < _.size(errors); i++) {
-                                    //  Get the error key e.g 'email', 'password'
-                                    var prop = Object.keys(errors)[i];
-                                    //  Get the error value e.g 'These credentials do not match our records.'
-                                    var value = Object.values(errors)[i][0];
-
-                                    //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                                    self.serverErrors[prop] = value;
-                                }
-
-                            }
-
-                        }
-
                 });
-            },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
-            },
-            resetRegisterForm(){
-                this.resetErrors();
-                this.$refs['registerForm'].resetFields();
             }
         }
     }

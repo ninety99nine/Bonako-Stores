@@ -55,10 +55,10 @@
 
     import Loader from './../../../../components/_common/loaders/default.vue';
     import modalMixin from './../../../../components/_mixins/modal/main.vue';
-    var customMixin = require('./../../../../mixin.js').default;
+    import miscMixin from './../../../../components/_mixins/misc/main.vue';
 
     export default {
-        mixins: [modalMixin, customMixin],
+        mixins: [modalMixin, miscMixin],
         components: { Loader },
         props: {
             index: {
@@ -155,8 +155,6 @@
                         self.closeModal();
 
                     }).catch((response) => {
-
-                        console.log(response);
 
                         //  Stop loader
                         self.isDeleting = false;

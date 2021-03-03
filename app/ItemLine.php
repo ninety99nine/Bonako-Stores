@@ -21,18 +21,18 @@ class ItemLine extends Model
 
         /*  Basic Info  */
         'name', 'description',
-        
+
         /*  Unit Pricing Info  */
-        'unit_regular_price', 'unit_sale_price', 'unit_price', 'unit_sale_discount',
-        
+        'is_free', 'currency', 'unit_regular_price', 'unit_sale_price', 'unit_price', 'unit_sale_discount',
+
         /*  Total Pricing Info  */
-        'sub_total', 'sale_discount_total', 'grand_total', 
+        'sub_total', 'sale_discount_total', 'grand_total',
 
         /*  Quantity Info  */
         'quantity',
 
         /*  Product Info  */
-        'product_id', 
+        'product_id',
 
         /*  Ownership Information  */
         'cart_id'
@@ -63,5 +63,88 @@ class ItemLine extends Model
     protected $appends = [
         'resource_type',
     ];
+
+    /**
+     *  Returns the item line currency code and symbol
+     */
+    public function getCurrencyAttribute($currency_code)
+    {
+        return $this->unpackCurrency($currency_code);
+    }
+
+    /**
+     *  Returns the unit regular price
+     */
+    public function getUnitRegularPriceAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the unit sale price
+     */
+    public function getUnitSalePriceAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the unit price
+     */
+    public function getUnitPriceAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the unit sale discount
+     */
+    public function getUnitSaleDiscountAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the sub total
+     */
+    public function getSubTotalAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+  
+    /**
+     *  Returns the sale discount total
+     */
+    public function getSaleDiscountTotalAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+  
+    /**
+     *  Returns the grand total
+     */
+    public function getGrandTotalAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
+    /**
+     *  Returns the product visibile status and description
+     */
+    public function getIsFreeAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Free' : 'Not Free',
+            'description' => $value ? 'This product is free'
+                                    : 'This product is not free'
+        ];
+    }
+
+
+    public function setIsFreeAttribute($value)
+    {
+        $this->attributes['is_free'] = (($value == 'true' || $value == '1') ? 1 : 0);
+    }
 
 }

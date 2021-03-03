@@ -5,7 +5,7 @@
         <Col :span="12" :offset="6">
 
             <Card class="mt-3 pt-2">
-                
+
                 <!-- Heading -->
                 <Divider orientation="left" class="font-weight-bold">Store Details</Divider>
 
@@ -16,37 +16,37 @@
 
                     <!-- Enter Name -->
                     <FormItem prop="name" :error="serverNameError">
-                        <Input type="text" v-model="storeForm.name" placeholder="Name" :disabled="isSavingChanges" 
+                        <Input type="text" v-model="storeForm.name" placeholder="Name" :disabled="isSavingChanges"
                                 maxlength="50" show-word-limit @keyup.enter.native="handleSubmit()">
                         </Input>
                     </FormItem>
-                    
+
                     <!-- Set Online Status -->
                     <FormItem prop="online" :error="serverOnlineError">
                         <div>
                             <span :style="{ width: '200px' }" class="font-weight-bold">{{ statusText }}: </span>
-                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300" 
+                            <Poptip trigger="hover" title="Turn On/Off" word-wrap width="300"
                                     content="Turn on to allow subscribers to access this store">
                                 <i-Switch v-model="storeForm.online" />
                             </Poptip>
                         </div>
                     </FormItem>
-                    
+
                     <!-- Set Offline Status Message -->
                     <FormItem v-if="!storeForm.online" prop="offline_message" :error="serverOfflineMessageError">
                         <div class="d-flex">
                             <span :style="{ width: '200px' }" class="font-weight-bold">Offline Message: </span>
-                            <Input type="textarea" v-model="storeForm.offline_message" placeholder="offline_message" :disabled="isSavingChanges" 
+                            <Input type="textarea" v-model="storeForm.offline_message" placeholder="offline_message" :disabled="isSavingChanges"
                                     maxlength="160" show-word-limit @keyup.enter.native="handleSubmit()">
                             </Input>
                         </div>
                     </FormItem>
-                    
+
                     <!-- Save Changes Button -->
                     <FormItem v-if="!isSavingChanges">
 
-                        <basicButton :disabled="(!storeHasChanged || isSavingChanges)" :loading="isSavingChanges" 
-                                     :ripple="(storeHasChanged && !isSavingChanges)" type="success" size="large" 
+                        <basicButton :disabled="(!storeHasChanged || isSavingChanges)" :loading="isSavingChanges"
+                                     :ripple="(storeHasChanged && !isSavingChanges)" type="success" size="large"
                                      class="float-right" @click.native="handleSubmit()">
                             <span>{{ isSavingChanges ? 'Saving...' : 'Save Changes' }}</span>
                         </basicButton>
@@ -63,11 +63,13 @@
 
 </template>
 <script>
-    
+
     import basicButton from './../../../../components/_common/buttons/basicButton.vue';
+    import miscMixin from './../../../../components/_mixins/misc/main.vue';
     import Loader from './../../../../components/_common/loaders/default.vue';
 
     export default {
+        mixins: [miscMixin],
         props: {
             store: {
                 type: Object,
@@ -96,9 +98,7 @@
                         { min: 3, message: 'Offline message is too short', trigger: 'change' },
                         { max: 160, message: 'Offline message is too long', trigger: 'change' }
                     ]
-                },
-                serverErrors: [],
-                serverErrorMessage: ''
+                }
             }
         },
         watch: {
@@ -167,7 +167,7 @@
 
             },
             copyStoreBeforeUpdate(){
-                
+
                 //  Clone the store
                 this.storeBeforeChanges = _.cloneDeep( this.storeForm );
 
@@ -194,11 +194,11 @@
                 this.resetErrors();
 
                 //  Validate the store form
-                this.$refs['storeForm'].validate((valid) => 
-                {   
+                this.$refs['storeForm'].validate((valid) =>
+                {
                     //  If the validation passed
                     if (valid) {
-                        
+
                         //  Attempt to create store
                         this.attemptStoreUpdate();
 
@@ -223,12 +223,12 @@
                 /**  Make an Api call to create the store. We include the
                  *   store details required for a new store creation.
                  */
-                let storeData = this.storeForm;
+                let data = {
+                        postData: this.storeForm
+                    };
 
-                return api.call('put', this.store['_links']['self'].href, storeData)
+                return api.call('put', this.store['_links']['self'].href, data)
                     .then(({data}) => {
-                
-                        console.log(data);
 
                         //  Stop loader
                         self.isSavingChanges = false;
@@ -236,73 +236,26 @@
 
                         self.$emit('updatedStore', data);
 
-                        //  Reset the form
-                        self.resetStoreForm();
+                        //  resetForm() declared in miscMixin
+                        self.resetForm('storeForm');
 
                         //  Store updated success message
                         self.$Message.success({
                             content: 'Your store has been updated!',
                             duration: 6
                         });
-                            
+
                         self.copyStoreBeforeUpdate();
 
                         self.notifyUnsavedChangesStatus();
-                        
+
                     }).catch((response) => {
-                
-                        console.log(response);
 
                         //  Stop loader
                         self.isSavingChanges = false;
                         self.$emit('isSaving', self.isSavingChanges);
 
-                        //  Get the error response data
-                        let data = (response || {}).data;
-                            
-                        //  Get the response errors
-                        var errors = (data || {}).errors;
-
-                        //  Set the general error message
-                        self.serverErrorMessage = (data || {}).message;
-
-                        /** 422: Validation failed. Incorrect credentials
-                         */
-                        if((response || {}).status === 422){
-
-                            //  If we have errors
-                            if(_.size(errors)){
-                                
-                                //  Set the server errors
-                                self.serverErrors = errors;
-
-                                //  Foreach error
-                                for (var i = 0; i < _.size(errors); i++) {
-
-                                    //  Get the error key e.g 'name', 'dedicated_short_code'
-                                    var prop = Object.keys(errors)[i];
-
-                                    //  Get the error value e.g 'The store name is required'
-                                    var value = Object.values(errors)[i][0];
-
-                                    //  Dynamically update the serverErrors for View UI to display the error on the appropriate form item
-                                    self.serverErrors[prop] = value;
-
-                                }
-
-                            }
-
-                        }
-
                 });
-            },
-            resetErrors(){
-                this.serverErrorMessage = '';
-                this.serverErrors = [];
-            },
-            resetStoreForm(){
-                this.resetErrors();
-                this.$refs['storeForm'].resetFields();
             }
         },
         created(){

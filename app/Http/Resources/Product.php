@@ -33,6 +33,8 @@ class Product extends JsonResource
             'variant_attributes' => $this->variant_attributes,
 
             /*  Pricing Management  */
+            'is_free' => $this->is_free,
+            'currency' => $this->currency,
             'unit_regular_price' => $this->unit_regular_price,
             'unit_sale_price' => $this->unit_sale_price,
             'unit_cost' => $this->unit_cost,
@@ -58,10 +60,13 @@ class Product extends JsonResource
             /*  Attributes  */
             '_attributes' => [
                 'on_sale' => $this->on_sale,
-                'is_free' => $this->is_free,
+                'has_price' => $this->has_price,
                 'unit_price' => $this->unit_price,
+                'unit_loss' => $this->unit_loss,
                 'unit_profit' => $this->unit_profit,
-                'unit_sale_discount' => $this->unit_sale_discount
+                'unit_sale_discount' => $this->unit_sale_discount,
+                'unit_sale_percentage' => $this->unit_sale_percentage,
+                'has_stock' => $this->has_stock,
             ],
 
             /*  Resource Links */

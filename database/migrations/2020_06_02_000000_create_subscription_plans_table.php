@@ -20,7 +20,8 @@ class CreateSubscriptionPlansTable extends Migration
             $table->string('type')->nullable();
             $table->string('frequency');
             $table->unsignedSmallInteger('duration');
-            $table->float('price');
+            $table->char('currency', 3)->default('BWP');
+            $table->float('price')->default(0);
 
             /*  Timestamps  */
             $table->timestamps();

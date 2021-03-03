@@ -409,13 +409,18 @@ trait ProductTraits
             //  Verify permissions
             $this->updateResourcePermission($user);
 
-            //  Set the product variant attributes and allow variants
-            $this->setVariantAttributes($data);
+            //  Update the product variant attributes and allow variants
+            $this->updateVariantAttributes($data);
 
             //  Set the product variant attributes and allow variants
             $variant_attribute_matrix = $this->buildVariationsMatrix($data);
 
-            return $this->generateVariationsAndVariants($data, $variant_attribute_matrix, $user);
+            //  Create the variations using the variant attribute matrix
+            $variations = $this->generateVariationsAndVariants($data, $variant_attribute_matrix, $user);
+
+            //  Return the variations
+            return $variations;
+
 
         } catch (\Exception $e) {
 
@@ -425,7 +430,7 @@ trait ProductTraits
 
     }
 
-    public function setVariantAttributes($data = [])
+    public function updateVariantAttributes($data = [])
     {
         /**
          *  Sample Structure of $data
@@ -561,7 +566,7 @@ trait ProductTraits
                 $template = [
                     'name' => $name,
                     'description' => $this->description,
-                    'show_description' => $this->show_description,
+                    'show_description' => false,
                     'visible' => true,
                     'product_type_id' => $this->product_type_id,
                     'parent_product_id' => $this->id,
@@ -625,13 +630,16 @@ trait ProductTraits
                     $new_values = collect($new_values);
 
                     //  Get the variable values of the existing product variation
-                    $diff = $new_values->diff($existing_values);
+                    $diff_1 = $new_values->diff($existing_values);
+
+                    //  Get the variable values of the existing product variation
+                    $diff_2 = $existing_values->diff($new_values);
 
                     /**
                      *  If we don't have a difference, then we should not delete the existing variations
                      *  and we should not create a new variation
                      */
-                    if ($diff->count() == 0) {
+                    if ($diff_1->count() == 0 && $diff_2->count() == 0) {
 
                         //  Do not delete the existing variation
                         array_push($excluded_variation_ids, $existing_variation['id']);

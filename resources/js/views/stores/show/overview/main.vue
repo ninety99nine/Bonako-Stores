@@ -213,7 +213,6 @@
         },
         methods: {
             navigateToMenuLink(linkName){
-                console.log(linkName);
                 this.$emit('navigateToMenuLink', linkName);
             },
             refetchLocation(){

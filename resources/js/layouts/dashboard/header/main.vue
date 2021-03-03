@@ -67,8 +67,6 @@
                 //  Start loader
                 self.isLoading = true;
 
-                console.log('Attempting to logout');
-
                 /** Attempt to logout using the auth logout method found in the auth.js file.
                  *  Note that on a successful logout, this method will automatically handle
                  *  the process of redirecting the user to the login page.
@@ -81,9 +79,7 @@
 
                     }).catch((error) => {
 
-                        console.log(error);
-
-                });
+                    });
             }
         }
     };

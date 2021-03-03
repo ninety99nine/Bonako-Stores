@@ -4,7 +4,7 @@
     <Col :span="20" :offset="2">
       <Row :gutter="12">
         <Col :span="8">
-        
+
           <!-- Add Location Button -->
           <Card class="add-bos-mini-card-button mb-3" @click.native="navigateToCreateLocation()">
             <div class="action-title">
@@ -13,7 +13,7 @@
             </div>
           </Card>
 
-          <singleLocationCard 
+          <singleLocationCard
               v-for="(location, index) in firstColumnLocations"
               :key="index" :index="index" :store="store" :location="location">
           </singleLocationCard>
@@ -120,9 +120,6 @@ export default {
             self.isLoading = false;
           })
           .catch(response => {
-            //  Log the responce
-            console.error(response);
-
             //  Stop loader
             self.isLoading = false;
           });

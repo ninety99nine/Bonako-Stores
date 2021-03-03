@@ -32,7 +32,6 @@ Vue.use(ViewUI, { locale });
 // files.keys().map(key => Vue.component(key.split('/').pop().split('.')[0], files(key).default))
 
 Vue.component('variations',  require('./views/stores/show/products/show/components/variations/variations').default);
-Vue.component('single-product',  require('./views/stores/show/locations/show/products/single-product/main.vue').default);
 
 //  Basic App Scaffolding
 import App from './App.vue';

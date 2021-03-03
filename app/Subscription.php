@@ -31,14 +31,6 @@ class Subscription extends Model
         'user_id', 'subscription_plan_id', 'store_id', 'start_at', 'end_at', 'active'
     ];
 
-    /** ATTRIBUTES
-     *
-     *  Note that the "resource_type" is defined within CommonTraits.
-     */
-    protected $appends = [
-        'resource_type',
-    ];
-
     /*
      *  Scope:
      *  Returns subscriptions where user is the owner. This means
@@ -106,6 +98,14 @@ class Subscription extends Model
     {
         return $this->morphOne(ShortCode::class, 'owner');
     }
+
+    /** ATTRIBUTES
+     *
+     *  Note that the "resource_type" is defined within CommonTraits.
+     */
+    protected $appends = [
+        'resource_type',
+    ];
 
     //  ON DELETE EVENT
     public static function boot()

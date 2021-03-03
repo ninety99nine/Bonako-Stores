@@ -68,6 +68,22 @@ class CouponLine extends Model
         'resource_type',
     ];
 
+    /**
+     *  Returns the coupon line currency code and symbol
+     */
+    public function getCurrencyAttribute($currency_code)
+    {
+        return $this->unpackCurrency($currency_code);
+    }
+
+    /**
+     *  Returns the coupon line fixed rate
+     */
+    public function getFixedRateAttribute($amount)
+    {
+        return $this->convertToMoney($this->currency, $amount);
+    }
+
     public function setIsFixedRateAttribute($value)
     {
         $this->attributes['is_fixed_rate'] = (($value == 'true' || $value == '1') ? 1 : 0);
