@@ -140,5 +140,40 @@ class Cart extends Model
     {
         return $this->convertToMoney($this->currency, $amount);
     }
+
+    public function setCurrencyAttribute($value)
+    {
+        $this->attributes['currency'] = is_array($value) ? $value['code'] : $value;
+    }
+
+    public function setSubTotalAttribute($value)
+    {
+        $this->attributes['sub_total'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setCouponTotalAttribute($value)
+    {
+        $this->attributes['coupon_total'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setSaleDiscountTotalAttribute($value)
+    {
+        $this->attributes['sale_discount_total'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setCouponAndSaleDiscountTotalAttribute($value)
+    {
+        $this->attributes['coupon_and_sale_discount_total'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setDeliveryFeeAttribute($value)
+    {
+        $this->attributes['delivery_fee'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setGrandTotalAttribute($value)
+    {
+        $this->attributes['delivery_fee'] = is_array($value) ? $value['amount'] : $value;
+    }
     
 }

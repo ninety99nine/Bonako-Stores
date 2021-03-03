@@ -32,7 +32,7 @@ class CouponLine extends Model
     protected $fillable = [
 
         /*  Basic Info  */
-        'name', 'description', 'code', 'is_fixed_rate', 'fixed_rate', 
+        'name', 'description', 'code', 'currency', 'is_fixed_rate', 'fixed_rate', 
         'is_percentage_rate', 'percentage_rate', 
 
         /*  Coupon Info  */
@@ -82,6 +82,16 @@ class CouponLine extends Model
     public function getFixedRateAttribute($amount)
     {
         return $this->convertToMoney($this->currency, $amount);
+    }
+
+    public function setCurrencyAttribute($value)
+    {
+        $this->attributes['currency'] = is_array($value) ? $value['code'] : $value;
+    }
+
+    public function setFixedRateAttribute($value)
+    {
+        $this->attributes['fixed_rate'] = is_array($value) ? $value['amount'] : $value;
     }
 
     public function setIsFixedRateAttribute($value)

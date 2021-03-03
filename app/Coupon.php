@@ -91,6 +91,16 @@ class Coupon extends Model
         $this->attributes['uses_code'] = (($value == 'true' || $value == '1') ? 1 : 0);
     }
 
+    public function setCurrencyAttribute($value)
+    {
+        $this->attributes['currency'] = is_array($value) ? $value['code'] : $value;
+    }
+
+    public function setFixedRateAttribute($value)
+    {
+        $this->attributes['fixed_rate'] = is_array($value) ? $value['amount'] : $value;
+    }
+
     public function setIsFixedRateAttribute($value)
     {
         $this->attributes['is_fixed_rate'] = (($value == 'true' || $value == '1') ? 1 : 0);

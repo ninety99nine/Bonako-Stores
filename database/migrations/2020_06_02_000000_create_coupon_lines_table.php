@@ -19,6 +19,7 @@ class CreateCouponLinesTable extends Migration
             $table->string('name')->nullable();
             $table->string('description')->nullable();
             $table->string('code');
+            $table->char('currency', 3)->default('BWP');
             $table->boolean('is_fixed_rate')->default(false);
             $table->float('fixed_rate')->default(0);
             $table->tinyInteger('is_percentage_rate')->default(false);

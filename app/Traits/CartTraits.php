@@ -625,17 +625,6 @@ trait CartTraits
                     //  Merge the data with additional fields
                     $data = array_merge($data, [
 
-                        'is_free' => $data['is_free']['status'],
-
-                        'unit_regular_price' => $data['unit_regular_price']['amount'],
-                        'unit_sale_price' => $data['unit_sale_price']['amount'],
-                        'unit_price' => $data['unit_price']['amount'],
-                        'unit_sale_discount' => $data['unit_sale_discount']['amount'],
-                        
-                        'sub_total' => $data['sub_total']['amount'],
-                        'sale_discount_total' => $data['sale_discount_total']['amount'],
-                        'grand_total' => $data['grand_total']['amount'],
-
                         //  Set the product id
                         'product_id' => $item['id'],
 
@@ -684,9 +673,6 @@ trait CartTraits
 
                     //  Merge the data with additional fields
                     $data = array_merge($data, [
-
-                        //  Set the fixed rate amount
-                        'fixed_rate' => $data['fixed_rate']['amount'],
 
                         //  Set the coupon id
                         'coupon_id' => $coupon['id'],

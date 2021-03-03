@@ -78,4 +78,14 @@ class Transaction extends Model
         return $this->convertToMoney($this->currency, $amount);
     }
 
+    public function setCurrencyAttribute($value)
+    {
+        $this->attributes['currency'] = is_array($value) ? $value['code'] : $value;
+    }
+
+    public function setAmountAttribute($value)
+    {
+        $this->attributes['amount'] = is_array($value) ? $value['amount'] : $value;
+    }
+
 }

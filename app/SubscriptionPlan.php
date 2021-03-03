@@ -52,4 +52,14 @@ class SubscriptionPlan extends Model
         return $this->convertToMoney($this->currency, $amount);
     }
 
+    public function setCurrencyAttribute($value)
+    {
+        $this->attributes['currency'] = is_array($value) ? $value['code'] : $value;
+    }
+
+    public function setPriceAttribute($value)
+    {
+        $this->attributes['price'] = is_array($value) ? $value['price'] : $value;
+    }
+
 }

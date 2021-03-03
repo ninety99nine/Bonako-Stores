@@ -141,10 +141,53 @@ class ItemLine extends Model
         ];
     }
 
-
     public function setIsFreeAttribute($value)
     {
-        $this->attributes['is_free'] = (($value == 'true' || $value == '1') ? 1 : 0);
+        if( is_array($value) ){
+            $this->attributes['is_free'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['is_free'] = (($value == 'true' || $value == '1') ? 1 : 0);
+        }
+    }
+
+    public function setCurrencyAttribute($value)
+    {
+        $this->attributes['currency'] = is_array($value) ? $value['code'] : $value;
+    }
+
+    public function setUnitRegularPriceAttribute($value)
+    {
+        $this->attributes['unit_regular_price'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setUnitSalePriceAttribute($value)
+    {
+        $this->attributes['unit_sale_price'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setUnitPriceAttribute($value)
+    {
+        $this->attributes['unit_price'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setUnitSaleDiscountAttribute($value)
+    {
+        $this->attributes['unit_sale_discount'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setSubTotalAttribute($value)
+    {
+        $this->attributes['sub_total'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setSaleDiscountTotalAttribute($value)
+    {
+        $this->attributes['sale_discount_total'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setGrandTotalAttribute($value)
+    {
+        $this->attributes['grand_total'] = is_array($value) ? $value['amount'] : $value;
     }
 
 }
