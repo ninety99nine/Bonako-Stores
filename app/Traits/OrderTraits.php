@@ -946,18 +946,12 @@ trait OrderTraits
                 $payment_date = \Carbon\Carbon::now()->format('d M @ H:i');
 
                 //  Set the grand total
-                $grand_total = number_format($active_cart->grand_total, 2, '.', ',');
-
-                //  Set the currency symbol
-                $currency_symbol = $active_cart->currency->symbol;
-
-                //  Set the total
-                $total = $currency_symbol.$grand_total;
+                $grand_total = $active_cart->grand_total['currency_money'];
 
                 //  Craft the sms message
                 $message = $store->name.': Hi '.$customer->first_name.
                            ', payment successful for order #'.$this->number.
-                           ' Amount '.$total.', '.$payment_date;
+                           ' Amount '.$grand_total.', '.$payment_date;
 
                 $type = 'Order payment';
 

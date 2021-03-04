@@ -142,7 +142,13 @@ trait TransactionTraits
 
             //  Set validation rules
             $rules = [
-                'amount' => 'required|regex:/^\d+(\.\d{1,2})?$/',
+                /** 
+                 *  Note that the amount can be a Float or Array value that has the money format, 
+                 *  therefore we must make sure our validation can cater for both scenerios. For
+                 *  now the validation only support a Float value so we are disabling it until
+                 *  we can offer support for both data types.
+                 */
+                //  'amount' => 'required|regex:/^\d+(\.\d{1,2})?$/',
                 'payment_method_id' => 'required|regex:/^[0-9]+$/i'
             ];
 

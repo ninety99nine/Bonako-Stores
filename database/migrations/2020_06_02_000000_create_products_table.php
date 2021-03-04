@@ -36,7 +36,7 @@ class CreateProductsTable extends Migration
 
             /*  Quantity Management  */
             $table->boolean('allow_multiple_quantity_per_order')->default(true);
-            $table->boolean('allow_maximum_quantity_per_order')->default(true);
+            $table->boolean('allow_maximum_quantity_per_order')->default(false);
             $table->unsignedTinyInteger('maximum_quantity_per_order')->default(5);
 
             /*  Stock Management  */
