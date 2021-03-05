@@ -20,7 +20,7 @@ class Cart extends Model
     protected $fillable = [
 
         /*  Cart Info  */
-        'active', 'sub_total', 'coupon_total', 'sale_discount_total', 'coupon_and_sale_discount_total', 
+        'active', 'sub_total', 'coupon_total', 'sale_discount_total', 'coupon_and_sale_discount_total',
         'delivery_fee', 'grand_total', 'total_items', 'total_unique_items',
 
         /*  Currency Info  */
@@ -173,7 +173,7 @@ class Cart extends Model
 
     public function setGrandTotalAttribute($value)
     {
-        $this->attributes['delivery_fee'] = is_array($value) ? $value['amount'] : $value;
+        $this->attributes['grand_total'] = is_array($value) ? $value['amount'] : $value;
     }
-    
+
 }

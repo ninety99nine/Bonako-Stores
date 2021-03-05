@@ -116,7 +116,7 @@ trait OrderTraits
 
                 //  Create a new delivery line resource
                 $this->order->createResourceDeliveryLine($data);
-                
+
                 //  Refresh the instance to load the delivery line
                 $this->order = $this->order->fresh();
 

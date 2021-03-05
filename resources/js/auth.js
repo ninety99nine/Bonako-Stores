@@ -297,7 +297,7 @@ class Auth {
             });
     }
 
-    register (first_name, last_name, email, password, password_confirmation)
+    register (first_name, last_name, email, password, password_confirmation, vueInstance)
     {
         /**  Make an Api call to get the API Register endpoint. We include the user's
          *   registration details required for account creation.
@@ -312,7 +312,7 @@ class Auth {
             }
         };
 
-        return api.call('post', this.registerUrl, data)
+        return api.call('post', this.registerUrl, data, vueInstance)
             .then(({data}) => {
 
                 //  Get the access token

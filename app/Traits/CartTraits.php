@@ -137,8 +137,8 @@ trait CartTraits
         }
     }
 
-    /** 
-     *  This method builds a detailed cart on the fly using the supplied 
+    /**
+     *  This method builds a detailed cart on the fly using the supplied
      *  items, coupons, delivery fees and location information.
      */
     public function buildCartBasket($data = [])
@@ -227,7 +227,7 @@ trait CartTraits
                  *  Remember that the grand total already applied the sale discounts.
                  */
                 $grand_total = $grand_total - $coupon_total;
-                
+
                 //  Set the delivery fee to Zero (In the case that we allow free delivery)
                 $delivery_fee = 0;
 
@@ -271,7 +271,7 @@ trait CartTraits
         }
     }
 
-    /** 
+    /**
      *  This method searches for the supplied items and returns
      *  detailed profiles of each item with information on the
      *  item price and totals in relation to the quantity.
@@ -282,9 +282,9 @@ trait CartTraits
 
             /*  Sample Item Structure
              *
-             *  Each item of the $items Array should contain 
+             *  Each item of the $items Array should contain
              *  the item id and item quantity
-             *  
+             *
              *  Example:
              *
              *  $items = [
@@ -296,7 +296,7 @@ trait CartTraits
 
             //  Extract the item ID's
             $item_ids = collect($items)->map(function ($item) {
-                
+
                 return $item['id'];
 
             })->toArray();
@@ -332,9 +332,9 @@ trait CartTraits
                         $cart_item = collect($related_item)->only([
 
                             /*  Product Details  */
-                            'id', 'name', 'description', 
-                            'is_free', 'unit_regular_price', 'unit_sale_price', 
-                            'sku', 'barcode', 
+                            'id', 'name', 'description',
+                            'is_free', 'unit_regular_price', 'unit_sale_price',
+                            'sku', 'barcode',
 
                             /*  Product Attributes  */
                             'unit_price', 'unit_sale_discount'
@@ -362,7 +362,7 @@ trait CartTraits
         }
     }
 
-    /** 
+    /**
      *  This method calculates the total coupon discount that
      *  must be applied on the grand total provided.
      */
@@ -429,7 +429,7 @@ trait CartTraits
 
                                 //  Set the percentage rate
                                 $percentage_rate = $location_coupon['percentage_rate'];
-                                
+
                                 /** Calculate the percentage coupon discount and add to the total
                                  *  fixed rate cannot be greater than the grand total.
                                  */
@@ -441,7 +441,7 @@ trait CartTraits
                                 //  Set the fixed rate
                                 $fixed_rate = $location_coupon['fixed_rate']['amount'];
 
-                                /** Add the fixed coupon discount to the total. Note that the 
+                                /** Add the fixed coupon discount to the total. Note that the
                                  *  fixed rate cannot be greater than the grand total.
                                  */
                                 $total += ($fixed_rate <= $grand_total ? $fixed_rate : $grand_total);
@@ -472,10 +472,10 @@ trait CartTraits
 
     }
 
-    /** 
-     *  This method returns the total item quantity. 
+    /**
+     *  This method returns the total item quantity.
      *  Assuming that the items are as follows:
-     * 
+     *
      *  ["3x(Tomato)", "2x(Anion)", "1x(Garlic)"]
      *
      *  Then the total item quantity is "6"
@@ -483,7 +483,7 @@ trait CartTraits
     public function getTotalItemQuantity($items = [])
     {
         try {
-        
+
             //  Set the total quantity to Zero
             $total_quantity = 0;
 
@@ -510,7 +510,7 @@ trait CartTraits
 
     }
 
-    /** 
+    /**
      *  This method returns the cart items listed in an Array
      *  showing each item with its name and quantity e.g:
      *  ["3x(Tomato)", "2x(Anion)", "1x(Garlic)"]
@@ -540,7 +540,7 @@ trait CartTraits
 
     }
 
-    /** 
+    /**
      *  This method returns the cart items listed in a single String
      *  showing each item with its name and quantity separated with
      *  a comma e.g "3x(Tomato), 2x(Anion), 1x(Garlic)"
@@ -618,7 +618,7 @@ trait CartTraits
 
                 //  Foreach item
                 foreach ($items as $item) {
-                    
+
                     //  Set the data as the current item data
                     $data = collect($item)->toArray();
 
@@ -667,7 +667,7 @@ trait CartTraits
 
                 //  Foreach coupon
                 foreach ($coupons as $coupon) {
-                    
+
                     //  Set the data as the current coupon data
                     $data = collect($coupon)->toArray();
 
