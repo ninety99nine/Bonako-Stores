@@ -168,7 +168,7 @@ trait CartTraits
                 $coupon_line['uses_code'] = $coupon_line['uses_code']['status'];
                 $coupon_line['allow_free_delivery'] = $coupon_line['allow_free_delivery']['status'];
                 $coupon_line['currency'] = $coupon_line['currency']['code'];
-                $coupon_line['discount_rate_type'] = substr(strtolower($coupon_line['discount_rate_type']['name']), 0, 1) == 'p' ? 'p' : 'f';
+                $coupon_line['discount_rate_type'] = substr(strtolower($coupon_line['discount_rate_type']['name']), 0, 1) == 'p' ? 'p' : 'p';
                 $coupon_line['fixed_rate'] = $coupon_line['fixed_rate']['amount'];
                 $coupon_line['allow_discount_on_minimum_total'] = $coupon_line['allow_discount_on_minimum_total']['status'];
                 $coupon_line['discount_on_minimum_total'] = $coupon_line['discount_on_minimum_total']['amount'];

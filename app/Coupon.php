@@ -230,9 +230,9 @@ class Coupon extends Model
     public function setDiscountRateTypeAttribute($value)
     {
         if( is_array($value) ){
-            $this->attributes['discount_rate_type'] = substr(strtolower($value['name']), 0, 1) == 'p' ? 'p' : 'f';
+            $this->attributes['discount_rate_type'] = substr(strtolower($value['name']), 0, 1) == 'p' ? 'p' : 'p';
         }else{
-            $this->attributes['discount_rate_type'] = substr(strtolower($value), 0, 1) == 'p' ? 'p' : 'f';
+            $this->attributes['discount_rate_type'] = substr(strtolower($value), 0, 1) == 'p' ? 'p' : 'p';
         }
     }
 
