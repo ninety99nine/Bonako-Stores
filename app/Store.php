@@ -116,7 +116,7 @@ class Store extends Model
      */
     public function subscriptions()
     {
-        return $this->hasMany('App\Subscription');
+        return $this->morphMany(Subscription::class, 'owner')->latest();
     }
 
     /*
@@ -124,7 +124,7 @@ class Store extends Model
      */
     public function subscription()
     {
-        return $this->hasOne('App\Subscription')->latest();
+        return $this->morphOne(Subscription::class, 'owner')->latest();
     }
 
     /*

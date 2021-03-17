@@ -115,6 +115,8 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::put('/', 'LocationController@updateLocation')->name('update')->where('location_id', '[0-9]+');
             Route::delete('/', 'LocationController@deleteLocation')->name('delete')->where('location_id', '[0-9]+');
 
+            Route::get('/store', 'LocationController@getLocationStore')->name('store')->where('location_id', '[0-9]+');
+
             Route::get('/totals', 'LocationController@getLocationTotals')->name('totals');
 
             Route::get('/users', 'LocationController@getLocationUsers')->name('users');
@@ -194,6 +196,46 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             });
 
             Route::get('/locations', 'ProductController@getProductLocations')->name('locations');
+
+        });
+
+    });
+
+    //  Coupon Resource Routes
+    Route::prefix('coupons')->group(function () {
+
+        Route::get('/', 'CouponController@getCoupons')->name('coupons');
+        Route::post('/', 'CouponController@createCoupon')->name('coupon-create');
+
+        //  Single Coupon resources    /api/coupons/{coupon_id}   name => coupon-*
+        Route::prefix('/{coupon_id}')->name('coupon-')->group(function () {
+
+            Route::get('/', 'CouponController@getCoupon')->name('show')->where('coupon_id', '[0-9]+');
+            Route::put('/', 'CouponController@updateCoupon')->name('update')->where('coupon_id', '[0-9]+');
+            Route::delete('/', 'CouponController@deleteCoupon')->name('delete')->where('coupon_id', '[0-9]+');
+
+            Route::get('/location', 'CouponController@getCouponLocation')->name('location')->where('coupon_id', '[0-9]+');
+
+        });
+
+    });
+
+    //  Instant Cart Resource Routes
+    Route::prefix('instant-carts')->group(function () {
+
+        Route::get('/', 'InstantCartController@getInstantCarts')->name('instant-carts');
+        Route::post('/', 'InstantCartController@createInstantCart')->name('instant-cart-create');
+
+        //  Single instant cart resources    /api/instant-carts/{instant_cart_id}   name => instant-cart-*
+        Route::prefix('/{instant_cart_id}')->name('instant-cart-')->group(function () {
+
+            Route::get('/', 'InstantCartController@getInstantCart')->name('show')->where('instant_cart_id', '[0-9]+');
+            Route::put('/', 'InstantCartController@updateInstantCart')->name('update')->where('instant_cart_id', '[0-9]+');
+            Route::delete('/', 'InstantCartController@deleteInstantCart')->name('delete')->where('instant_cart_id', '[0-9]+');
+
+            Route::get('/location', 'InstantCartController@getInstantCartLocation')->name('location')->where('instant_cart_id', '[0-9]+');
+            Route::post('/generate-payment-shortcode', 'InstantCartController@generatePaymentShortCode')->name('generate-payment-shortcode')->where('instant_cart_id', '[0-9]+');
+            Route::post('/subscribe', 'InstantCartController@generateSubscription')->name('subscribe')->where('instant_cart_id', '[0-9]+');
 
         });
 

@@ -61,6 +61,12 @@ class Location extends JsonResource
                         'title' => 'This location',
                     ],
 
+                    //  Link to the store
+                    'bos:store' => [
+                        'href' => route('location-store', ['location_id' => $this->id]),
+                        'title' => 'The location store',
+                    ],
+
                     //  Link to the location totals
                     'bos:totals' => [
                         'href' => route('location-totals', ['location_id' => $this->id]),
@@ -77,6 +83,12 @@ class Location extends JsonResource
                     'bos:orders' => [
                         'href' => route('location-orders', ['location_id' => $this->id]),
                         'title' => 'The location orders',
+                    ],
+
+                    //  Link to the instant carts
+                    'bos:instant_carts' => [
+                        'href' => route('location-instant-carts', ['location_id' => $this->id]),
+                        'title' => 'The location instant carts',
                     ],
 
                     //  Link to the coupons
@@ -248,7 +260,7 @@ class Location extends JsonResource
 
                  /*  Embedded  */
                 '_embedded' => [
-                    
+
                 ]
             ];
         } catch (\Exception $e) {

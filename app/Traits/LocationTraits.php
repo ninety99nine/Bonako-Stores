@@ -240,6 +240,36 @@ trait LocationTraits
     }
 
     /**
+     *  This method returns a single location store
+     */
+    public function getResourceStore()
+    {
+        try {
+
+            //  Get the resource
+            $store = $this->store;
+
+            //  If exists
+            if ($store) {
+
+                //  Return store
+                return $store;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method returns location totals
      */
     public function getResourceTotals($data = [], $user)
@@ -495,53 +525,11 @@ trait LocationTraits
     {
         try {
 
-            //  Extract the Request Object data (CommanTraits)
-            $data = $this->extractRequestData($data);
-
-            //  Set the pagination limit e.g 15
-            $limit = $data['limit'] ?? null;
-
-            //  Set the search term e.g "Festive Combo"
-            $search_term = $data['search'] ?? null;
-
-            //  Validate the data (CommanTraits)
-            $this->getResourcesValidation($data);
-
             //  Get the instant carts
-            $instantCarts = $this->instantCarts()->latest();
+            $instant_carts = $this->instantCarts();
 
-            //  If we need to search for specific instant carts
-            if (!empty($search_term)) {
-
-                $instantCarts = $instantCarts->search($search_term);
-
-            }
-
-            //  If we should paginate the collection
-            if( $paginate === true ){
-
-                //  Return the paginated instant carts
-                $instantCarts = $instantCarts->paginate($limit);
-
-            }else{
-
-                //  Return the instant carts
-                $instantCarts = $instantCarts->get();
-
-            }
-
-            //  If we should convert the collection to an API Readable Format
-            if( $convert_to_api_format === true ){
-
-                //  Convert to API Readable Format
-                return (new \App\InstantCart)->convertToApiFormat($instantCarts);
-
-            }else{
-
-                //  Return instant carts
-                return $instantCarts;
-
-            }
+            //  Return a list of location instant carts
+            return (new \App\InstantCart())->getResources($data, $instant_carts, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 

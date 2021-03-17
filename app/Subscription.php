@@ -28,7 +28,8 @@ class Subscription extends Model
      * @var array
      */
     protected $fillable = [
-        'user_id', 'subscription_plan_id', 'store_id', 'start_at', 'end_at', 'active'
+        'subscription_plan_id', 'start_at', 'end_at', 'active',
+        'user_id', 'owner_id', 'owner_type'
     ];
 
     /*

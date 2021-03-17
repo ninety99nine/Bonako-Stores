@@ -164,7 +164,7 @@
 
                     <router-view :store="store" :location="location" :assignedLocations="assignedLocations"
                                  :locationTotals="locationTotals" @refetchLocationOrder="fetchAssignedLocations"
-                                 @navigateToMenuLink="navigateToMenuLink" @fetchLocationTotals="fetchLocationTotals" 
+                                 @navigateToMenuLink="navigateToMenuLink" @fetchLocationTotals="fetchLocationTotals"
                                  @updatedLocation="handleUpdatedLocation" />
                 </template>
 
@@ -194,8 +194,8 @@
 
 <script>
 
-    import basicButton from './../../../components/_common/buttons/basicButton.vue';
     import Loader from './../../../components/_common/loaders/default.vue';
+    import basicButton from './../../../components/_common/buttons/basicButton.vue';
 
     export default {
         components: { basicButton, Loader },
@@ -228,6 +228,16 @@
                     {
                         name: 'products',
                         linkName: 'show-store-products',
+                        icon: 'ios-pricetags-outline'
+                    },
+                    {
+                        name: 'coupons',
+                        linkName: 'show-store-coupons',
+                        icon: 'ios-pricetags-outline'
+                    },
+                    {
+                        name: 'instant carts',
+                        linkName: 'show-store-instant-carts',
                         icon: 'ios-pricetags-outline'
                     },
                     {

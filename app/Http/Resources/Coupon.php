@@ -24,12 +24,20 @@ class Coupon extends JsonResource
             'always_apply' => $this->always_apply,
             'uses_code' => $this->uses_code,
             'code' => $this->code,
-            'is_fixed_rate' => $this->is_fixed_rate,
+            'allow_free_delivery' => $this->allow_free_delivery,
             'currency' => $this->currency,
+            'discount_rate_type' => $this->discount_rate_type,
             'fixed_rate' => $this->fixed_rate,
-            'is_percentage_rate' => $this->is_percentage_rate,
             'percentage_rate' => $this->percentage_rate,
-            'store_id' => $this->store_id,
+
+            'allow_discount_on_minimum_total' => $this->allow_discount_on_minimum_total,
+            'discount_on_minimum_total' => $this->discount_on_minimum_total,
+            'allow_discount_on_total_items' => $this->allow_discount_on_total_items,
+            'discount_on_total_items' => $this->discount_on_total_items,
+            'allow_discount_on_total_unique_items' => $this->allow_discount_on_total_unique_items,
+            'discount_on_total_unique_items' => $this->discount_on_total_unique_items,
+
+            'location_id' => $this->location_id,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
@@ -49,11 +57,11 @@ class Coupon extends JsonResource
                     'title' => 'This coupon'
                 ]
                 */
-                
+
             ],
 
             '_embedded' => [
-                
+
             ]
 
         ];

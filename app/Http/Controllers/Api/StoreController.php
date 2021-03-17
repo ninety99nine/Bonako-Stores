@@ -104,7 +104,7 @@ class StoreController extends Controller
         try {
 
             //  Return the generated payment short code
-            return (new Store())->getResource($store_id)->generateResourcePaymentShortCode()->convertToApiFormat();
+            return (new Store())->getResource($store_id)->generateResourcePaymentShortCode($this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 

@@ -107,6 +107,18 @@ class Home extends JsonResource
                     'title' => 'Create products',
                 ],
 
+                //  Link to coupons resources (Used to create new coupon resource)
+                'bos:coupons' => [
+                    'href' => route('coupons'),
+                    'title' => 'Create coupons',
+                ],
+
+                //  Link to products resources (Used to create new product resource)
+                'bos:instant_carts' => [
+                    'href' => route('instant-carts'),
+                    'title' => 'Create instant carts',
+                ],
+
                 //  Link to subscription plans resources (Used to get subscription plans)
                 'bos:subscription_plans' => [
                     'href' => route('subscription-plans'),

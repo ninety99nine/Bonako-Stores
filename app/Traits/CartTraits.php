@@ -1,13 +1,19 @@
 <?php
 
 namespace App\Traits;
+
+use DB;
 use App\Http\Resources\Cart as CartResource;
 use App\Http\Resources\Carts as CartsResource;
+use App\Http\Resources\ItemLines;
 
 trait CartTraits
 {
     public $cart = null;
     public $coupons = [];
+    public $_total_items = 0;
+    public $_total_unique_items = 0;
+    public $allow_free_delivery = false;
 
     /**
      *  This method transforms a collection or single model instance
@@ -58,8 +64,8 @@ trait CartTraits
             //  Build the cart basket
             $cart_basket = $this->buildCartBasket($data);
 
-            //  Compile the resource template
-            $template = $this->compileResourceTemplate($cart_basket);
+            //  Set the template with the resource fields allowed
+            $template =  collect($cart_basket)->only($this->getFillable())->toArray();
 
             /**
              *  Create a new resource
@@ -98,6 +104,113 @@ trait CartTraits
         }
     }
 
+
+    /**
+     *  This method creates a new cart
+     */
+    public function cloneResource($model = null)
+    {
+        try {
+
+            //  Set the cart to clone
+            $cart_to_clone = $this;
+
+            //  Set the template with the resource fields allowed
+            $template =  collect($this)->only($cart_to_clone->getFillable())->toArray();
+
+            /**
+             *  Create a new resource
+             */
+            $this->cart = $this->create($template);
+
+            /******************************
+             *  CLONE CART ITEM LINES     *
+             ******************************/
+
+            //  Get the cart to clone item lines
+            $item_lines = collect($cart_to_clone->itemLines)->map(function($item_line){
+
+                $item_line = collect($item_line)->only( (new \App\ItemLine)->getFillable() )->toArray();
+
+                //  Restructure item line
+                $item_line['is_free'] = $item_line['is_free']['status'];
+                $item_line['currency'] = $item_line['currency']['code'];
+                $item_line['unit_regular_price'] = $item_line['unit_regular_price']['amount'];
+                $item_line['unit_sale_price'] = $item_line['unit_sale_price']['amount'];
+                $item_line['unit_price'] = $item_line['unit_price']['amount'];
+                $item_line['unit_sale_discount'] = $item_line['unit_sale_discount']['amount'];
+                $item_line['sub_total'] = $item_line['sub_total']['amount'];
+                $item_line['sale_discount_total'] = $item_line['sale_discount_total']['amount'];
+                $item_line['grand_total'] = $item_line['grand_total']['amount'];
+
+                //  Update the owning cart
+                $item_line['cart_id'] = $this->cart->id;
+
+                return $item_line;
+
+
+            })->toArray();
+
+            //  Assign item lines to cart
+            DB::table('item_lines')->insert($item_lines);
+
+            /********************************
+             *  CLONE CART COUPON LINES     *
+             ********************************/
+
+            //  Get the cart to clone coupon lines
+            $coupon_lines = collect($cart_to_clone->couponLines)->map(function($coupon_line){
+
+                $coupon_line = collect($coupon_line)->only( (new \App\CouponLine)->getFillable() )->toArray();
+
+                //  Restructure coupon line
+                $coupon_line['always_apply'] = $coupon_line['always_apply']['status'];
+                $coupon_line['uses_code'] = $coupon_line['uses_code']['status'];
+                $coupon_line['allow_free_delivery'] = $coupon_line['allow_free_delivery']['status'];
+                $coupon_line['currency'] = $coupon_line['currency']['code'];
+                $coupon_line['discount_rate_type'] = $coupon_line['discount_rate_type']['name'];
+                $coupon_line['fixed_rate'] = $coupon_line['fixed_rate']['amount'];
+                $coupon_line['allow_discount_on_minimum_total'] = $coupon_line['allow_discount_on_minimum_total']['status'];
+                $coupon_line['discount_on_minimum_total'] = $coupon_line['discount_on_minimum_total']['amount'];
+                $coupon_line['allow_discount_on_total_items'] = $coupon_line['allow_discount_on_total_items']['status'];
+                $coupon_line['allow_discount_on_total_unique_items'] = $coupon_line['allow_discount_on_total_unique_items']['status'];
+
+                //  Update the owning cart
+                $coupon_line['cart_id'] = $this->cart->id;
+
+                return $coupon_line;
+
+            })->toArray();
+
+            //  Assign coupon lines to cart
+            DB::table('coupon_lines')->insert($coupon_lines);
+
+            //  If created successfully
+            if ( $this->cart ) {
+
+                //  If we have an owning model
+                if( $model ){
+
+                    //  Update the cart owner id and owner type
+                    $this->cart->update([
+                        'owner_id' => $model->id,
+                        'owner_type' => $model->resource_type,
+                    ]);
+
+                }
+
+                //  Return a fresh instance
+                return $this->cart->fresh();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
     /**
      *  This method compiles the cart template by assembling
      *  information collected from other sources.
@@ -105,30 +218,6 @@ trait CartTraits
     public function compileResourceTemplate($cart_basket = [])
     {
         try {
-
-            //  Set the total amount
-            $cart_basket['sub_total'] = $cart_basket['sub_total']['amount'];
-
-            //  Set the coupon total amount
-            $cart_basket['coupon_total'] = $cart_basket['coupon_total']['amount'];
-
-            //  Set the sale discount total amount
-            $cart_basket['sale_discount_total'] = $cart_basket['sale_discount_total']['amount'];
-
-            //  Set the sale discount total amount
-            $cart_basket['coupon_and_sale_discount_total'] = $cart_basket['coupon_and_sale_discount_total']['amount'];
-
-            //  Set the delivery fee amount
-            $cart_basket['delivery_fee'] = $cart_basket['delivery_fee']['amount'];
-
-            //  Set the grand total amount
-            $cart_basket['grand_total'] = $cart_basket['grand_total']['amount'];
-
-            //  Set the currency code
-            $cart_basket['currency'] = $cart_basket['currency']['code'];
-
-            //  Return the template with the resource fields allowed
-            return collect($cart_basket)->only($this->getFillable())->toArray();
 
         } catch (\Exception $e) {
 
@@ -157,8 +246,8 @@ trait CartTraits
             //  Set the location id
             $location_id = $data['location_id'] ?? null;
 
-            //  Set the allow free delivery
-            $allow_free_delivery = $data['allow_free_delivery'] ?? false;
+            //  Set the allow free delivery otherwise default to original value
+            $this->allow_free_delivery = $data['allow_free_delivery'] ?? $this->allow_free_delivery;
 
             //  Set the delivery fee
             $delivery_fee = $data['delivery_fee'] ?? 0;
@@ -191,6 +280,24 @@ trait CartTraits
             //  Get the cart items
             $cart_items = $this->buildBasketItems($items);
 
+            /**
+             *  Calculate total unique items
+             *
+             *  Note that we initiated "_total_unique_items" instead of "total_unique_items"
+             *  since the "total_unique_items" already exists on the Cart Model as a
+             *  database column name. Therefore this will avoid any conflicts
+             */
+            $this->_total_unique_items = count($cart_items);
+
+            /**
+             *  Calculate total items
+             *
+             *  Note that we initiated "_total_items" instead of "total_items"
+             *  since the "total_items" already exists on the Cart Model as a
+             *  database column name. Therefore this will avoid any conflicts
+             */
+            $this->_total_items = $this->getTotalItemQuantity($cart_items);
+
             //  Total of only the cart items combined
             $sub_total = 0;
 
@@ -221,7 +328,7 @@ trait CartTraits
             $coupon_total = $this->calcultateCoupons($grand_total, $location_coupons, $coupons);
 
             //  If we don't have a delivery fee or we allow free delivery
-            if( $delivery_fee == 0 || $allow_free_delivery ){
+            if( $delivery_fee == 0 || $this->allow_free_delivery ){
 
                 /** Calculate the grand total (The actual amount minus how much the customer saved using coupons).
                  *  Remember that the grand total already applied the sale discounts.
@@ -249,15 +356,15 @@ trait CartTraits
             return [
                 'items' => $cart_items,
                 'coupons' => $this->coupons,
-                'total_unique_items' => count($cart_items),
-                'total_items' => $this->getTotalItemQuantity($cart_items),
+                'total_items' => $this->_total_items,
+                'total_unique_items' => $this->_total_unique_items,
                 'items_summarized_array' => $this->getItemsSummarizedInArray($cart_items),
                 'items_summarized_inline' => $this->getItemsSummarizedInline($cart_items),
                 'sub_total' => $this->convertToMoney($currency, $sub_total),
                 'coupon_total' => $this->convertToMoney($currency, $coupon_total),
                 'sale_discount_total' => $this->convertToMoney($currency, $sale_discount_total),
                 'coupon_and_sale_discount_total' => $this->convertToMoney($currency, $coupon_and_sale_discount_total),
-                'allow_free_delivery' => $allow_free_delivery,
+                'allow_free_delivery' => $this->allow_free_delivery,
                 'delivery_fee' => $this->convertToMoney($currency, $delivery_fee),
                 'grand_total' => $this->convertToMoney($currency, $grand_total),
                 'location_id' => $location_id,
@@ -384,27 +491,71 @@ trait CartTraits
             foreach ($location_coupons as $location_coupon) {
 
                 //  If this location coupon is active
-                if( $location_coupon['active'] ){
+                if( $location_coupon['active']['status'] ){
 
                     //  Set the "Is valid" variable
                     $is_valid = true;
 
                     //  If the location coupon must not always be applied
-                    if( !$location_coupon['always_apply'] ){
+                    if( $location_coupon['always_apply']['status'] == false ){
 
                         //	Check if we have a matching coupon provided
-                        $is_valid = collect($coupons)->contains(function ($coupon) use ($location_coupon) {
+                        $is_valid = collect($coupons)->contains(function ($coupon) use ($location_coupon, $grand_total){
 
                             //  If the location coupon is applied using a specific code
                             if( $location_coupon['uses_code'] == true ){
 
                                 //	Check if we have a matching code
-                                return ($coupon['code'] == $location_coupon['code']);
+                                $is_valid = ($coupon['code'] == $location_coupon['code']);
+
+                                //  If not valid return false
+                                if( !$is_valid ) return false;
+
+                            }else{
+
+                                //	Check if we have a matching id
+                                $is_valid = ($coupon['id'] == $location_coupon['id']);
+
+                                //  If not valid return false
+                                if( !$is_valid ) return false;
 
                             }
 
-                            //	Check if we have a matching id
-                            return ($coupon['id'] == $location_coupon['id']);
+                            $discount_on_minimum_total = $location_coupon['discount_on_minimum_total']['amount'];
+                            $allow_discount_on_minimum_total = $location_coupon['allow_discount_on_minimum_total']['status'];
+
+                            //  If this coupon allows a discount on a minimum total
+                            if( $allow_discount_on_minimum_total && $grand_total < $discount_on_minimum_total ){
+
+                                //  Return false since its not valid
+                                return false;
+
+                            }
+
+                            $discount_on_total_items = $location_coupon['discount_on_total_items'];
+                            $allow_discount_on_total_items = $location_coupon['allow_discount_on_total_items']['status'];
+
+                            //  If this coupon allows a discount on minimum total items
+                            if( $allow_discount_on_total_items && $this->_total_items < $discount_on_total_items ){
+
+                                //  Return false since its not valid
+                                return false;
+
+                            }
+
+                            $discount_on_total_unique_items = $location_coupon['discount_on_total_unique_items'];
+                            $allow_discount_on_total_unique_items = $location_coupon['allow_discount_on_total_unique_items']['status'];
+
+                            //  If this coupon allows a discount on minimum total unique items
+                            if( $allow_discount_on_total_unique_items && $this->_total_unique_items < $discount_on_total_unique_items ){
+
+                                //  Return false since its not valid
+                                return false;
+
+                            }
+
+                            //  At this point the coupon is valid
+                            return true;
 
                         });
 
@@ -422,10 +573,18 @@ trait CartTraits
                         });
 
                         //  If we haven't yet applied this coupon
-                        if( !$already_applied ){
+                        if( $already_applied == false ){
+
+                            //  Check if this coupon offers free delivery
+                            if ($location_coupon['allow_free_delivery']['status']) {
+
+                                //  Make an update for free delivery
+                                $this->allow_free_delivery = true;
+
+                            }
 
                             //  If its a percentage rate based coupon
-                            if ($location_coupon['is_percentage_rate']['status']) {
+                            if ($location_coupon['discount_rate_type']['type'] == 'Percentage') {
 
                                 //  Set the percentage rate
                                 $percentage_rate = $location_coupon['percentage_rate'];
@@ -436,7 +595,7 @@ trait CartTraits
                                 $total += ($percentage_rate / 100 * $grand_total);
 
                             //  If its a flat rate based coupon
-                            } elseif ($location_coupon['is_fixed_rate']['status']) {
+                            } elseif ($location_coupon['discount_rate_type']['type'] == 'Fixed') {
 
                                 //  Set the fixed rate
                                 $fixed_rate = $location_coupon['fixed_rate']['amount'];

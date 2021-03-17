@@ -17,12 +17,13 @@ class Subscription extends JsonResource
     {
         return [
             'id' => $this->id,
-            'user_id' => $this->user_id,
-            'store_id' => $this->store_id,
             'subscription_plan_id' => $this->subscription_plan_id,
             'start_at' => $this->start_at,
             'end_at' => $this->end_at,
             'active' => $this->active,
+            'user_id' => $this->user_id,
+            'owner_id' => $this->owner_id,
+            'owner_type' => $this->owner_type,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,

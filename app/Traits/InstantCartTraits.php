@@ -2,9 +2,8 @@
 
 namespace App\Traits;
 
-use DB;
 use Carbon\Carbon;
-use Illuminate\Validation\ValidationException;
+use App\InstantCart;
 use App\Http\Resources\InstantCart as InstantCartResource;
 use App\Http\Resources\InstantCarts as InstantCartsResource;
 
@@ -12,7 +11,7 @@ trait InstantCartTraits
 {
     public $request = null;
     public $instant_cart = null;
-    
+
     /**
      *  This method transforms a collection or single model instance
      */
@@ -46,55 +45,205 @@ trait InstantCartTraits
         }
     }
 
-    /*  This method creates a new instant cart
+    /**
+     *  This method creates a new instant cart
      */
-    public function initiateCreate( $request )
-    {   
+    public function createResource($data = [], $user = null)
+    {
         try {
 
-            //  Set the request variable
-            $this->request = $request;
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-            $store_id = $request->input('store_id') ?? null;
-            $location_id = $request->input('location_id') ?? null;
+            //  Validate the data
+            $this->createResourceValidation($data);
 
-            //  Set the template
-            $template = [
+            //  Verify permissions
+            $this->createResourcePermission($user);
 
-                /*  Basic Info  */
-                'name' => $request->input('name'),
-                'description' => $request->input('description'),
-        
-                /*  Status  */
-                'active' => $request->input('active'),
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
 
-                /*  Store Info  */
-                'store_id' => $store_id,
-
-                /*  Location Info  */
-                'location_id' => $location_id
-                
-            ];
-            
-            /*
-             *  Create new a instant_cart, then retrieve a fresh instance
+            /**
+             *  Create a new resource
              */
             $this->instant_cart = $this->create($template)->fresh();
 
             //  If created successfully
-            if ($this->instant_cart) {
+            if ( $this->instant_cart ) {
 
-                //  Set the instant_cart number
-                $this->instant_cart->setInstantCartCode();
+                //  Create a new cart resource
+                $this->instant_cart->createResourceCart($data);
 
-                //  Assign products to the instant cart
-                $this->assignProductsToInstantCart();
+                //  Generate a payment shortcode (So that we can pay for the istant cart via USSD)
+                $this->instant_cart->generateResourcePaymentShortCode($user);
 
-                //  Assign coupons to the instant cart
-                $this->assignCouponsToInstantCart();
+            }
 
-                //  Return a fresh instance
-                return $this->instant_cart->fresh()->load(['products', 'coupons']);
+            //  Return a fresh instance
+            return $this->instant_cart->fresh();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method returns a list of instant carts
+     */
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data (CommanTraits)
+            $this->getResourcesValidation($data);
+
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
+
+                //  Set the instant carts to this eloquent builder
+                $instant_carts = $builder;
+
+            }else{
+
+                //  Get the instant carts
+                $instant_carts = \App\InstantCart::latest();
+
+            }
+
+            //  Filter the instant carts
+            $instant_carts = $this->filterResources($data, $instant_carts);
+
+            //  Return instant carts
+            return $this->collectionResponse($data, $instant_carts, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the instant carts by search or status
+     */
+    public function filterResources($data = [], $instant_carts)
+    {
+        //  If we need to search for specific instant carts
+        if ( isset($data['search']) && !empty($data['search']) ) {
+
+            $instant_carts = $this->filterResourcesBySearch($data, $instant_carts);
+
+        }elseif ( isset($data['status']) && !empty($data['status']) ) {
+
+            $instant_carts = $this->filterResourcesByStatus($data, $instant_carts);
+
+        }
+
+        //  Return the instant carts
+        return $instant_carts;
+    }
+
+    /**
+     *  This method filters the instant carts by search
+     */
+    public function filterResourcesBySearch($data = [], $instant_carts)
+    {
+        //  Set the search term e.g "Chicken Express"
+        $search_term = $data['search'] ?? null;
+
+        //  Return searched instant carts otherwise original instant carts
+        return empty($search_term) ? $instant_carts : $instant_carts->search($search_term);
+
+    }
+
+    /**
+     *  This method filters the instant carts by status
+     */
+    public function filterResourcesByStatus($data = [], $instant_carts)
+    {
+        //  Set the statuses to an empty array
+        $statuses = [];
+
+        //  Set the status filters e.g ["active", "inactive", "expired", ...] or "active,inactive,expired, ..."
+        $status_filters = $data['status'] ?? $data;
+
+        //  If the filters are provided as String format e.g "active,inactive,expired"
+        if( is_string($status_filters) ){
+
+            //  Set the statuses to the exploded Array ["active", "inactive", "expired"]
+            $statuses = explode(',', $status_filters);
+
+        }elseif( is_array($status_filters) ){
+
+            //  Set the statuses to the given Array ["active", "inactive", "expired"]
+            $statuses = $status_filters;
+
+        }
+
+        //  Clean-up each status filter
+        foreach ($statuses as $key => $status) {
+
+            //  Convert " unpaid " to "Unpaid"
+            $statuses[$key] = ucfirst(strtolower(trim($status)));
+        }
+
+        if ( $instant_carts && count($statuses) ) {
+
+            if( in_array('Active', $statuses) ){
+
+                $instant_carts = $instant_carts->active();
+
+            }elseif( in_array('Inactive', $statuses) ){
+
+                $instant_carts = $instant_carts->inActive();
+
+            }
+
+            if( in_array('Expired', $statuses) ){
+
+                $instant_carts = $instant_carts->expired();
+
+            }
+
+            if( in_array('Free delivery', $statuses) ){
+
+                $instant_carts = $instant_carts->offersFreeDelivery();
+
+            }
+
+        }
+
+        //  Return the instant carts
+        return $instant_carts;
+    }
+
+    /**
+     *  This method returns a single instant cart
+     */
+    public function getResource($id)
+    {
+        try {
+
+            //  Get the resource
+            $instant_cart = \App\InstantCart::where('id', $id)->first() ?? null;
+
+            //  If exists
+            if ($instant_cart) {
+
+                //  Return instant cart
+                return $instant_cart;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
 
             }
 
@@ -105,58 +254,51 @@ trait InstantCartTraits
         }
     }
 
-    /*  This method updates an existing instant cart
+    /**
+     *  This method returns a single instant cart location
      */
-    public function initiateUpdate( $request )
-    {   
+    public function getResourceLocation()
+    {
         try {
 
-            //  Get the current instant cart instance
-            $this->instant_cart = $this;
+            //  Get the resource
+            $location = $this->location;
 
-            //  Set the request variable
-            $this->request = $request;
+            //  If exists
+            if ($location) {
 
-            $id = $request->input('id') ?? null;
-            $store_id = $request->input('store_id') ?? null;
-            $location_id = $request->input('location_id') ?? null;
+                //  Return location
+                return $location;
 
-            //  Set the template
-            $template = [
+            } else {
 
-                /*  Basic Info  */
-                'name' => $request->input('name'),
-                'description' => $request->input('description'),
-        
-                /*  Status  */
-                'active' => $request->input('active'),
+                //  Return "Not Found" Error
+                return help_resource_not_found();
 
-                /*  Store Info  */
-                'store_id' => $store_id,
+            }
 
-                /*  Location Info  */
-                'location_id' => $location_id
-                
-            ];
-            
-            /*
-             *  Create new a instant_cart, then retrieve a fresh instance
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method deletes a single instant cart
+     */
+    public function deleteResource($user = null)
+    {
+        try {
+
+            //  Verify permissions
+            $this->forceDeleteResourcePermission($user);
+
+            /**
+             *  Delete the resource
              */
-            $updated = $this->instant_cart->update($template);
+            return $this->delete();
 
-            //  If created successfully
-            if ($updated) {
-
-                //  Assign products to the instant cart
-                $this->assignProductsToInstantCart();
-
-                //  Assign coupons to the instant cart
-                $this->assignCouponsToInstantCart();
-
-                //  Return a fresh instance
-                return $this->instant_cart->fresh()->load(['products', 'coupons']);
-
-            }
 
         } catch (\Exception $e) {
 
@@ -164,18 +306,24 @@ trait InstantCartTraits
 
         }
     }
-    
-    /*  setInstantCartCode()
-     *
-     *  This method creates a unique instant_cart code using the instant_cart id.
-     *  It does this by adding "0" to the isntant cart id
+
+    /**
+     *  This method creates a new instant cart
      */
-    public function setInstantCartCode()
+    public function createResourceCart($data = [])
     {
         try {
 
-            //  Set the unique instant_cart code
-            $this->update(['code' => '0'.$this->id]);
+            //  Set the cart owning model
+            $model = $this;
+
+            /**
+             *  Create new a cart resource
+             */
+            $cart = ( new \App\Cart() )->createResource($data, $model);
+
+            //  Return the cart resource
+            return $cart;
 
         } catch (\Exception $e) {
 
@@ -184,43 +332,113 @@ trait InstantCartTraits
         }
     }
 
-    public function assignProductsToInstantCart()
+    /**
+     *  This method generates a instant cart subscription
+     */
+    public function generateResourceSubscription($data = [], $user)
     {
         try {
 
-            $products = $this->request->input('products') ?? [];
-            
-            if( count($products) ){
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
 
-                $products_to_add = [];
+            //  Set the sms owning model
+            $model = $this;
 
-                foreach ($products as $key => $product) {
+            //  Create a new subscription
+            $subscription = ( new \App\Subscription() )->createResource($data, $model, $user);
 
-                    $product_id = $product['id'];
-                    $product_quantity = $product['quantity'];
+            //  Generate visit short code (CommonTraits)
+            $this->generateResourceVisitShortCode($user);
 
-                    //  Associate the product with the instant cart
-                    array_push($products_to_add,
-                    [
-                        'arrangement' => ($key + 1),
-                        'product_id' => $product_id,
-                        'owner_type' => 'instant_cart',
-                        'quantity' => $product_quantity,
-                        'owner_id' => $this->instant_cart->id,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+            //  Expire payment short codes (CommonTraits)
+            $this->expirePaymentShortCode();
+
+            //  Load the visit short code
+            $this->load('visitShortCode');
+
+            //  Send the payment request sms
+            $this->sendSubscriptionSuccessSms($user);
+
+            //  Return the new subscription
+            return $subscription;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sends the subscription success message to the merchant
+     */
+    public function sendSubscriptionSuccessSms($user = null)
+    {
+        try {
+
+            //  Set the instant cart visit short code
+            $visit_short_code = $this->visitShortCode;
+
+            //  If we have the visit short code
+            if( $visit_short_code ){
+
+                //  Set expiry to the same time as the subscription end datetime
+                $expiry_date = Carbon::parse($visit_short_code->expires_at)->format('d/m/Y H:i');
+
+                //  Craft the sms message
+                $message = 'Subscription for "'.$this->name.'" successful. Dial '.$visit_short_code->dialing_code.
+                           ' to use your instant cart. Expires on '.$expiry_date;
+
+                $type = 'instant cart subscription confirmation';
+
+                $data = [
+
+                    //  Set the type on the data
+                    'type' => $type,
+
+                    //  Set the message on the data
+                    'message' => $message,
+
+                    //  Set the mobile_number on the data
+                    'mobile_number' => $user->mobile_number
+
+                ];
+
+                //  Set the sms owning model
+                $model = $this;
+
+                //  Create a new sms and send
+                return ( new \App\Sms() )->createResource($data, $model, $user)->sendSms();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method checks permissions for creating a new resource
+     */
+    public function createResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to create the resource
+                if ($user->can('create', InstantCart::class) === false) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
 
                 }
 
-                //  Delete previous products allocated to this instant cart
-                DB::table('product_allocations')->where('owner_id', $this->instant_cart->id)->where('owner_type', 'instant_cart')->delete();
-                
-                //  Allocate new products to this instant cart
-                DB::table('product_allocations')->insert($products_to_add);
-
             }
-        
 
         } catch (\Exception $e) {
 
@@ -229,35 +447,23 @@ trait InstantCartTraits
         }
     }
 
-    public function assignCouponsToInstantCart()
+    /**
+     *  This method checks permissions for deleting an existing resource
+     */
+    public function forceDeleteResourcePermission($user = null)
     {
         try {
 
-            $coupon_ids = $this->request->input('coupon_ids') ?? [];
-            
-            if( count($coupon_ids) ){
+            //  If the user is provided
+            if( $user ){
 
-                $coupons_to_add = [];
+                //  Check if the user is authourized to delete the resource
+                if ($user->can('forceDelete', $this)) {
 
-                foreach ($coupon_ids as $key => $coupon_id) {
-
-                    //  Associate the coupon with the instant cart
-                    array_push($coupons_to_add,
-                    [
-                        'coupon_id' => $coupon_id,
-                        'owner_type' => 'instant_cart',
-                        'owner_id' => $this->instant_cart->id,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
 
                 }
-
-                //  Delete previous coupons allocated to this instant cart
-                DB::table('coupon_allocations')->where('owner_id', $this->instant_cart->id)->where('owner_type', 'instant_cart')->delete();
-                
-                //  Allocate new coupons to this instant cart
-                DB::table('coupon_allocations')->insert($coupons_to_add);
 
             }
 
@@ -267,5 +473,50 @@ trait InstantCartTraits
 
         }
     }
-    
+
+    /**
+     *  This method validates creating a new resource
+     */
+    public function createResourceValidation($data = [])
+    {
+        try {
+
+            //  Set validation rules
+            $rules = [
+
+            ];
+
+            //  Set validation messages
+            $messages = [
+
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method validates updating an existing resource
+     */
+    public function updateResourceValidation($data = [])
+    {
+        try {
+
+            //  Run the resource creation validation
+            $this->createResourceValidation($data);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
 }

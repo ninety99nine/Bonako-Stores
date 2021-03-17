@@ -70,14 +70,20 @@ trait ShortCodeTraits
                 //  Set expiry after 24 hours
                 $expires_at = Carbon::now()->addHours(24)->format('Y-m-d H:i:s');
 
-            //  If this is a visit store short code
-            }elseif( $action == 'visit' && $model->resource_type == 'store' ){
+            //  If this is a visit store short code and we have the model e.g "Store" or "InstantCart"
+            }elseif( $action == 'visit' && $model ){
 
-                //  Get the subscription with the longest time till expiry
-                $subscription = \App\Subscription::where('store_id', $model->id)->orderBy('end_at', 'desc')->first();
+                //  Get the subscription with the longest time till expiry for the given model
+                $subscription = \App\Subscription::where('owner_id', $model->id)->where('owner_type', $model->resource_type)->orderBy('end_at', 'desc')->first();
 
                 //  Set expiry to the same time as the subscription end datetime
                 $expires_at = Carbon::parse($subscription->end_at)->format('Y-m-d H:i:s');
+
+            //  Otherwise
+            }else{
+
+                //  Set expiry after 24 hours
+                $expires_at = Carbon::now()->addHours(24)->format('Y-m-d H:i:s');
 
             }
 
@@ -147,29 +153,35 @@ trait ShortCodeTraits
     /**
      *  This method returns a single shortcode
      */
-    public function searchResourceByCode($code)
+    public function searchResourceByCode($search_code)
     {
         try {
 
-            if( substr($code, 0, 2) === '00' ){
+            //  Convert "001" to "1"
+            $code = (int) $search_code;
 
-                $action = 'payment';
+            //  Search for shortcodes matching the given code
+            $short_codes = $this->where('code', $code);
 
-            }elseif( substr($code, 0, 1) === '0' ){
+            //  If the search_code starts with double "0" e.g "0045"
+            if( substr($search_code, 0, 2) === '00' ){
 
-                $action = 'order';
+                //  Get the first matching payment shortcode
+                $short_code = $short_codes->where('action', 'payment')->first();
 
+            //  If the search_code starts with single "0" e.g "045"
+            }elseif( substr($search_code, 0, 1) === '0' ){
+
+                //  Get the first matching instant cart visit shortcode
+                $short_code = $short_codes->where('action', 'visit')->where('owner_type', 'instant_cart')->first();
+
+            //  If the search_code starts with natural number e.g "45"
             }else{
 
-                $action = 'visit';
+                //  Get the first matching store or location visit shortcode
+                $short_code = $short_codes->where('action', 'visit')->whereIn('owner_type', ['store', 'location'])->first();
 
             }
-
-            //  Convert "001" to "1"
-            $code = (int) $code;
-
-            //  Get the matching shortcode
-            $short_code = $this->where('code', $code)->where('action', $action)->first();
 
             //  If exists
             if ($short_code) {
@@ -249,6 +261,66 @@ trait ShortCodeTraits
         //  Return the code
         return $code;
 
+    }
+
+
+
+    /**
+     *  This method generates a resource payment short code
+     */
+    public function generatePaymentShortCode($model, $user)
+    {
+        try {
+
+            return $this->generateResourceShortCode('payment', $model, $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method generates a resource visit short code
+     */
+    public function generateVisitShortCode($model, $user)
+    {
+        try {
+
+            return $this->generateResourceShortCode('visit', $model, $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method generates a resource short code
+     */
+    public function generateResourceShortCode($action, $model, $user)
+    {
+        try {
+
+            $data = [
+
+                //  Set the action on the data
+                'action' => $action
+
+            ];
+
+            /**
+             *  Create new a short code resource
+             */
+            return $this->createResource($data, $model, $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**

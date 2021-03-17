@@ -316,14 +316,13 @@
 
     import skuInput from './components/skuInput.vue';
     import nameInput from './components/nameInput.vue';
-    import statusTag from './components/statusTag.vue';
     import barcodeInput from './components/barcodeInput.vue';
     import isFreeCheckbox from './components/isFreeCheckbox.vue';
     import salePriceInput from './components/salePriceInput.vue';
     import costPriceInput from './components/costPriceInput.vue';
     import typeSelectInput from './components/typeSelectInput.vue';
     import descriptionInput from './components/descriptionInput.vue';
-    import visibilitySwitch from './components/visibilitySwitch.vue';    
+    import visibilitySwitch from './components/visibilitySwitch.vue';
     import regularPriceInput from './components/regularPriceInput.vue';
     import stockQuantityInput from './components/stockQuantityInput.vue';
     import locationSelectInput from './components/locationSelectInput.vue';
@@ -342,9 +341,9 @@
     export default {
         mixins: [miscMixin],
         components: {
-            skuInput, nameInput, statusTag, barcodeInput, isFreeCheckbox, salePriceInput, costPriceInput, 
+            skuInput, nameInput, barcodeInput, isFreeCheckbox, salePriceInput, costPriceInput,
             typeSelectInput, descriptionInput, visibilitySwitch, regularPriceInput, stockQuantityInput, locationSelectInput,
-            allowVariationsSwitch, Loader, variantAttributes, showDescriptionCheckbox, autoManageStockCheckbox,basicButton, 
+            allowVariationsSwitch, Loader, variantAttributes, showDescriptionCheckbox, autoManageStockCheckbox,basicButton,
             maximumQuantityPerOrderInput, allowStockManagementCheckbox, allowMaximumQuantityPerOrderCheckbox, allowMultipleQuantityPerOrderCheckbox
         },
         props: {
@@ -732,7 +731,7 @@
 
                     form.allow_multiple_quantity_per_order = this.localProduct.allow_multiple_quantity_per_order.status;
                     form.allow_maximum_quantity_per_order = this.localProduct.allow_maximum_quantity_per_order.status;
-                    
+
                     form.allow_stock_management = this.localProduct.allow_stock_management.status;
                     form.auto_manage_stock = this.localProduct.auto_manage_stock.status;
                     form.stock_quantity = this.localProduct.stock_quantity.value;

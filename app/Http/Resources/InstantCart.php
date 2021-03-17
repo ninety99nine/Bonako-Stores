@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Cart as CartResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class InstantCart extends JsonResource
@@ -18,20 +19,21 @@ class InstantCart extends JsonResource
         return [
 
             'id' => $this->id,
-            'code' => $this->code,
+            'active' => $this->active,
             'name' => $this->name,
             'description' => $this->description,
-            'active' => $this->active,
-            'store_id' => $this->store_id,
             'location_id' => $this->location_id,
-
-            //  Attributes
-            'short_code' => $this->short_code,
-            'cart' => $this->cart,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+
+            /*  Attributes  */
+            '_attributes' => [
+                'resource_type' => $this->resource_type,
+                'visit_short_code' => !empty($this->visitShortCode) ? collect($this->visitShortCode)->only(['dialing_code', 'expires_at']) : null,
+                'payment_short_code' => !empty($this->paymentShortCode) ? collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']) : null
+            ],
 
             /*  Resource Links */
             '_links' => [
@@ -42,18 +44,33 @@ class InstantCart extends JsonResource
 
                 //  Link to current resource
                 'self' => [
-                    'href' => route('instant-cart', ['instant_cart_id' => $this->id]),
+                    'href' => route('instant-cart-show', ['instant_cart_id' => $this->id]),
                     'title' => 'This instant cart'
-                ]
-                
+                ],
+
+                //  Link to the location
+                'bos:location' => [
+                    'href' => route('instant-cart-location', ['instant_cart_id' => $this->id]),
+                    'title' => 'The instant cart location',
+                ],
+
+                //  Link to subscribe to instant cart
+                'bos:subscribe' => [
+                    'href' => route('instant-cart-subscribe', ['instant_cart_id' => $this->id]),
+                    'title' => 'The POST route to create an instant cart subscription'
+                ],
+
+                //  Link to create store payment short code
+                'bos:generate-payment-shortcode' => [
+                    'href' => route('instant-cart-generate-payment-shortcode', ['instant_cart_id' => $this->id]),
+                    'title' => 'The POST route to create an instant cart payment shortcode'
+                ],
+
             ],
 
             '_embedded' => [
 
-                'location' => $this->location,
-                'products' => $this->products,
-                'coupons' => $this->coupons,
-                'store' => $this->store
+                'cart' => new CartResource( $this->cart ),
 
             ]
 

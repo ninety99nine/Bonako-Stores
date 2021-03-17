@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use App\Http\Resources\Order as OrderResource;
 use App\Http\Resources\Store as StoreResource;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\InstantCart as InstantCartResource;
 
 class ShortCode extends JsonResource
 {
@@ -56,6 +57,8 @@ class ShortCode extends JsonResource
                     return new StoreResource( $this->owner );
                 case 'order':
                     return new OrderResource( $this->owner );
+                case 'instant_cart':
+                    return new InstantCartResource( $this->owner );
                 break;
             }
         }

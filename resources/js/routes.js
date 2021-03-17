@@ -85,9 +85,19 @@ let routes = [
                 component: require('./views/stores/show/products/show/main.vue').default
             },
             {
+                path: 'coupons', name: 'show-store-coupons',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/coupons/list/main.vue').default
+            },
+            {
+                path: 'coupons/:coupon_url', name: 'show-store-coupon',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/coupons/show/main.vue').default
+            },
+            {
                 path: 'instant-carts', name: 'show-store-instant-carts',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
-                component: require('./views/stores/show/instant-carts/main.vue').default
+                component: require('./views/stores/show/instant-carts/list/main.vue').default
             },
         ]
     },

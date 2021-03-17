@@ -1,6 +1,6 @@
 <template>
     <div>
-        <!-- Modal 
+        <!-- Modal
 
              Note: modalVisible and detectClose() are imported from the modalMixin.
              They are used to allow for opening and closing the modal properly
@@ -34,18 +34,18 @@
 
                 </Row>
 
-                <Row :gutter="12" v-for="(product, index) in instantCartForm.products" :key="index" class="mb-2">
+                <Row :gutter="12" v-for="(item, index) in instantCartForm.items" :key="index" class="mb-2">
 
                     <Col :span="12">
 
-                        <span>{{ product.name }}</span>
+                        <span>{{ item.name }}</span>
 
                     </Col>
 
-                    <Col v-if="product.allow_stock_management" :span="12">
+                    <Col :span="12">
 
                         <!-- Enter Quantity -->
-                        <InputNumber v-model.number="product.quantity" class="w-100" placeholder="40" :min="1"
+                        <InputNumber v-model.number="item.quantity" class="w-100" placeholder="40" :min="1"
                                     @keyup.enter.native="handleSubmit()">
                         </InputNumber>
 
@@ -68,9 +68,9 @@
 </template>
 <script>
 
-    
-    import basicButton from './../../../../components/_common/buttons/basicButton.vue';
-    import modalMixin from './../../../../components/_mixins/modal/main.vue';
+
+    import basicButton from './../../../../../../components/_common/buttons/basicButton.vue';
+    import modalMixin from './../../../../../../components/_mixins/modal/main.vue';
 
     export default {
         mixins: [ modalMixin ],
@@ -82,17 +82,16 @@
             },
         },
         data(){
-
             return {
                 instantCartForm: null
             }
         },
-        computed: {  
-            
+        computed: {
+
         },
         methods: {
             getInstantCartForm(){
-                
+
                 var instantCart = Object.assign({}, this.instantCart);
 
                 return _.cloneDeep( instantCart );
@@ -102,7 +101,7 @@
 
                 const self = this;
 
-                var name = this.instantCartForm.products[index].name;
+                var name = this.instantCartForm.items[index].name;
 
                 //  Make a popup confirmation modal so that we confirm the destination removal
                 this.$Modal.confirm({
@@ -125,7 +124,7 @@
             handleRemoveProduct(index) {
 
                 //  Remove product from list
-                this.instantCartForm.products.splice(index, 1);
+                this.instantCartForm.items.splice(index, 1);
 
                 //  Product removed success message
                 this.$Message.success({
@@ -135,20 +134,32 @@
             },
             handleSubmit(){
 
-                var validProducts = this.instantCartForm.products.filter((product) => {
-                    return (product.quantity);
+                var items = this.instantCartForm.items.map((product) => {
+
+                    if( product.quantity == null || product.quantity == undefined || product.quantity == 0){
+
+                        //  Reset quantity to 1
+                        product.quantity = 1;
+
+                    }
+
+                    return product;
+
                 });
 
-                //  Notify the parent component of the updated destinations
-                this.$emit('updated', validProducts);
+                //  Update the instant cart items
+                this.$set(this.instantCart, 'items', items);
 
                 this.$Message.success({
-                    content: 'Cart product updated!',
+                    content: 'Instant cart products updated!',
                     duration: 6
                 });
 
+                //  Notify the parent component of the updated cart items
+                this.$emit('updated');
+
                 /** Note the closeModal() method is imported from the
-                 *  modalMixin file. It handles the closing process 
+                 *  modalMixin file. It handles the closing process
                  *  of the modal
                  */
                 this.closeModal();

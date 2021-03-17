@@ -36,54 +36,14 @@
 
                 <div :class="contentClasses">
 
-                    <!-- If we are loading, Show Loader -->
-                    <Loader v-show="isLoading" class="mt-2">Loading...</Loader>
-
                     <template v-if="!isLoading">
 
                         <div v-if="!hasSubscribed">
 
-                            <template v-if="hasPaymentShortCode">
-
-                                <div :class="['bg-light', 'rounded-pill', 'px-3', 'py-1']">
-
-                                    <span>Dial to pay: </span>
-                                    <span :class="['text-primary', 'font-weight-bold']">{{ paymentShortCode.dialing_code }}</span>
-
-                                    <!-- Show the short code details -->
-                                    <Poptip trigger="hover" word-wrap width="300">
-
-                                        <div slot="content" class="py-2" :style="{ lineHeight: 'normal' }">
-                                            <p>Dial <span class="text-primary">{{ paymentShortCode.dialing_code }}</span> to pay for your store</p>
-                                        </div>
-
-                                        <!-- Show the info icon -->
-                                        <Icon type="ios-information-circle-outline" :size="16" />
-
-                                    </Poptip>
-
-                                </div>
-
-                                <!-- Payment Short Code Countdown timer -->
-                                <transition name="slide-right-fade">
-
-                                    <countdown v-if="paymentShortCodeExpiryTime" :datetime="paymentShortCodeExpiryTime"
-                                                position="right" class="mr-2 mt-2" @expired="handlePaymentShortcodeExpiryStatus()">
-                                    </countdown>
-
-                                </transition>
-
-                            </template>
-
-                            <template v-else>
-
-                                <!-- Pay Now Button -->
-                                <span :class="['bg-light', 'rounded-pill', 'd-inline-block', 'px-3', 'py-1', 'mt-1']">Subscribe to get your store online</span>
-
-                                <!-- Pay Now Button -->
-                                <Button v-if="!isLoading" type="success" class="float-right" @click.native.stop="generatePaymentShortcode()">Pay now</Button>
-
-                            </template>
+                            <!-- Dial to pay -->
+                            <dialToPay :resource="store" name="Store" description="Subscribe to get your store online"
+                                        @updated="handlePaymentShortCodeUpdate()" @isLoading="isLoading">
+                            </dialToPay>
 
                         </div>
 
@@ -167,15 +127,14 @@
 <script>
 
     //  Get the custom mixin file
-    import miscMixin from './../../../../components/_mixins/misc/main.vue';
-
-    import Loader from './../../../../components/_common/loaders/default.vue';
-    import countdown from './../../../../components/_common/countdown/default.vue';
     import deleteStoreModal from './deleteStoreModal.vue';
+    import dialToPay from '../../../payment/dialToPay.vue';
+    import miscMixin from './../../../../components/_mixins/misc/main.vue';
+    import countdown from './../../../../components/_common/countdown/default.vue';
 
     export default {
         mixins: [miscMixin],
-        components: { Loader, countdown, deleteStoreModal },
+        components: { deleteStoreModal, dialToPay, countdown },
         props: {
             store: {
                 type: Object,
@@ -203,9 +162,6 @@
             encodedStoreUrl(){
                 return encodeURIComponent(this.storeUrl);
             },
-            generatePaymentShortcodeUrl(){
-                return this.store['_links']['bos:generate-payment-shortcode'].href;
-            },
             hasSubscribed(){
                 return this.store['_attributes']['subscription'] ? true : false;
             },
@@ -220,12 +176,6 @@
             },
             hasPaymentShortCode(){
                 return this.store['_attributes']['payment_short_code'] ? true : false;
-            },
-            paymentShortCode(){
-                return (this.store['_attributes']['payment_short_code'] || {});
-            },
-            paymentShortCodeExpiryTime(){
-                return this.paymentShortCode.expires_at;
             },
             numberOfLocations(){
                 return this.store['_links']['bos:locations'].total;
@@ -294,35 +244,11 @@
                 this.getStore();
 
             },
-            handlePaymentShortcodeExpiryStatus(){
+            handlePaymentShortCodeUpdate(){
 
                 //  Refetch the store
                 this.getStore();
 
-            },
-            generatePaymentShortcode(){
-
-                //  Hold constant reference to the current Vue instance
-                const self = this;
-
-                //  Start loader
-                self.isLoading = true;
-
-                return api.call('post', this.generatePaymentShortcodeUrl)
-                    .then(({data}) => {
-
-                        //  Stop loader
-                        self.isLoading = false;
-
-                        //  Get the store (latest instance)
-                        self.getStore();
-
-                    }).catch((response) => {
-
-                        //  Stop loader
-                        self.isLoading = false;
-
-                });
             },
             getStore(){
 

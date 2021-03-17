@@ -26,11 +26,13 @@ class Cart extends JsonResource
         return [
 
             'id' => $this->id,
+            'active' => $this->active,
             'currency' => $this->currency,
             'sub_total' => $this->sub_total,
             'coupon_total' => $this->coupon_total,
             'sale_discount_total' => $this->sale_discount_total,
             'coupon_and_sale_discount_total' => $this->coupon_and_sale_discount_total,
+            'allow_free_delivery' => $this->allow_free_delivery,
             'delivery_fee' => $this->delivery_fee,
             'grand_total' => $this->grand_total,
             'total_items' => $this->total_items,
@@ -46,7 +48,7 @@ class Cart extends JsonResource
                 'curies' => [
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
-                
+
             ],
 
             '_embedded' => [

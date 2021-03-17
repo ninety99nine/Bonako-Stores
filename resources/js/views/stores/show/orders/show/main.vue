@@ -37,9 +37,9 @@
                         <Col :span="6">
 
                             <div :class="['d-flex', 'mt-1']" :style="{ alignItems: 'flex-end' }">
-                                <statusTag :status="status"></statusTag>
-                                <statusTag :status="paymentStatus"></statusTag>
-                                <statusTag :status="deliveryStatus"></statusTag>
+                                <orderStatusBadge :status="status"></orderStatusBadge>
+                                <orderStatusBadge :status="paymentStatus"></orderStatusBadge>
+                                <orderStatusBadge :status="deliveryStatus"></orderStatusBadge>
                             </div>
 
                         </Col>
@@ -581,12 +581,12 @@
 
 <script>
 
-    import generatePaymentShortcodeModal from './../components/generatePaymentShortcodeModal.vue';
-    import verifyOrderDeliveryModal from './../components/verifyOrderDeliveryModal.vue';
-    import countdown from './../../../../../components/_common/countdown/default.vue';
-    import Loader from './../../../../../components/_common/loaders/default.vue';
+    import orderStatusBadge from './components/orderStatusBadge.vue';
     import miscMixin from './../../../../../components/_mixins/misc/main.vue';
-    import statusTag from './../components/statusTag.vue';
+    import Loader from './../../../../../components/_common/loaders/default.vue';
+    import countdown from './../../../../../components/_common/countdown/default.vue';
+    import verifyOrderDeliveryModal from './../components/verifyOrderDeliveryModal.vue';
+    import generatePaymentShortcodeModal from './../components/generatePaymentShortcodeModal.vue';
 
     export default {
         mixins: [miscMixin],
@@ -616,7 +616,9 @@
                 }
             }
         },
-        components: { Loader, countdown, statusTag, generatePaymentShortcodeModal, verifyOrderDeliveryModal },
+        components: {
+            orderStatusBadge, Loader, countdown, verifyOrderDeliveryModal, generatePaymentShortcodeModal
+        },
         data () {
             return {
                 isLoadingOrder: false,

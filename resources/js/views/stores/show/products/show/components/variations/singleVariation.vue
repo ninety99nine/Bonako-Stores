@@ -94,8 +94,8 @@
 
 <script>
 
+    import statusBadge from '../statusBadge.vue';
     import pricingPoptip from './../pricingPoptip.vue';
-    import statusTag from './../statusTag.vue';
     import miscMixin from './../../../../../../../components/_mixins/misc/main.vue';
     import manageProductDrawer from './../../../components/manageProductDrawer.vue';
 
@@ -121,7 +121,7 @@
                 default: null
             }
         },
-        components: { pricingPoptip, statusTag, manageProductDrawer },
+        components: { statusBadge, pricingPoptip, manageProductDrawer },
         data(){
             return {
                 isLoadingVariations: false,

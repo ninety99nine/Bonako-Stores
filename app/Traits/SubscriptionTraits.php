@@ -46,7 +46,7 @@ trait SubscriptionTraits
     /**
      *  This method creates a new subscription
      */
-    public function createResource($data = [])
+    public function createResource($data = [], $model = null)
     {
         try {
 
@@ -125,6 +125,17 @@ trait SubscriptionTraits
             //  If created successfully
             if ( $this->subscription ) {
 
+                //  If we have an owning model
+                if( $model ){
+
+                    //  Update the transaction owner id and owner type
+                    $this->subscription->update([
+                        'owner_id' => $model->id,
+                        'owner_type' => $model->resource_type,
+                    ]);
+
+                }
+
                 //  Generate a new transaction
                 $this->subscription->createResourceTransaction($data, $subscription_plan);
 
@@ -186,17 +197,11 @@ trait SubscriptionTraits
             //  Set validation rules
             $rules = [
                 'user_id' => 'sometimes|regex:/^[0-9]+$/i',
-                'store_id' => 'required|regex:/^[0-9]+$/i',
                 'subscription_plan_id' => 'required|regex:/^[0-9]+$/i'
             ];
 
             //  Set validation messages
             $messages = [
-                'store_id.regex' => 'The user id must be a valid number e.g 123',
-
-                'store_id.required' => 'The store id is required to create a subscription',
-                'store_id.regex' => 'The store id must be a valid number e.g 123',
-
                 'subscription_plan_id.required' => 'The subscription plan id is required to create a subscription',
                 'subscription_plan_id.regex' => 'The store id must be a valid number e.g 1'
             ];

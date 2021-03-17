@@ -25,7 +25,7 @@ class Location extends Model
         'allow_pickups' => 'boolean',               //  Return the following 1/0 as true/false
         'allow_payments' => 'boolean',              //  Return the following 1/0 as true/false
         'allow_sending_merchant_sms' => 'boolean',  //  Return the following 1/0 as true/false
-        
+
         'delivery_destinations' => 'array',
         'delivery_days' => 'array',
         'delivery_times' => 'array',
@@ -42,8 +42,8 @@ class Location extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'abbreviation', 'about_us', 'contact_us', 'call_to_action', 'online', 'allow_free_delivery', 
-        'offline_message', 'allow_delivery', 'delivery_note', 'delivery_flat_fee', 'delivery_destinations', 
+        'name', 'abbreviation', 'about_us', 'contact_us', 'call_to_action', 'online', 'allow_free_delivery',
+        'offline_message', 'allow_delivery', 'delivery_note', 'delivery_flat_fee', 'delivery_destinations',
         'delivery_days', 'delivery_times', 'allow_pickups', 'pickup_note', 'pickup_destinations', 'pickup_days',
         'pickup_times', 'allow_payments', 'online_payment_methods', 'offline_payment_methods',
         'currency', 'orange_money_merchant_code', 'minimum_stock_quantity',
@@ -136,7 +136,7 @@ class Location extends Model
      */
     public function instantCarts()
     {
-        return $this->hasMany('App\InstantCart')->with(['products', 'coupons'])->latest();
+        return $this->hasMany('App\InstantCart')->latest();
     }
 
     /**
@@ -282,7 +282,7 @@ class Location extends Model
         $destinations = is_null($value) ? [] : json_decode($value, true);
 
         return collect($destinations)->map(function($destination){
-            
+
             //  Convert cost to money
             $destination['cost'] =  $this->convertToMoney($this->currency, $destination['cost']);
 
@@ -378,10 +378,17 @@ class Location extends Model
                     $product->delete();
                 }
 
-                //  Delete all location
-                $location->orders()->delete();
+                //  Delete all instant carts
+                foreach ($location->instantCarts as $instantCart) {
+                    $instantCart->delete();
+                }
 
-                //  Delete all location
+                //  Delete all orders
+                foreach ($location->orders as $order) {
+                    $order->delete();
+                }
+
+                //  Delete all coupons
                 $location->coupons()->delete();
 
                 //  Delete all ratings
@@ -389,9 +396,6 @@ class Location extends Model
 
                 //  Delete all favourites
                 $location->favourites()->delete();
-
-                //  Delete all instant carts
-                $location->instantCarts()->delete();
 
                 //  Delete all records of users being assigned to this location
                 DB::table('location_user')->where(['location_id' => $location->id])->delete();

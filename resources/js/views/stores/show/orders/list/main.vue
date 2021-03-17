@@ -99,6 +99,30 @@
                     <Table class="order-table" :columns="dynamicColumns" :data="orders" :loading="isLoading"
                             no-data-text="No orders found" :style="{ overflow: 'visible' }">
 
+                        <!-- Number Poptip -->
+                        <orderNumber slot-scope="{ row, index }" slot="number" :order="row"></orderNumber>
+
+                        <!-- Customer Poptip -->
+                        <orderCustomer slot-scope="{ row, index }" slot="customer" :order="row"></orderCustomer>
+
+                        <!-- Contacts Poptip -->
+                        <orderCustomerContacts slot-scope="{ row, index }" slot="contacts" :order="row"></orderCustomerContacts>
+
+                        <!-- Cart Items Poptip -->
+                        <cartItems slot-scope="{ row, index }" slot="items" :cart="(row._embedded || {}).active_cart" position="center"></cartItems>
+
+                        <!-- Cart Coupons Poptip -->
+                        <cartCoupons slot-scope="{ row, index }" slot="coupons" :cart="(row._embedded || {}).active_cart" position="center"></cartCoupons>
+
+                        <!-- Payment Status -->
+                        <orderStatusBadge slot-scope="{ row, index }" slot="payment" :status="(row._embedded || {}).payment_status"></orderStatusBadge>
+
+                        <!-- Delivery Status -->
+                        <orderStatusBadge slot-scope="{ row, index }" slot="delivery" :status="(row._embedded || {}).delivery_status"></orderStatusBadge>
+
+                        <!-- Cart Total Poptip -->
+                        <cartPricing slot-scope="{ row, index }" slot="total" :cart="(row._embedded || {}).active_cart"></cartPricing>
+
                         <template slot-scope="{ row, index }" slot="action">
 
                             <div>
@@ -141,11 +165,17 @@
 
 <script>
 
-    import verifyOrderDeliveryModal from './../components/verifyOrderDeliveryModal.vue';
-    import modalMixin from './../../../../../components/_mixins/modal/main.vue';
-    import miscMixin from './../../../../../components/_mixins/misc/main.vue';
-    import statusTag from './../components/statusTag.vue';
     import singleOrder from './../show/main.vue';
+    import orderNumber from './../show/components/orderNumber.vue';
+    import orderCustomer from './../show/components/orderCustomer.vue';
+    import cartItems from './../../carts/show/components/cartItems.vue';
+    import cartCoupons from './../../carts/show/components/cartCoupons.vue';
+    import cartPricing from './../../carts/show/components/cartPricing.vue';
+    import orderStatusBadge from './../show/components/orderStatusBadge.vue';
+    import miscMixin from './../../../../../components/_mixins/misc/main.vue';
+    import modalMixin from './../../../../../components/_mixins/modal/main.vue';
+    import orderCustomerContacts from './../show/components/orderCustomerContacts.vue';
+    import verifyOrderDeliveryModal from './../components/verifyOrderDeliveryModal.vue';
 
     export default {
         mixins: [ miscMixin, modalMixin ],
@@ -165,7 +195,10 @@
                 }
             },
         },
-        components: { verifyOrderDeliveryModal, statusTag, singleOrder },
+        components: {
+            singleOrder, orderNumber, orderCustomer, cartItems, cartCoupons, cartPricing, orderStatusBadge,
+            orderCustomerContacts, verifyOrderDeliveryModal
+        },
         data () {
             return {
                 orders: [],
@@ -188,7 +221,7 @@
                 ],
                 selectedFilters: ['Undelivered'],
                 tableColumnsToShowByDefault: [
-                    'Selector', 'Order #', 'Customer', 'Mobile', 'Items', 'Payment Status',
+                    'Selector', 'Order #', 'Customer', 'Contacts', 'Items', 'Coupons', 'Payment Status',
                     'Delivery Status', 'Created Date', 'Total'
                 ],
                 isOpenVerifyOrderDeliveryModal: false,
@@ -244,193 +277,75 @@
                 //  Order #
                 if(this.tableColumnsToShowByDefault.includes('Order #')){
                     allowedColumns.push(
-                    {
-                        title: 'Order #',
-                        sortable: true,
-                        render: (h, params) => {
-
-                            var order_number = (params.row.number || '...')
-
-                            return h('span', {
-                                class: [(this.checkIfCancelledOrder(params.row) ? 'text-danger' : '')],
-                                on: {
-                                    click: () => {
-                                        this.activeOrderUrl = ((params.row._links || {}).self || {}).href;
-                                    }
-                                }
-                            }, [
-                                h('Button', {
-                                    props: {
-                                        type: 'text',
-                                        ghost: true
-                                    },
-                                }, [
-                                    h('span', {
-                                        class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : 'text-dark')]
-                                    }, order_number)
-                                ])
-                            ]);
+                        {
+                            title: 'Order #',
+                            slot: 'number'
                         }
-                    });
+                    );
                 }
 
-                //  Customer Details
+                //  Order Customer
                 if(this.tableColumnsToShowByDefault.includes('Customer')){
                     allowedColumns.push(
-                    {
-                        title: 'Customer',
-                        render: (h, params) => {
-
-                            var customer = (params.row._embedded.customer || {});
-                            var first_name = (customer.first_name || '...');
-                            var name = ((customer._attributes || {}).name || '...');
-
-                            return h('Poptip', {
-                                style: {
-                                    width: '100%',
-                                    textAlign:'left'
-                                },
-                                props: {
-                                    width: 280,
-                                    wordWrap: true,
-                                    trigger:'hover',
-                                    placement: 'top',
-                                    title: 'Customer',
-                                    content: name
-                                }
-                            }, [
-                                h('span', {
-                                    class: ['cut-text', 'text-capitalize', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : '')]
-                                }, first_name)
-                            ])
+                        {
+                            title: 'Customer',
+                            slot: 'customer',
+                            width: 140
                         }
-                    });
+                    );
                 }
 
-                //  Customer Mobile Number
-                if(this.tableColumnsToShowByDefault.includes('Mobile')){
+                //  Order Customer Contacts
+                if(this.tableColumnsToShowByDefault.includes('Contacts')){
                     allowedColumns.push(
-                    {
-                        title: 'Mobile',
-                        render: (h, params) => {
-
-                            var customer = (params.row._embedded.customer || {});
-                            var mobile_number = (customer.mobile_number || '...');
-
-                            return h('Poptip', {
-                                style: {
-                                    width: '100%',
-                                    textAlign:'left'
-                                },
-                                props: {
-                                    width: 280,
-                                    wordWrap: true,
-                                    trigger:'hover',
-                                    placement: 'top',
-                                    title: 'Mobile',
-                                    content: mobile_number
-                                }
-                            }, [
-                                h('span', {
-                                    class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : '')]
-                                }, mobile_number)
-                            ])
+                        {
+                            title: 'Contacts',
+                            slot: 'contacts',
+                            width: 140
                         }
-                    })
+                    );
                 }
 
                 //  Cart Items
                 if(this.tableColumnsToShowByDefault.includes('Items')){
                     allowedColumns.push(
-                    {
-                        title: 'Items',
-                        sortable: true,
-                        align: 'center',
-                        render: (h, params) => {
-
-                            var activeCart = (params.row._embedded.active_cart || {});
-                            var itemLines = ((activeCart._embedded || {}).item_lines || []);
-                            var totalItems = (activeCart.total_items || 0);
-                            var currency = (activeCart.currency || {});
-                            var symbol = (currency.symbol || '');
-
-                            var ListItems = itemLines.map((item) => {
-
-                                var itemInfo = item.quantity+'x('+item.name+')'+ ' for '+
-                                               item.sub_total.currency_money;
-
-                                var hasSaleDiscount = item.sale_discount_total ? true : false;
-                                var saleDiscount = ' - '+item.sale_discount_total.currency_money+' sale discount';
-
-                                return h('ListItem', {
-                                        class: ['d-block']
-                                    },[
-                                        h('div', itemInfo),
-                                        hasSaleDiscount ? h('div', {
-                                            class: ['text-danger']
-                                        }, saleDiscount) : null
-                                    ]
-                                );
-                            });
-
-                            return h('Poptip', {
-                                style: {
-                                    width: '100%'
-                                },
-                                props: {
-                                    width: 350,
-                                    wordWrap: true,
-                                    trigger:'hover',
-                                    placement: 'top',
-                                    title: 'Cart Items'
-                                },
-                                class: ['breakdown-poptip']
-                            }, [
-                                h('span', {
-                                    class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'cancelled text-danger' : '')]
-                                }, totalItems ),
-                                h('List', {
-                                        slot: 'content',
-                                        props: {
-                                            slot: 'content',
-                                            size: 'small'
-                                        }
-                                    }, ListItems)
-                            ])
+                        {
+                            title: 'Items',
+                            slot: 'items',
+                            align: 'center'
                         }
-                    })
+                    );
+                }
+
+                //  Cart Coupons
+                if(this.tableColumnsToShowByDefault.includes('Coupons')){
+                    allowedColumns.push(
+                        {
+                            title: 'Coupons',
+                            slot: 'coupons',
+                            align: 'center'
+                        }
+                    );
                 }
 
                 //  Payment Status
                 if(this.tableColumnsToShowByDefault.includes('Payment Status')){
                     allowedColumns.push(
-                    {
-                        title: 'Payment',
-                        render: (h, params) => {
-                            //  Payment Status Badge
-                            return h(statusTag, {
-                                props: {
-                                    status: params.row._embedded.payment_status
-                                }
-                            })
+                        {
+                            title: 'Payment',
+                            slot: 'payment'
                         }
-                    })
+                    );
                 }
 
                 //  Delivery Status
                 if(this.tableColumnsToShowByDefault.includes('Delivery Status')){
                     allowedColumns.push(
-                    {
-                        title: 'Delivery',
-                        render: (h, params) => {
-                            //  Delivery Status Badge
-                            return h(statusTag, {
-                                props: {
-                                    status: params.row._embedded.delivery_status
-                                }
-                            })
+                        {
+                            title: 'Delivery',
+                            slot: 'delivery'
                         }
-                    })
+                    );
                 }
 
                 //  Created Date
@@ -461,63 +376,14 @@
                     })
                 }
 
-                //  Grand Total
+                //  Order Grand Total
                 if(this.tableColumnsToShowByDefault.includes('Total')){
                     allowedColumns.push(
-                    {
-                        title: 'Total',
-                        sortable: true,
-                        render: (h, params) => {
-
-                            var activeCart = params.row._embedded.active_cart;
-                            var subTotal = activeCart.sub_total.currency_money;
-                            var couponTotal = activeCart.coupon_total.currency_money;
-                            var discountTotal = activeCart.sale_discount_total.currency_money;
-                            var deliveryFee = activeCart.delivery_fee.currency_money;
-                            var grandTotal = activeCart.grand_total.currency_money;
-
-                            return h('Poptip', {
-                                style: {
-                                    width: '100%',
-                                    textAlign:'left'
-                                },
-                                props: {
-                                    width: 280,
-                                    wordWrap: true,
-                                    trigger:'hover',
-                                    placement: 'top-end',
-                                    title: 'Breakdown'
-                                },
-                                class: ['breakdown-poptip']
-                            }, [
-                                h('span', {
-                                    class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'cancelled text-danger' : '')]
-                                }, grandTotal ),
-                                h('List', {
-                                        slot: 'content',
-                                        props: {
-                                            slot: 'content',
-                                            size: 'small'
-                                        }
-                                    }, [
-                                        h('ListItem', 'Sub Total: '+ subTotal ),
-                                        h('ListItem', {
-                                            class: ['border-0', 'text-danger']
-                                        }, 'Sale Discount: '+ discountTotal ),
-                                        h('ListItem', {
-                                            class: ['text-danger']
-                                        }, 'Coupon Discount: '+ couponTotal ),
-                                        h('ListItem', {
-                                            class: ['border-0', deliveryFee ? '' : 'd-none']
-                                        },'Delivery Fee: '+ deliveryFee ),
-                                        h('ListItem', {
-                                            class: ['font-weight-bold', 'mt-2'],
-                                            style: { outline: 'double' }
-                                        },'Grand Total: '+ grandTotal )
-                                    ])
-                            ])
+                        {
+                            title: 'Total',
+                            slot: 'total'
                         }
-                    })
+                    );
                 }
 
                 allowedColumns.push(

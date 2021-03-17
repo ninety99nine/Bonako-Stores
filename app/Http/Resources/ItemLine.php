@@ -31,6 +31,7 @@ class ItemLine extends JsonResource
             'sale_discount_total' => $this->sale_discount_total,
             'grand_total' => $this->grand_total,
             'quantity' => $this->quantity,
+            'product_id' => $this->product_id,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
@@ -46,7 +47,7 @@ class ItemLine extends JsonResource
             ],
 
             '_embedded' => [
-                
+
                 'product' => new ProductResource($this->product),
 
             ]

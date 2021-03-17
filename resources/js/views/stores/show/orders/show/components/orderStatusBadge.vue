@@ -2,9 +2,9 @@
 
     <Poptip word-wrap width="350" trigger="hover" placement="top"
              :title="'Status: '+status.name" :content="status.description">
-        <Tag :color="color">
-            <span class="cut-text text-capitalize">{{ status.name }}</span>
-        </Tag>
+
+        <Badge :text="status.name" :type="color"></Badge>
+
     </Poptip>
 
 </template>
@@ -34,10 +34,6 @@
                     return 'warning';
 
                 }else if(['Cancelled'].includes(this.status.name)){
-
-                    return 'error';
-
-                }else if(['Closed'].includes(this.status.name)){
 
                     return 'default';
 

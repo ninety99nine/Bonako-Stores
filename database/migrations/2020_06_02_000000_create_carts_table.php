@@ -21,6 +21,7 @@ class CreateCartsTable extends Migration
             $table->float('coupon_total')->default(0);
             $table->float('sale_discount_total')->default(0);
             $table->float('coupon_and_sale_discount_total')->default(0);
+            $table->boolean('allow_free_delivery')->default(false);
             $table->float('delivery_fee')->default(0);
             $table->float('grand_total')->default(0);
             $table->unsignedTinyInteger('total_items')->default(0);

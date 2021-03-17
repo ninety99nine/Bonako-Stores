@@ -22,11 +22,11 @@ class CouponLine extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'code' => $this->code,
-            'is_fixed_rate' => $this->is_fixed_rate,
             'currency' => $this->currency,
+            'discount_rate_type' => $this->discount_rate_type,
             'fixed_rate' => $this->fixed_rate,
-            'is_percentage_rate' => $this->is_percentage_rate,
             'percentage_rate' => $this->percentage_rate,
+            'coupon_id' => $this->coupon_id,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
@@ -38,13 +38,13 @@ class CouponLine extends JsonResource
                 'curies' => [
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
-                
+
             ],
 
             '_embedded' => [
 
                 'coupon' => new CouponResource($this->coupon),
-                
+
             ]
 
         ];

@@ -15,12 +15,15 @@ class CreateSubscriptionsTable extends Migration
             $table->increments('id');
 
             /*  Subscription Details  */
-            $table->bigInteger('user_id')->unsigned();
             $table->bigInteger('subscription_plan_id')->unsigned();
-            $table->bigInteger('store_id')->unsigned();
             $table->timestamp('start_at')->nullable();
             $table->timestamp('end_at')->nullable();
             $table->boolean('active')->default(false);
+
+            /*  Ownership Information  */
+            $table->bigInteger('user_id')->unsigned()->nullable();
+            $table->bigInteger('owner_id')->unsigned()->nullable();
+            $table->string('owner_type')->nullable();
 
             /*  Timestamps  */
             $table->timestamps();

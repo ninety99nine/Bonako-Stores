@@ -638,19 +638,52 @@ trait OrderTraits
             //  Set the cart owning model
             $model = $this;
 
-            /**
-             *  Create new a cart resource
-             */
-            $cart = ( new \App\Cart() )->createResource($data, $model);
+            //  If we have an instant cart id
+            if( isset($data['instant_cart_id']) && !empty($data['instant_cart_id']) ){
 
-            //  Set order carts to be inactive
-            $this->carts()->update(['active' => false]);
+                //  Set the instant_cart_id
+                $instant_cart_id = $data['instant_cart_id'];
 
-            //  Set new cart to be active
-            $cart->update(['active' => true]);
+                //  Get the matching instant cart
+                $instant_cart = \App\InstantCart::find($instant_cart_id);
 
-            //  Return the cart resource
-            return $cart;
+                //  If we have a matching instant cart
+                if( $instant_cart ){
+
+                    //  Get the related cart
+                    $cart = $instant_cart->cart;
+
+                    /**
+                     *  Clone the existing cart resource
+                     */
+                    $cart = $cart->cloneResource($model);
+
+                }
+
+            }else{
+
+                /**
+                 *  Create new a cart resource
+                 */
+                $cart = ( new \App\Cart() )->createResource($data, $model);
+
+            }
+
+            //  If we have a cart
+            if( $cart ){
+
+                return $this->carts;
+
+                //  Set order carts to be inactive
+                $this->carts()->update(['active' => false]);
+
+                //  Set new cart to be active
+                $cart->update(['active' => true]);
+
+                //  Return the cart resource
+                return $cart;
+
+            }
 
         } catch (\Exception $e) {
 
@@ -1058,7 +1091,7 @@ trait OrderTraits
     {
         try {
 
-            //  Generate the payment short code
+            //  Generate the payment short code (CommonTraints)
             $this->generateResourcePaymentShortCode($user);
 
             //  Set the order status to pending
@@ -1143,35 +1176,6 @@ trait OrderTraits
 
             //  Create a new transaction
             return ( new \App\Transaction() )->createResource($data, $model);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method generates an order payment short code
-     */
-    public function generateResourcePaymentShortCode($user = null)
-    {
-        try {
-
-            $data = [
-
-                //  Set the action on the data
-                'action' => 'payment'
-
-            ];
-
-            //  Set the short code owning model
-            $model = $this;
-
-            /**
-             *  Create new a short code resource
-             */
-            return ( new \App\ShortCode() )->createResource($data, $model, $user);
 
         } catch (\Exception $e) {
 

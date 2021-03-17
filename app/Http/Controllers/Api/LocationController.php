@@ -86,6 +86,20 @@ class LocationController extends Controller
         }
     }
 
+    public function getLocationStore($location_id)
+    {
+        try {
+
+            //  Return the location store
+            return (new Location())->getResource($location_id)->getResourceStore()->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function getLocationTotals(Request $request, $location_id)
     {
         try {

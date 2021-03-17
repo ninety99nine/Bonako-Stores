@@ -224,7 +224,7 @@
 
     import draggable from 'vuedraggable';
     import singleProduct from './../show/main.vue';
-    import statusTag from './../show/components/statusTag.vue';
+    import statusBadge from './../show/components/statusBadge.vue';
     import salePoptip from './../show/components/salePoptip.vue';
     import stockPoptip from './../show/components/stockPoptip.vue';
     import pricingPoptip from './../show/components/pricingPoptip.vue';
@@ -236,7 +236,7 @@
     export default {
         mixins: [ miscMixin ],
         components: {
-            draggable, singleProduct, statusTag, salePoptip, stockPoptip, pricingPoptip, deleteProductModal, 
+            draggable, singleProduct, statusBadge, salePoptip, stockPoptip, pricingPoptip, deleteProductModal,
             manageProductDrawer, basicButton
         },
         props: {
@@ -386,9 +386,8 @@
                         title: 'Visible',
                         render: (h, params) => {
                             //  Visibility Status Badge
-                            return h(statusTag, {
+                            return h(statusBadge, {
                                 props: {
-                                    type: 'Badge',
                                     visible: params.row.visible
                                 }
                             })

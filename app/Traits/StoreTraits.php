@@ -92,7 +92,7 @@ trait StoreTraits
             //  If created successfully
             if ( $this->store ) {
 
-                //  Generate a payment shortcode (So that we can subscribe to the store via USSD)
+                //  Generate a payment shortcode (So that we can subscribe to the store via USSD) (CommonTraits)
                 $this->store->generateResourcePaymentShortCode($user);
 
                 //  If we have the store id representing the store with resources to clone
@@ -321,24 +321,19 @@ trait StoreTraits
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
-            //  Merge the data with additional fields
-            $data = array_merge($data, [
-
-                //  Set the store id on the data
-                'store_id' => $this->id
-
-            ]);
+            //  Set the sms owning model
+            $model = $this;
 
             //  Create a new subscription
-            $subscription = ( new \App\Subscription() )->createResource($data);
+            $subscription = ( new \App\Subscription() )->createResource($data, $model, $user);
 
-            //  Generate visit short code
-            $this->generateResourceVisitShortCode();
+            //  Generate visit short code (CommonTraits)
+            $this->generateResourceVisitShortCode($user);
 
-            //  Expire payment short codes
+            //  Expire payment short codes (CommonTraits)
             $this->expirePaymentShortCode();
 
-            //  Reload the visit short code
+            //  Load the visit short code
             $this->load('visitShortCode');
 
             //  Send the payment request sms
@@ -346,105 +341,6 @@ trait StoreTraits
 
             //  Return the new subscription
             return $subscription;
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method generates a store payment short code
-     */
-    public function generateResourcePaymentShortCode($user = null)
-    {
-        try {
-
-            //  Verify permissions
-            $this->subscribeResourcePermission($user);
-
-            $data = [
-
-                //  Set the action on the data
-                'action' => 'payment'
-
-            ];
-
-            //  Set the short code owning model
-            $model = $this;
-
-            /**
-             *  Create new a short code resource
-             */
-            return ( new \App\ShortCode() )->createResource($data, $model, $user);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method generates a store visit short code
-     */
-    public function generateResourceVisitShortCode($user = null)
-    {
-        try {
-
-            $data = [
-
-                //  Set the action on the data
-                'action' => 'visit'
-
-            ];
-
-            //  Set the short code owning model
-            $model = $this;
-
-            /**
-             *  Create new a short code resource
-             */
-            return ( new \App\ShortCode() )->createResource($data, $model, $user);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method expires the store payment short codes
-     */
-    public function expirePaymentShortCode()
-    {
-        try {
-
-            //  Expire payment short code
-            $this->paymentShortCode()->update([
-                'expires_at' => Carbon::now()
-            ]);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method expires the store short codes
-     */
-    public function expireShortCodes()
-    {
-        try {
-
-            //  Expire short codes
-            $this->shortCodes()->update([
-                'expires_at' => Carbon::now()
-            ]);
 
         } catch (\Exception $e) {
 
@@ -467,7 +363,7 @@ trait StoreTraits
             if( $visit_short_code ){
 
                 //  Set expiry to the same time as the subscription end datetime
-                $expiry_date = Carbon::parse($visit_short_code->expires_at)->format('Y-m-d H:i');
+                $expiry_date = Carbon::parse($visit_short_code->expires_at)->format('d/m/Y H:i');
 
                 //  Craft the sms message
                 $message = 'Subscription for '.$this->name.' successful. Dial '.$visit_short_code->dialing_code.

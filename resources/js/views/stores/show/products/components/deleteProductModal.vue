@@ -18,7 +18,7 @@
             <Loader v-if="isDeleting" class="mt-2">Deleting product...</Loader>
 
             <!-- Disclaimer -->
-            <Alert type="warning">
+            <Alert v-else type="warning">
                 Delete <span class="font-weight-bold">{{ product.name }}</span>
                 <Divider class="my-2" />
                 <template slot="desc">

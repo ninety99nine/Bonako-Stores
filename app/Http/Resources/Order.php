@@ -114,8 +114,6 @@ class Order extends JsonResource
                 'transaction' => new TransactionResource( $this->transaction ),
                 'customer' => new UserResource( $this->customer ),
 
-
-
             ]
 
         ];

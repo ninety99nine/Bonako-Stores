@@ -2,12 +2,74 @@
 
 namespace App\Traits;
 
+use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 trait CommonTraits
 {
+    /**
+     *  This method generates a resource payment short code
+     */
+    public function generateResourcePaymentShortCode($user)
+    {
+        //  Set the model
+        $model = $this;
+
+        //  Generate and return payment short code
+        return ( new \App\ShortCode() )->generatePaymentShortCode($model, $user)->convertToApiFormat();
+    }
+    /**
+     *  This method generates a resource payment short code
+     */
+    public function generateResourceVisitShortCode($user)
+    {
+        //  Set the model
+        $model = $this;
+
+        //  Generate and return visit short code
+        return ( new \App\ShortCode() )->generateVisitShortCode($model, $user)->convertToApiFormat();
+    }
+
+    /**
+     *  This method expires the resource payment short code
+     */
+    public function expirePaymentShortCode()
+    {
+        try {
+
+            //  Expire payment short code
+            $this->paymentShortCode()->update([
+                'expires_at' => Carbon::now()
+            ]);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method expires the resource short codes
+     */
+    public function expireShortCodes()
+    {
+        try {
+
+            //  Expire short codes
+            $this->shortCodes()->update([
+                'expires_at' => Carbon::now()
+            ]);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
     /**
      *  This method sets or creates a new Request Object
      */
@@ -139,13 +201,13 @@ trait CommonTraits
 
     /**
      *  Returns the currency and symbol
-     * 
+     *
      *  @param  string  $code e.g "BWP"
      */
     public function unpackCurrency($code = null)
     {
         try {
-                
+
             $currencies = [
                 'BWP' => 'P'
             ];
@@ -166,7 +228,7 @@ trait CommonTraits
 
     /**
      *  Returns the amount in money format
-     * 
+     *
      *  @param  string  $currency e.g "BWP"
      *  @param  float     $amount e.g 5.00
      */
@@ -176,7 +238,7 @@ trait CommonTraits
 
             //  Set the currency symbol
             $symbol = $currency['symbol'] ?? '';
-            
+
             //  Convert amount to money format
             $money = number_format($amount, 2, '.', ',');
 
