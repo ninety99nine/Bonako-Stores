@@ -283,10 +283,10 @@ trait LocationTraits
                 'users' => $this->getResourceUserTotals($data),
                 'products' => $this->getResourceProductTotals($data),
                 'orders' => [
-                    'sent' => $this->getResourceOrderTotals(array_merge(['type' => 'sent']), $user),
-                    'received' => $this->getResourceOrderTotals(array_merge(['type' => 'received']), $user),
-                ]
-
+                    'sent' => $this->getResourceOrderTotals(array_merge($data, ['type' => 'sent']), $user),
+                    'received' => $this->getResourceOrderTotals(array_merge($data, ['type' => 'received']), $user),
+                ],
+                'instant_carts' => $this->getResourceInstantCartTotals($data)
             ];
 
         } catch (\Exception $e) {
@@ -328,6 +328,26 @@ trait LocationTraits
 
             //  Return location order totals
             return (new \App\Order())->getResourceTotals($data, $orders);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns location instant cart totals
+     */
+    public function getResourceInstantCartTotals($data = [])
+    {
+        try {
+
+            //  Get location instant carts
+            $instant_carts = $this->getResourceInstantCarts($data, null);
+
+            //  Return location instant cart totals
+            return (new \App\InstantCart())->getResourceTotals($data, $instant_carts);
 
         } catch (\Exception $e) {
 

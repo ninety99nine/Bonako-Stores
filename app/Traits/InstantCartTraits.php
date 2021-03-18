@@ -131,6 +131,75 @@ trait InstantCartTraits
     }
 
     /**
+     *  This method returns a list of instant cart totals
+     *
+     *  Note: $builder is an instance of the eloquent builder. In this
+     *  case the eloquent builder must represent an instance of
+     *  instant carts
+     */
+    public function getResourceTotals($data = [], $builder)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the totals
+            $totals = [
+                'statuses' => [],
+                'total' => $builder->count()
+            ];
+
+            //  Set the status filters to calculate the totals
+            $filters = [
+                'active', 'inactive', 'expired', 'free delivery'
+            ];
+
+            collect($filters)->map(function($filter) use (&$totals, $builder){
+
+                /**
+                 *  $filter = 'active' or 'inactive' or 'expired' ... e.t.c
+                 *
+                 *  $bulder = Eloquent Builder Instance e.g $location->instantCarts()->latest()
+                 *
+                 *  We clone the builder object to have a new instance to use when filtering the instant carts.
+                 *  If we do not clone, only one object instance will be used for every filter producing
+                 *  incorrect results e.g The instance may be used to filter only instant carts with a
+                 *  status of "active" and return a few results. The same builder will then be used to
+                 *  filter instant carts with a status of "inactive", however since we are using the
+                 *  same instance it would have applied the previous filter of "active", which means
+                 *  that the final instant carts returned will need to be "active" and "inactive".
+                 *  This gets worse as we load more filters e.g It will look to return instant
+                 *  carts that must match every status i.e "active", "inactive", "expired",
+                 *  e.t.c
+                 */
+                $totals['statuses'][$filter] = $this->filterResources(['status' => $filter], clone $builder)->count();
+
+            })->toArray();
+
+            /**
+             *  Return the totals
+             *
+             *  Example result
+             *
+             *  [
+             *    "statuses" => [
+             *       "active" => 1,
+             *       "inactive" => 0,
+             *       "free delivery" => 0
+             *      ]
+             *  ]
+             */
+            return $totals;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method filters the instant carts by search or status
      */
     public function filterResources($data = [], $instant_carts)
