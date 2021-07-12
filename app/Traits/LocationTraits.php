@@ -91,6 +91,9 @@ trait LocationTraits
             //  If created successfully
             if ( $this->location ) {
 
+                //  Update the supported payment methods
+                $this->location->updateSupportedPaymentMethods($data);
+
                 //  Assign user as an Admin to this location
                 $this->location->assignUserAsAdmin($user);
 
@@ -139,6 +142,9 @@ trait LocationTraits
 
             //  If updated successfully
             if ($updated) {
+
+                //  Update the supported payment methods
+                $this->updateSupportedPaymentMethods($data);
 
                 //  Return a fresh instance
                 return $this->fresh();
@@ -286,6 +292,7 @@ trait LocationTraits
                     'sent' => $this->getResourceOrderTotals(array_merge($data, ['type' => 'sent']), $user),
                     'received' => $this->getResourceOrderTotals(array_merge($data, ['type' => 'received']), $user),
                 ],
+                'coupons' => $this->getResourceCouponTotals($data),
                 'instant_carts' => $this->getResourceInstantCartTotals($data)
             ];
 
@@ -328,6 +335,26 @@ trait LocationTraits
 
             //  Return location order totals
             return (new \App\Order())->getResourceTotals($data, $orders);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns location coupon totals
+     */
+    public function getResourceCouponTotals($data = [])
+    {
+        try {
+
+            //  Get location coupons
+            $coupons = $this->getResourceCoupons($data, null);
+
+            //  Return location coupon totals
+            return (new \App\Coupon())->getResourceTotals($data, $coupons);
 
         } catch (\Exception $e) {
 
@@ -463,53 +490,11 @@ trait LocationTraits
     {
         try {
 
-            //  Extract the Request Object data (CommanTraits)
-            $data = $this->extractRequestData($data);
-
-            //  Set the pagination limit e.g 15
-            $limit = $data['limit'] ?? null;
-
-            //  Set the search term e.g "save10"
-            $search_term = $data['search'] ?? null;
-
-            //  Validate the data (CommanTraits)
-            $this->getResourcesValidation($data);
-
             //  Get the coupons
-            $coupons = $this->coupons()->latest();
+            $coupons = $this->coupons();
 
-            //  If we need to search for specific coupons
-            if (!empty($search_term)) {
-
-                $coupons = $coupons->search($search_term);
-
-            }
-
-            //  If we should paginate the collection
-            if( $paginate === true ){
-
-                //  Return the paginated coupons
-                $coupons = $coupons->paginate($limit);
-
-            }else{
-
-                //  Return the coupons
-                $coupons = $coupons->get();
-
-            }
-
-            //  If we should convert the collection to an API Readable Format
-            if( $convert_to_api_format === true ){
-
-                //  Convert to API Readable Format
-                return (new \App\Coupon)->convertToApiFormat($coupons);
-
-            }else{
-
-                //  Return coupons
-                return $coupons;
-
-            }
+            //  Return a list of location coupons
+            return (new \App\Coupon())->getResources($data, $coupons, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 
@@ -751,6 +736,76 @@ trait LocationTraits
 
             //  Add the user as an Admin to the current location
             return $this->assignUserRole('admin', $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method updates the supported payment methods
+     */
+    public function updateSupportedPaymentMethods($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  If we want to update the online or offline supported payment methods
+            if( isset($data['online_payment_methods']) || isset($data['offline_payment_methods']) ){
+
+                //  Set the supported online payment method ids
+                $online_payment_method_ids = $data['online_payment_methods'] ?? [];
+
+                //  Set the supported offline payment method ids
+                $offline_payment_method_ids = $data['offline_payment_methods'] ?? [];
+
+                //  Set the payment method ids by merging the online and offline supported payment method ids
+                $payment_method_ids = array_merge($online_payment_method_ids, $offline_payment_method_ids);
+
+                $location_payment_methods = collect($payment_method_ids)->map(function($id) use ($online_payment_method_ids, $offline_payment_method_ids){
+
+                    //  Check if this payment method is used online
+                    $used_online = collect($online_payment_method_ids)->contains(function ($payment_method_id) use ($id) {
+
+                        //	Check if we have matching ids
+                        return ($payment_method_id == $id);
+
+                    });
+
+                    //  Check if this payment method is used offline
+                    $used_offline = collect($offline_payment_method_ids)->contains(function ($payment_method_id) use ($id) {
+
+                        //	Check if we have matching ids
+                        return ($payment_method_id == $id);
+
+                    });
+
+                    //  Set the record of assigning a supported payment method to a location
+                    $record = [
+                        'location_id' => $this->id,
+                        'payment_method_id' => $id,
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
+                        'used_online' => $used_online,
+                        'used_offline' => $used_offline,
+                    ];
+
+                    //  Return the record
+                    return $record;
+
+                })->unique('payment_method_id')->toArray();
+
+                //  Delete previous records of supported payment methods
+                DB::table('location_payment_methods')->where('location_id', $this->id)->delete();
+
+                //  Insert supported payment methods
+                DB::table('location_payment_methods')->insert($location_payment_methods);
+
+            }
 
         } catch (\Exception $e) {
 

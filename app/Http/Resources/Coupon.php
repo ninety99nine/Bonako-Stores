@@ -21,27 +21,40 @@ class Coupon extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'active' => $this->active,
-            'always_apply' => $this->always_apply,
-            'uses_code' => $this->uses_code,
+            'apply_discount' => $this->apply_discount,
+            'activation_type' => $this->activation_type,
             'code' => $this->code,
             'allow_free_delivery' => $this->allow_free_delivery,
             'currency' => $this->currency,
             'discount_rate_type' => $this->discount_rate_type,
             'fixed_rate' => $this->fixed_rate,
             'percentage_rate' => $this->percentage_rate,
-
             'allow_discount_on_minimum_total' => $this->allow_discount_on_minimum_total,
             'discount_on_minimum_total' => $this->discount_on_minimum_total,
             'allow_discount_on_total_items' => $this->allow_discount_on_total_items,
             'discount_on_total_items' => $this->discount_on_total_items,
             'allow_discount_on_total_unique_items' => $this->allow_discount_on_total_unique_items,
             'discount_on_total_unique_items' => $this->discount_on_total_unique_items,
+            'allow_discount_on_start_datetime' => $this->allow_discount_on_start_datetime,
+            'discount_on_start_datetime' => $this->discount_on_start_datetime,
+            'allow_discount_on_end_datetime' => $this->allow_discount_on_end_datetime,
+            'discount_on_end_datetime' => $this->discount_on_end_datetime,
+            'allow_usage_limit' => $this->allow_usage_limit,
+            'usage_limit' => $this->usage_limit,
+            'usage_quantity' => $this->usage_quantity,
+            'quantity_remaining' => $this->quantity_remaining,
+            'has_quantity_remaining' => $this->has_quantity_remaining,
 
             'location_id' => $this->location_id,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+
+            /*  Attributes  */
+            '_attributes' => [
+                'resource_type' => $this->resource_type
+            ],
 
             /*  Resource Links */
             '_links' => [
@@ -50,13 +63,10 @@ class Coupon extends JsonResource
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
 
-                /*
-                //  Link to current resource
                 'self' => [
-                    'href' => route('coupon', ['coupon_id' => $this->id]),
-                    'title' => 'This coupon'
-                ]
-                */
+                    'href' => route('coupon-show', ['coupon_id' => $this->id]),
+                    'title' => 'This coupon',
+                ],
 
             ],
 

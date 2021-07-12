@@ -14,6 +14,16 @@ class Cart extends Model
     protected $with = ['itemLines', 'couponLines'];
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $casts = [
+        'products_arrangement' => 'array',
+        'detected_changes' => 'array',
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
@@ -23,6 +33,7 @@ class Cart extends Model
         /*  Cart Info  */
         'active', 'sub_total', 'coupon_total', 'sale_discount_total', 'coupon_and_sale_discount_total',
         'allow_free_delivery', 'delivery_fee', 'grand_total', 'total_items', 'total_unique_items',
+        'total_refreshes', 'total_resets', 'products_arrangement', 'detected_changes',
 
         /*  Currency Info  */
         'currency',
@@ -97,7 +108,7 @@ class Cart extends Model
      *
      */
     protected $appends = [
-        'resource_type', ''
+        'resource_type'
     ];
 
     /**
@@ -187,7 +198,7 @@ class Cart extends Model
         if( is_array($value) ){
             $this->attributes['active'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['active'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['active'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 
@@ -221,7 +232,7 @@ class Cart extends Model
         if( is_array($value) ){
             $this->attributes['allow_free_delivery'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['allow_free_delivery'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['allow_free_delivery'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 

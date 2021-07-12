@@ -13,6 +13,15 @@ class ItemLine extends Model
     protected $with = ['product'];
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $casts = [
+        'detected_changes' => 'array'
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
@@ -22,14 +31,16 @@ class ItemLine extends Model
         /*  Basic Info  */
         'name', 'description',
 
+        'is_free', 'is_cancelled', 'cancellation_reason', 'detected_changes',
+
         /*  Unit Pricing Info  */
-        'is_free', 'currency', 'unit_regular_price', 'unit_sale_price', 'unit_price', 'unit_sale_discount',
+        'currency', 'unit_regular_price', 'unit_sale_price', 'unit_price', 'unit_sale_discount',
 
         /*  Total Pricing Info  */
         'sub_total', 'sale_discount_total', 'grand_total',
 
         /*  Quantity Info  */
-        'quantity',
+        'quantity', 'original_quantity',
 
         /*  Product Info  */
         'product_id',
@@ -63,6 +74,49 @@ class ItemLine extends Model
     protected $appends = [
         'resource_type',
     ];
+
+    /**
+     *  Returns the item line is free status and description
+     */
+    public function getIsFreeAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Free' : 'Not Free',
+            'description' => $value ? 'This item is free'
+                                    : 'This item is not free'
+        ];
+    }
+
+    /**
+     *  Returns the item line is cancelled status and description
+     */
+    public function getIsCancelledAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Cancelled' : 'Not Cancelled',
+            'description' => $value ? 'This item is cancelled'
+                                    : 'This item is not cancelled'
+        ];
+    }
+
+    /**
+     *  Returns true if the item lien is on sale
+     */
+    public function getOnSaleAttribute()
+    {
+        //  If we have a regular price and the sale price and if the sale price is less than the regular price
+        $value = ( !$this->is_free['status'] && ($this->unit_sale_price['amount'] != 0) && ($this->unit_regular_price['amount'] != 0) &&
+                 ( $this->unit_sale_price['amount'] < $this->unit_regular_price['amount'] ));
+
+        return [
+            'status' => $value,
+            'name' => $value ? 'Sale' : 'No Sale',
+            'description' => $value ? 'This item is on sale'
+                                    : 'This item is not on sale'
+        ];
+    }
 
     /**
      *  Returns the item line currency code and symbol
@@ -111,7 +165,7 @@ class ItemLine extends Model
     {
         return $this->convertToMoney($this->currency, $amount);
     }
-  
+
     /**
      *  Returns the sale discount total
      */
@@ -119,7 +173,7 @@ class ItemLine extends Model
     {
         return $this->convertToMoney($this->currency, $amount);
     }
-  
+
     /**
      *  Returns the grand total
      */
@@ -128,25 +182,21 @@ class ItemLine extends Model
         return $this->convertToMoney($this->currency, $amount);
     }
 
-    /**
-     *  Returns the product visibile status and description
-     */
-    public function getIsFreeAttribute($value)
-    {
-        return [
-            'status' => $value ? true : false,
-            'name' => $value ? 'Free' : 'Not Free',
-            'description' => $value ? 'This product is free'
-                                    : 'This product is not free'
-        ];
-    }
-
     public function setIsFreeAttribute($value)
     {
         if( is_array($value) ){
             $this->attributes['is_free'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['is_free'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['is_free'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
+    }
+
+    public function setIsCancelledAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['is_cancelled'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['is_cancelled'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 

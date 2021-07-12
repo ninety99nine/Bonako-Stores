@@ -128,6 +128,9 @@
                     <Table v-show="!arrangeProducts" class="product-table" :columns="dynamicColumns" :data="products" :loading="isLoading"
                             no-data-text="No products found" :style="{ overflow: 'visible' }">
 
+                        <!-- ID Poptip -->
+                        <idPoptip slot-scope="{ row, index }" slot="id" :product="row"></idPoptip>
+
                         <!-- Price Poptip -->
                         <pricingPoptip slot-scope="{ row, index }" slot="price" :product="row"></pricingPoptip>
 
@@ -224,8 +227,9 @@
 
     import draggable from 'vuedraggable';
     import singleProduct from './../show/main.vue';
-    import statusBadge from './../show/components/statusBadge.vue';
+    import idPoptip from './../show/components/idPoptip.vue';
     import salePoptip from './../show/components/salePoptip.vue';
+    import statusBadge from './../show/components/statusBadge.vue';
     import stockPoptip from './../show/components/stockPoptip.vue';
     import pricingPoptip from './../show/components/pricingPoptip.vue';
     import deleteProductModal from './../components/deleteProductModal.vue';
@@ -236,8 +240,8 @@
     export default {
         mixins: [ miscMixin ],
         components: {
-            draggable, singleProduct, statusBadge, salePoptip, stockPoptip, pricingPoptip, deleteProductModal,
-            manageProductDrawer, basicButton
+            draggable, singleProduct, idPoptip, salePoptip, statusBadge, stockPoptip, pricingPoptip,
+            deleteProductModal, manageProductDrawer, basicButton
         },
         props: {
             store: {
@@ -268,7 +272,7 @@
                 products: [],
                 index: null,
                 tableColumnsToShowByDefault: [
-                    'Selector', 'Name', 'Stock', 'Sale', 'Price', 'Visibility Status', 'Created Date'
+                    'Selector', 'ID', 'Name', 'Stock', 'Sale', 'Price', 'Visibility Status', 'Created Date'
                 ],
                 statuses: [
                     {
@@ -334,6 +338,17 @@
                         align: 'center',
                         width: 60
                     });
+                }
+
+                //  Product ID
+                if(this.tableColumnsToShowByDefault.includes('ID')){
+                    allowedColumns.push(
+                        {
+                            title: 'ID',
+                            slot: 'id',
+                            width: 100
+                        }
+                    );
                 }
 
                 //  Name
@@ -509,10 +524,16 @@
 
                 this.copyProductsBeforeUpdate();
 
+                //  Re-calculate the totals
+                this.$emit('fetchLocationTotals');
+
             },
             handleDeletedProduct(){
 
                 this.fetchProducts();
+
+                //  Re-calculate the totals
+                this.$emit('fetchLocationTotals');
 
             },
             handleSavedProduct(product){
@@ -619,6 +640,13 @@
 
             //  Get the location products
             this.fetchProducts();
+
+            //  If we want to add a product
+            if( this.$route.query.add_product == 'true' ){
+
+                this.handleAddProduct();
+
+            }
 
         }
     };

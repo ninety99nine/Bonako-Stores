@@ -5,11 +5,11 @@
         <FormItem prop="online_payment_methods" :error="serverOnlinePaymentMethodsError" class="mb-3">
             <div class="d-flex">
                 <span :class="['max-content-width', 'mr-2']">Online Payments: </span>
-                <Select v-model="locationForm.online_payment_methods" multiple 
-                        :disabled="isLoading || isLoadingPaymentMethods" 
+                <Select v-model="locationForm.online_payment_methods" multiple
+                        :disabled="isLoading || isLoadingPaymentMethods"
                         :class="['w-100', 'mr-2']">
-                    <Option v-for="(paymentMethod, index) in onlinePaymentMethods" 
-                            :value="paymentMethod.name" :key="index">
+                    <Option v-for="(paymentMethod, index) in onlinePaymentMethods"
+                            :value="paymentMethod.id" :key="index">
                         {{ paymentMethod.name }}
                     </Option>
                 </Select>
@@ -26,11 +26,11 @@
         <FormItem prop="offline_payment_methods" :error="serverOfflinePaymentMethodsError" class="mb-3">
             <div class="d-flex">
                 <span :class="['max-content-width', 'mr-2']">Offline Payments: </span>
-                <Select v-model="locationForm.offline_payment_methods" multiple 
-                        :disabled="isLoading || isLoadingPaymentMethods" 
+                <Select v-model="locationForm.offline_payment_methods" multiple
+                        :disabled="isLoading || isLoadingPaymentMethods"
                         :class="['w-100', 'mr-2']">
-                    <Option v-for="(paymentMethod, index) in offlinePaymentMethods" 
-                            :value="paymentMethod.name" :key="index">
+                    <Option v-for="(paymentMethod, index) in offlinePaymentMethods"
+                            :value="paymentMethod.id" :key="index">
                         {{ paymentMethod.name }}
                     </Option>
                 </Select>

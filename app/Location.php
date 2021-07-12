@@ -13,6 +13,7 @@ class Location extends Model
     use LocationTraits;
     use CommonTraits;
 
+
     /**
      * The table associated with the model.
      *
@@ -31,9 +32,7 @@ class Location extends Model
         'delivery_times' => 'array',
         'pickup_destinations' => 'array',
         'pickup_days' => 'array',
-        'pickup_times' => 'array',
-        'online_payment_methods' => 'array',
-        'offline_payment_methods' => 'array',
+        'pickup_times' => 'array'
     ];
 
     /**
@@ -45,8 +44,7 @@ class Location extends Model
         'name', 'abbreviation', 'about_us', 'contact_us', 'call_to_action', 'online', 'allow_free_delivery',
         'offline_message', 'allow_delivery', 'delivery_note', 'delivery_flat_fee', 'delivery_destinations',
         'delivery_days', 'delivery_times', 'allow_pickups', 'pickup_note', 'pickup_destinations', 'pickup_days',
-        'pickup_times', 'allow_payments', 'online_payment_methods', 'offline_payment_methods',
-        'currency', 'orange_money_merchant_code', 'minimum_stock_quantity',
+        'pickup_times', 'allow_payments', 'currency', 'orange_money_merchant_code', 'minimum_stock_quantity',
         'allow_sending_merchant_sms', 'user_id', 'store_id',
     ];
 
@@ -56,7 +54,7 @@ class Location extends Model
      */
     public function scopeSearch($query, $searchTerm)
     {
-        return $query->where('name', $searchTerm);
+        return $query->where('id', $searchTerm)->orWhere('name', 'like', '%'.$searchTerm.'%');
     }
 
     /**
@@ -92,6 +90,30 @@ class Location extends Model
     public function users()
     {
         return $this->belongsToMany('App\User')->withPivot('type');
+    }
+
+    /**
+     *  Returns the payment methods supported on this location
+     */
+    public function paymentMethods()
+    {
+        return $this->belongsToMany('App\PaymentMethod', 'location_payment_methods')->withPivot('used_online');
+    }
+
+    /**
+     *  Returns the online payment methods supported on this location
+     */
+    public function onlinePaymentMethods()
+    {
+        return $this->paymentMethods()->where('payment_methods.used_online', '1')->wherePivot('used_online', '1');
+    }
+
+    /**
+     *  Returns the offline payment methods supported on this location
+     */
+    public function offlinePaymentMethods()
+    {
+        return $this->paymentMethods()->where('payment_methods.used_offline', '1')->wherePivot('used_offline', '1');
     }
 
     /**
@@ -145,14 +167,6 @@ class Location extends Model
     public function coupons()
     {
         return $this->hasMany('App\Coupon')->latest();
-    }
-
-    /*
-     *  Returns the list of payment methods used by this location
-     */
-    public function paymentMethods()
-    {
-        return $this->belongsToMany('App\PaymentMethod');
     }
 
     /**
@@ -265,18 +279,6 @@ class Location extends Model
         return $this->convertToMoney($this->currency, $amount);
     }
 
-    public function getOnlinePaymentMethodsAttribute($value)
-    {
-        //  Convert to array
-        return is_null($value) ? [] : json_decode($value, true);
-    }
-
-    public function getOfflinePaymentMethodsAttribute($value)
-    {
-        //  Convert to array
-        return is_null($value) ? [] : json_decode($value, true);
-    }
-
     public function getDeliveryDestinationsAttribute($value)
     {
         $destinations = is_null($value) ? [] : json_decode($value, true);
@@ -341,27 +343,47 @@ class Location extends Model
 
     public function setOnlineAttribute($value)
     {
-        $this->attributes['online'] = (($value == 'true' || $value === '1') ? 1 : 0);
+        if( is_array($value) ){
+            $this->attributes['online'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['online'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
     }
 
     public function setAllowDeliveryAttribute($value)
     {
-        $this->attributes['allow_delivery'] = (($value == 'true' || $value === '1') ? 1 : 0);
+        if( is_array($value) ){
+            $this->attributes['allow_delivery'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_delivery'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
     }
 
     public function setAllowCustomerPickupsAttribute($value)
     {
-        $this->attributes['allow_pickups'] = (($value == 'true' || $value === '1') ? 1 : 0);
+        if( is_array($value) ){
+            $this->attributes['allow_pickups'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_pickups'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
     }
 
     public function setAllowPaymentsAttribute($value)
     {
-        $this->attributes['allow_payments'] = (($value == 'true' || $value === '1') ? 1 : 0);
+        if( is_array($value) ){
+            $this->attributes['allow_payments'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_payments'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
     }
 
     public function setAllowSendingMerchantSmsAttribute($value)
     {
-        $this->attributes['allow_sending_merchant_sms'] = (($value == 'true' || $value === '1') ? 1 : 0);
+        if( is_array($value) ){
+            $this->attributes['allow_sending_merchant_sms'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_sending_merchant_sms'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
     }
 
     //  ON DELETE EVENT

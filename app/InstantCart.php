@@ -43,7 +43,7 @@ class InstantCart extends Model
      */
     public function scopeSearch($query, $searchTerm)
     {
-        return $query->where('name', 'like', '%'.$searchTerm.'%');
+        return $query->where('id', $searchTerm)->orWhere('name', 'like', '%'.$searchTerm.'%');
     }
 
     /**
@@ -179,7 +179,7 @@ class InstantCart extends Model
         if( is_array($value) ){
             $this->attributes['active'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['active'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['active'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 

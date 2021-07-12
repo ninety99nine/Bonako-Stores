@@ -18,9 +18,9 @@ class CreateCouponsTable extends Migration
             $table->string('name')->nullable();
             $table->string('description')->nullable();
             $table->boolean('active')->default(false);
-            $table->boolean('always_apply')->default(false);
-            $table->boolean('uses_code')->default(false);
-            $table->string('code');
+            $table->boolean('apply_discount')->default(false);
+            $table->char('activation_type', 1)->default(1);
+            $table->string('code')->nullable();
             $table->boolean('allow_free_delivery')->default(false);
             $table->char('currency', 3)->default('BWP');
 
@@ -36,6 +36,16 @@ class CreateCouponsTable extends Migration
 
             $table->tinyInteger('allow_discount_on_total_unique_items')->default(false);
             $table->tinyInteger('discount_on_total_unique_items')->default(2);
+
+            $table->tinyInteger('allow_discount_on_start_datetime')->default(false);
+            $table->timestamp('discount_on_start_datetime')->nullable();
+
+            $table->tinyInteger('allow_discount_on_end_datetime')->default(false);
+            $table->timestamp('discount_on_end_datetime')->nullable();
+
+            $table->tinyInteger('allow_usage_limit')->default(false);
+            $table->string('usage_limit')->nullable();
+            $table->string('usage_quantity')->nullable();
 
             /*  Ownership Information  */
             $table->unsignedInteger('location_id')->nullable();

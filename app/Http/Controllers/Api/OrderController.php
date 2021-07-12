@@ -21,7 +21,7 @@ class OrderController extends Controller
         try {
 
             //  Return a new order
-            return (new Order())->createResource($request, $this->user)->convertToApiFormat();
+            return (new Order())->createResource($request, $this->user);//->convertToApiFormat();
 
         } catch (\Exception $e) {
 

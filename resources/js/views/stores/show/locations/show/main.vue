@@ -3,7 +3,7 @@
     <Row>
 
         <Col :span="12" :offset="6" class="mt-5">
-                    
+
             <!-- If we are loading, Show Loader -->
             <Loader v-if="(isEditing && isLoadingLocation)" class="mb-2">Searching location</Loader>
 
@@ -43,7 +43,7 @@
                     <Divider orientation="left" :class="['font-weight-bold', 'mb-3', 'mt-4']">Delivery Details</Divider>
 
                     <Card>
-                        
+
                         <!-- Toggle Allow Delivery Switch -->
                         <allowDeliverySwitch :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDeliverySwitch>
 
@@ -78,7 +78,7 @@
                             <flatFeeDeliveryAlert :location="locationForm" :currencySymbol="locationCurrencySymbol"></flatFeeDeliveryAlert>
 
                             <!-- Delivery Destinations Select -->
-                            <deliveryDestinationsSelectInput :locationForm="locationForm" :currencySymbol="locationCurrencySymbol" 
+                            <deliveryDestinationsSelectInput :locationForm="locationForm" :currencySymbol="locationCurrencySymbol"
                                                              :isLoading="isLoading" :serverErrors="serverErrors" :formatPrice="formatPrice">
                             </deliveryDestinationsSelectInput>
 
@@ -89,14 +89,14 @@
                             <deliveryTimesSelectInput :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></deliveryTimesSelectInput>
 
                         </template>
-                        
+
                     </Card>
 
                     <!-- Heading -->
                     <Divider orientation="left" :class="['font-weight-bold', 'mb-3', 'mt-4']">Pickup Details</Divider>
 
                     <Card>
-                        
+
                         <!-- Toggle Allow Pickup Switch -->
                         <allowPickupSwitch :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowPickupSwitch>
 
@@ -123,7 +123,7 @@
                     <Divider orientation="left" :class="['font-weight-bold', 'mb-3', 'mt-4']">Payment Details</Divider>
 
                     <Card>
-                        
+
                         <!-- Toggle Allow Payments Switch -->
                         <allowPaymentsSwitch :locationForm="locationForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowPaymentsSwitch>
 
@@ -150,7 +150,7 @@
                         </basicButton>
 
                     </div>
-                
+
                 </template>
 
             </Form>
@@ -205,10 +205,10 @@
                 }
             },
         },
-        components: { 
-            nameInput, onlineSwitch, freeDeliveryAlert, allowPickupSwitch, callToActionInput, paymentSelectInput, 
-            pickupNoteTextarea, allowPaymentsSwitch, allowDeliverySwitch, deliveryNoteTextarea, deliveryFlatFeeInput, 
-            flatFeeDeliveryAlert, allowFreeDeliveryCheckbox, Loader, pickupDaysSelectInput, pickupTimesSelectInput, 
+        components: {
+            nameInput, onlineSwitch, freeDeliveryAlert, allowPickupSwitch, callToActionInput, paymentSelectInput,
+            pickupNoteTextarea, allowPaymentsSwitch, allowDeliverySwitch, deliveryNoteTextarea, deliveryFlatFeeInput,
+            flatFeeDeliveryAlert, allowFreeDeliveryCheckbox, Loader, pickupDaysSelectInput, pickupTimesSelectInput,
             offlineMessageTextarea, deliveryDaysSelectInput, deliveryTimesSelectInput, orangeMoneyMerchantCodeInput,
             basicButton, pickupDestinationsSelectInput, deliveryDestinationsSelectInput
         },
@@ -264,8 +264,8 @@
 
             },
             onlineStatusStyle(){
-                return this.locationForm.online ? {} : { 
-                    background: 'floralwhite' 
+                return this.locationForm.online ? {} : {
+                    background: 'floralwhite'
                 };
             },
             onlineStatusClass(){
@@ -368,14 +368,26 @@
 
                         //  Payment Details
                         allow_payments: false,
-                        online_payment_methods: null,
-                        offline_payment_methods: null,
+                        online_payment_methods: [],
+                        offline_payment_methods: [],
                         orange_money_merchant_code: null,
 
                         allow_sending_merchant_sms: false
 
                     //  Overide the default form details with the provided location details
                     }, this.location);
+
+                    if(this.location){
+
+                        form.online_payment_methods = this.location['_embedded']['online_payment_methods'].map(function(paymentMethod){
+                            return paymentMethod.id;
+                        });
+
+                        form.offline_payment_methods = this.location['_embedded']['offline_payment_methods'].map(function(paymentMethod){
+                            return paymentMethod.id;
+                        });
+
+                    }
 
                 //  If we are editing an existing location
                 if( this.isEditing ){
@@ -390,7 +402,7 @@
                     form.allow_pickups = this.location.allow_pickups.status;
                     form.allow_payments = this.location.allow_payments.status;
                     form.allow_sending_merchant_sms = this.location.allow_sending_merchant_sms.status;
-                    
+
                     form.delivery_flat_fee = this.location.delivery_flat_fee.amount;
                     form.currency = this.location.currency.code;
 

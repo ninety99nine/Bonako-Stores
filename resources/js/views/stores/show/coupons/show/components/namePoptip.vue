@@ -1,13 +1,9 @@
 <template>
 
     <!-- Name Poptip -->
-    <Poptip trigger="hover" :placement="placement" width="300">
-
-        <List slot="content" size="small">
-
-            <ListItem v-if="description">{{ description }}</ListItem>
-
-        </List>
+    <Poptip word-wrap width="300" trigger="hover" :placement="placement"
+            :style="{ wordBreak: 'break-word' }" title="Description"
+            :content="description">
 
         <span>{{ name }}</span>
 
@@ -42,7 +38,7 @@
                 return this.coupon.name;
             },
             description(){
-                return this.coupon.description;
+                return this.coupon.description || 'No description';
             }
         }
     };

@@ -78,6 +78,50 @@ trait ItemLineTraits
     }
 
     /**
+     *  This method updates an existing item line
+     */
+    public function updateResource($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Merge the existing data with the new data
+            $data = array_merge(collect($this)->only($this->getFillable())->toArray(), $data);
+
+            //  Validate the data
+            $this->updateResourceValidation($data);
+
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
+
+            /**
+             *  Update the resource details
+             */
+            $updated = $this->update($template);
+
+            //  If updated successfully
+            if ($updated) {
+
+                //  Return a fresh instance
+                return $this->fresh();
+
+            }else{
+
+                //  Return original instance
+                return $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method validates creating a new resource
      */
     public function createResourceValidation($data = [])

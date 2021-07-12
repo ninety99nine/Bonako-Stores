@@ -377,7 +377,7 @@
                                     no-data-text="No coupons found" :style="{ overflow: 'visible' }">
 
                                 <span slot-scope="{ row, index }" slot="amount">
-                                    {{ row.amount }}
+                                    {{ row.amount.currency_money }}
                                 </span>
 
                                 <span slot-scope="{ row, index }" slot="payment_method">

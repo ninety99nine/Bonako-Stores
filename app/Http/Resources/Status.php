@@ -21,6 +21,11 @@ class Status extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
 
+            /*  Attributes  */
+            '_attributes' => [
+                'resource_type' => $this->resource_type
+            ],
+
             /*  Resource Links */
             '_links' => [
 
@@ -35,11 +40,11 @@ class Status extends JsonResource
                     'title' => 'This status'
                 ]
                 */
-                
+
             ],
 
             '_embedded' => [
-                
+
             ]
 
         ];

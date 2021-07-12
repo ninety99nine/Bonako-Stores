@@ -15,7 +15,7 @@
                     <Avatar icon="ios-person" />
                 </span>
                 <DropdownMenu slot="list">
-                    <DropdownItem name="projects">My Projects</DropdownItem>
+                    <DropdownItem name="stores">My Stores</DropdownItem>
                     <DropdownItem name="logout">Sign Out</DropdownItem>
                 </DropdownMenu>
             </Dropdown>
@@ -45,10 +45,10 @@
         methods: {
             handleSelection(selected){
 
-                //  If we want to view projects
-                if(selected == 'projects'){
+                //  If we want to view stores
+                if(selected == 'stores'){
 
-                    //  Redirect to the projects page
+                    //  Redirect to the stores page
                     this.$router.push({ name: 'show-stores' });
 
                 //  If we want to logout

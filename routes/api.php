@@ -78,6 +78,42 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
     });
 
+    //  Popular Stores Resource Routes
+    Route::prefix('popular-stores')->group(function () {
+
+        Route::get('/', 'PopularStoreController@getPopularStores')->name('popular-stores');
+        Route::post('/', 'PopularStoreController@createPopularStore')->name('popular-store-create');
+        Route::post('/arrangement', 'PopularStoreController@arrangePopularStores')->name('popular-store-arrangement');
+
+        //  Single popular store resources    /api/popular-stores/{popular_store_id}   name => popular-store-*
+        Route::prefix('/{popular_store_id}')->name('popular-store-')->group(function () {
+
+            Route::get('/', 'PopularStoreController@getPopularStore')->name('show')->where('popular_store_id', '[0-9]+');
+            Route::put('/', 'PopularStoreController@updatePopularStore')->name('update')->where('popular_store_id', '[0-9]+');
+            Route::delete('/', 'PopularStoreController@deletePopularStore')->name('delete')->where('popular_store_id', '[0-9]+');
+
+        });
+
+    });
+
+    //  Adverts Resource Routes
+    Route::prefix('adverts')->group(function () {
+
+        Route::get('/', 'AdvertController@getAdverts')->name('adverts');
+        Route::post('/', 'AdvertController@createAdvert')->name('advert-create');
+        Route::post('/arrangement', 'AdvertController@arrangeAdverts')->name('advert-arrangement');
+
+        //  Single advert resources    /api/adverts/{advert_id}   name => advert-*
+        Route::prefix('/{advert_id}')->name('advert-')->group(function () {
+
+            Route::get('/', 'AdvertController@getAdvert')->name('show')->where('advert_id', '[0-9]+');
+            Route::put('/', 'AdvertController@updateAdvert')->name('update')->where('advert_id', '[0-9]+');
+            Route::delete('/', 'AdvertController@deleteAdvert')->name('delete')->where('advert_id', '[0-9]+');
+
+        });
+
+    });
+
     //  Store Resource Routes
     Route::prefix('stores')->group(function () {
 
@@ -254,8 +290,24 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
     });
 
     //  Cart Resource Routes
-    Route::prefix('cart')->group(function () {
+    Route::prefix('carts')->group(function () {
+
+        Route::get('/', 'CartController@getCarts')->name('carts');
+        Route::post('/', 'CartController@createCart')->name('cart-create');
         Route::post('/calculator', 'CartController@calculateCart')->name('cart-calculate');
+
+        //  Single Cart resources    /api/carts/{cart_id}   name => cart-*
+        Route::prefix('/{cart_id}')->name('cart-')->group(function () {
+
+            Route::get('/', 'CartController@getCart')->name('show')->where('cart_id', '[0-9]+');
+            Route::put('/', 'CartController@updateCart')->name('update')->where('cart_id', '[0-9]+');
+            Route::delete('/', 'CartController@deleteCart')->name('delete')->where('cart_id', '[0-9]+');
+
+            Route::put('/refresh', 'CartController@refreshCart')->name('refresh')->where('cart_id', '[0-9]+');
+            Route::put('/reset', 'CartController@resetCart')->name('reset')->where('cart_id', '[0-9]+');
+
+        });
+
     });
 
     /*

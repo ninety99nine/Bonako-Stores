@@ -42,8 +42,6 @@ class CreateLocationsTable extends Migration
 
             /*  Payment Details  */
             $table->boolean('allow_payments')->default(false);
-            $table->json('online_payment_methods')->nullable();
-            $table->json('offline_payment_methods')->nullable();
             $table->char('currency', 3)->default('BWP');
             $table->unsignedInteger('orange_money_merchant_code')->nullable();
 

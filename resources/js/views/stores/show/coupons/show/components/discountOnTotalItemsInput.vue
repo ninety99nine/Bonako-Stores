@@ -1,12 +1,12 @@
 <template>
 
-    <FormItem v-if="couponForm.allow_discount_on_total_items" prop="discount_on_total_items"
+    <FormItem prop="discount_on_total_items"
               :error="serverDiscountOnTotalItemsError" class="mb-0">
         <Poptip trigger="click" width="350" placement="top-start" word-wrap
-                content="Enter minimum cart items?">
+                content="Enter minimum cart items?" class="poptip-w-100">
             <InputNumber v-model="couponForm.discount_on_total_items" size="small" class="w-100"
-                         placeholder="100" :disabled="isLoading" :min="0"
-                         @on-blur="onChange()" @on-change="onChange()">
+                         placeholder="100" :disabled="isLoading || !couponForm.allow_discount_on_total_items"
+                         :min="0" @on-blur="onChange()" @on-change="onChange()">
                 <span slot="prepend">Minimum Total</span>
             </InputNumber>
         </Poptip>

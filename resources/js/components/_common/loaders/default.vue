@@ -2,7 +2,7 @@
 
     <div :style="[defaultDivStyles, divStyles]">
         <img src="/assets/icons/star_loader_black.svg" alt="Loader" :style="[defaultImageStyles, imageStyles]">
-        <slot>Loading...</slot>
+        <slot v-if="showText">Loading...</slot>
     </div>
 
 </template>
@@ -22,7 +22,11 @@
         background: {
             type: Boolean,
             default: true
-        }
+        },
+        showText: {
+            type: Boolean,
+            default: true
+        },
     },
     data(){
         return {
@@ -35,5 +39,5 @@
         }
     }
   };
-  
+
 </script>

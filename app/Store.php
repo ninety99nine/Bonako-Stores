@@ -41,25 +41,25 @@ class Store extends Model
      */
     public function scopeSearch($query, $searchTerm)
     {
-        return $query->where('name', 'like', '%'.$searchTerm.'%');
+        return $query->where('id', $searchTerm)->orWhere('name', 'like', '%'.$searchTerm.'%');
     }
 
     /*
      *  Scope:
-     *  Returns stores that are active (Visible stores)
+     *  Returns stores that are online (Visible stores)
      */
-    public function scopeActive($query)
+    public function scopeOnline($query)
     {
-        return $query->whereActive('1');
+        return $query->whereOnline('1');
     }
 
     /*
      *  Scope:
-     *  Returns stores that are not active (Hidden stores)
+     *  Returns stores that are not online (Hidden stores)
      */
-    public function scopeInActive($query)
+    public function scopeInOnline($query)
     {
-        return $query->whereActive('0');
+        return $query->whereOnline('0');
     }
 
     /*
@@ -189,9 +189,26 @@ class Store extends Model
         'resource_type'
     ];
 
+    /**
+     *  Returns the store online status and description
+     */
+    public function getOnlineAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Online' : 'Offline',
+            'description' => $value ? 'This store is online and can be visited by customers'
+                                    : 'This store is offline and cannot be visited by customers'
+        ];
+    }
+
     public function setOnlineAttribute($value)
     {
-        $this->attributes['online'] = (($value == 'true' || $value === '1') ? 1 : 0);
+        if( is_array($value) ){
+            $this->attributes['online'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['online'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
     }
 
     public function setAllowSendingMerchantSmsAttribute($value)

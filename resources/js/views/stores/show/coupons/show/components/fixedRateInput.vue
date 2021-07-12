@@ -5,7 +5,7 @@
         <Poptip trigger="click" width="350" placement="top-end" word-wrap class="poptip-w-100"
                 content="What is your coupon fixed rate amount e.g 20?">
             <div class="d-flex">
-                <span class="mr-2">Rate</span>
+                <span class="mr-2">Rate ({{ locationCurrencySymbol }})</span>
                 <InputNumber v-model="couponForm.fixed_rate" class="w-100"
                             placeholder="100" :disabled="isLoading" :min="0"
                             @on-blur="onChange()" @on-change="onChange()">
@@ -20,6 +20,10 @@
 
     export default {
         props: {
+            location: {
+                type: Object,
+                default: null
+            },
             couponForm: {
                 type: Object,
                 default: null
@@ -41,6 +45,12 @@
             }
         },
         computed: {
+            locationCurrency(){
+                return (this.location.currency || {});
+            },
+            locationCurrencySymbol(){
+                return this.locationCurrency.symbol;
+            },
             serverFixedRateError(){
                 return (this.serverErrors || {}).fixed_rate;
             }

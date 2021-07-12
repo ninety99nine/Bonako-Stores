@@ -108,11 +108,23 @@
                     <Table :columns="dynamicColumns" :data="coupons"
                             :loading="isLoading" no-data-text="No coupons found" :style="{ overflow: 'visible' }">
 
+                        <!-- ID Poptip -->
+                        <idPoptip slot-scope="{ row, index }" slot="id" :coupon="row"></idPoptip>
+
                         <!-- Name Poptip -->
                         <namePoptip slot-scope="{ row, index }" slot="name" :coupon="row"></namePoptip>
 
-                        <!-- Active Status Poptip -->
+                        <!-- Active Status Badge -->
                         <activeStatusBadge slot-scope="{ row, index }" slot="active" :coupon="row"></activeStatusBadge>
+
+                        <!-- Summary Info Poptip -->
+                        <summaryInfoPoptip slot-scope="{ row, index }" slot="summary" :coupon="row" :location="location"></summaryInfoPoptip>
+
+                        <!-- Quantity Status Badge -->
+                        <quantityStatusBadge slot-scope="{ row, index }" slot="quantity" :coupon="row"></quantityStatusBadge>
+
+                        <!-- Code Type Badge -->
+                        <codePoptip slot-scope="{ row, index }" slot="code" :coupon="row"></codePoptip>
 
                         <template slot-scope="{ row, index }" slot="action">
 
@@ -177,17 +189,22 @@
 
 <script>
 
+    import idPoptip from './../show/components/idPoptip.vue';
     import namePoptip from './../show/components/namePoptip.vue';
+    import codePoptip from './../show/components/codePoptip.vue';
     import deleteCouponModal from './../components/deleteCouponModal.vue';
     import manageCouponDrawer from './../components/manageCouponDrawer.vue';
     import miscMixin from './../../../../../components/_mixins/misc/main.vue';
     import activeStatusBadge from './../show/components/activeStatusBadge.vue';
+    import summaryInfoPoptip from './../show/components/summaryInfoPoptip.vue';
+    import quantityStatusBadge from './../show/components/quantityStatusBadge.vue';
     import basicButton from './../../../../../components/_common/buttons/basicButton.vue';
 
     export default {
         mixins: [ miscMixin ],
         components: {
-            namePoptip, deleteCouponModal, manageCouponDrawer, activeStatusBadge, basicButton
+            idPoptip, namePoptip, codePoptip, summaryInfoPoptip, deleteCouponModal,
+            manageCouponDrawer, activeStatusBadge, quantityStatusBadge, basicButton
         },
         props: {
             store: {
@@ -217,7 +234,7 @@
                 coupons: [],
                 index: null,
                 tableColumnsToShowByDefault: [
-                    'Selector', 'Name', 'Active', 'Created Date'
+                    'Selector', 'ID', 'Name', 'Active', 'Quantity', 'Code', 'Summary', 'Created Date'
                 ],
                 statuses: [
                     {
@@ -303,13 +320,23 @@
                     });
                 }
 
+                //  Coupon ID
+                if(this.tableColumnsToShowByDefault.includes('ID')){
+                    allowedColumns.push(
+                        {
+                            title: 'ID',
+                            slot: 'id',
+                            width: 100
+                        }
+                    );
+                }
+
                 //  Coupon Name
                 if(this.tableColumnsToShowByDefault.includes('Name')){
                     allowedColumns.push(
                         {
                             title: 'Name',
-                            slot: 'name',
-                            width: 200
+                            slot: 'name'
                         }
                     );
                 }
@@ -319,8 +346,38 @@
                     allowedColumns.push(
                         {
                             title: 'Active',
-                            slot: 'active',
-                            width: 100
+                            slot: 'active'
+                        }
+                    );
+                }
+
+                //  Coupon Quantity
+                if(this.tableColumnsToShowByDefault.includes('Quantity')){
+                    allowedColumns.push(
+                        {
+                            title: 'Quantity',
+                            slot: 'quantity'
+                        }
+                    );
+                }
+
+                //  Coupon Code
+                if(this.tableColumnsToShowByDefault.includes('Code')){
+                    allowedColumns.push(
+                        {
+                            title: 'Code',
+                            slot: 'code'
+                        }
+                    );
+                }
+
+                //  Coupon Summary
+                if(this.tableColumnsToShowByDefault.includes('Summary')){
+                    allowedColumns.push(
+                        {
+                            title: 'Summary',
+                            slot: 'summary',
+                            align: 'center'
                         }
                     );
                 }
@@ -411,10 +468,16 @@
                 //  Add the new created coupon to the top of the list
                 this.coupons.unshift(coupon);
 
+                //  Re-calculate the totals
+                this.$emit('fetchLocationTotals');
+
             },
             handleDeletedCoupon(){
 
                 this.fetchCoupons();
+
+                //  Re-calculate the totals
+                this.$emit('fetchLocationTotals');
 
             },
             handleSavedCoupon(coupon){
@@ -471,6 +534,13 @@
 
             //  Get the location coupons
             this.fetchCoupons();
+
+            //  If we want to add a coupon
+            if( this.$route.query.add_coupon == 'true' ){
+
+                this.handleAddCoupon();
+
+            }
 
         }
     };

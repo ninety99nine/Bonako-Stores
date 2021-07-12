@@ -27,7 +27,7 @@ class PaymentMethod extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'description', 'used_online', 'used_offline', 'active'
+        'name', 'type', 'description', 'used_online', 'used_offline', 'active'
     ];
 
     /*
@@ -39,9 +39,9 @@ class PaymentMethod extends Model
     }
 
     /** ATTRIBUTES
-     * 
+     *
      *  Note that the "resource_type" is defined within CommonTraits
-     * 
+     *
      */
     protected $appends = [
         'resource_type',

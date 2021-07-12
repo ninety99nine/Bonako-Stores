@@ -140,13 +140,19 @@
                 <!-- Show Store Menu Links -->
                 <Menu :active-name="activeLink" theme="light" width="auto" key="store-menu">
                     <MenuItem v-for="(menuLink, index) in menuLinks" :key="index"
+
                         :name="menuLink.name" class="" @click.native="navigateToMenuLink(menuLink.linkName)">
+
                         <!-- Menu Icon -->
                         <Icon :type="menuLink.icon" :size="20" />
+
                         <!-- Menu Name -->
                         <span class="text-capitalize">{{ menuLink.name }}</span>
 
-                        <badge v-if="menuLink.total" :count="menuLink.total" type="success" class="float-right"></badge>
+                        <Loader v-show="menuLink.total && isLoadingTotals" :imageStyles="{ width: '25px' }" :class="['float-right']" :showText="false"></Loader>
+
+                        <!-- Menu Total -->
+                        <badge v-if="menuLink.total && !isLoadingTotals" :count="menuLink.total" :type=" ['orders'].includes(menuLink.name) ? 'success' : 'normal'" class="float-right"></badge>
 
                     </MenuItem>
                 </Menu>
@@ -164,8 +170,8 @@
 
                     <router-view :store="store" :location="location" :assignedLocations="assignedLocations"
                                  :locationTotals="locationTotals" @refetchLocationOrder="fetchAssignedLocations"
-                                 @navigateToMenuLink="navigateToMenuLink" @fetchLocationTotals="fetchLocationTotals"
-                                 @updatedLocation="handleUpdatedLocation" />
+                                 @navigateToMenuLink="navigateToMenuLink" @navigateToRoute="navigateToRoute"
+                                 @fetchLocationTotals="fetchLocationTotals" @updatedLocation="handleUpdatedLocation" />
                 </template>
 
                 <!-- If we are not loading and don't have the store -->
@@ -223,22 +229,26 @@
                     {
                         name: 'orders',
                         linkName: 'show-store-orders',
-                        icon: 'ios-cube-outline'
+                        icon: 'ios-cube-outline',
+                        total: 0
                     },
                     {
                         name: 'products',
                         linkName: 'show-store-products',
-                        icon: 'ios-pricetags-outline'
+                        icon: 'ios-pricetags-outline',
+                        total: 0
                     },
                     {
                         name: 'coupons',
                         linkName: 'show-store-coupons',
-                        icon: 'ios-pricetags-outline'
+                        icon: 'ios-pricetags-outline',
+                        total: 0
                     },
                     {
                         name: 'instant carts',
                         linkName: 'show-store-instant-carts',
-                        icon: 'ios-pricetags-outline'
+                        icon: 'ios-pricetags-outline',
+                        total: 0
                     },
                     {
                         name: 'customers',
@@ -311,6 +321,12 @@
                     return 'overview';
                 }else if( ['show-store-orders'].includes(this.$route.name) ){
                     return 'orders';
+                }else if( ['show-store-products'].includes(this.$route.name) ){
+                    return 'products';
+                }else if( ['show-store-coupons'].includes(this.$route.name) ){
+                    return 'coupons';
+                }else if( ['show-store-instant-carts'].includes(this.$route.name) ){
+                    return 'instant carts';
                 }
             },
         },
@@ -562,6 +578,22 @@
 
                     }
 
+                    //  If this is the coupons menu
+                    if( this.menuLinks[x].name == 'coupons' && this.locationTotals){
+
+                        //  Update total undelivered coupons
+                        this.$set(this.menuLinks[x], 'total', this.locationTotals.coupons.total);
+
+                    }
+
+                    //  If this is the instant carts menu
+                    if( this.menuLinks[x].name == 'instant carts' && this.locationTotals){
+
+                        //  Update total undelivered instant carts
+                        this.$set(this.menuLinks[x], 'total', this.locationTotals.instant_carts.total);
+
+                    }
+
                 }
             },
             navigateToOrderLink(event){
@@ -606,6 +638,20 @@
                     route.params.order_url = orderUrl;
 
                 }
+
+                this.navigateToRoute(route);
+
+            },
+            navigateToRoute(route){
+
+                /** Note that using router.push() or router.replace() does not allow us to make a
+                 *  page refresh when visiting routes. This is undesirable at this moment since our
+                 *  current component contains the <router-view />. When the page does not refresh,
+                 *  the <router-view /> is not able to receice the nested components defined in the
+                 *  route.js file. This means that we are then not able to render the nested
+                 *  components and present them. To counter this issue we must construct the
+                 *  href and use "window.location.href" to make a hard page refresh.
+                 */
 
                 //  Contruct the full path url
                 var href = window.location.origin + "/" + VueInstance.$router.resolve(route).href

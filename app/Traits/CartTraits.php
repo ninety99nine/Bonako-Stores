@@ -5,15 +5,16 @@ namespace App\Traits;
 use DB;
 use App\Http\Resources\Cart as CartResource;
 use App\Http\Resources\Carts as CartsResource;
-use App\Http\Resources\ItemLines;
 
 trait CartTraits
 {
     public $cart = null;
-    public $coupons = [];
+    public $_coupons = [];
     public $_total_items = 0;
     public $_total_unique_items = 0;
-    public $allow_free_delivery = false;
+    public $_item_detected_changes = [];
+    public $_allow_free_delivery = false;
+
 
     /**
      *  This method transforms a collection or single model instance
@@ -51,7 +52,7 @@ trait CartTraits
     /**
      *  This method creates a new cart
      */
-    public function createResource($data = [], $model = null)
+    public function createResource($data = [], $model = null, $user = null)
     {
         try {
 
@@ -61,11 +62,30 @@ trait CartTraits
             //  Validate the data
             $this->createResourceValidation($data);
 
+            //  Verify permissions
+            $this->createResourcePermission($user);
+
+            //  If we have an owning model
+            if( $model ){
+
+                //  Search for an existing cart matching the owner id and owner type for the given store location
+                $this->cart = \App\Cart::where('owner_id', $model->id)->where('owner_type', $model->resource_type)->where('location_id', $data['location_id'])->first();
+
+                //  If we have an existing cart
+                if( $this->cart ){
+
+                    //  Reset and return the existing cart
+                    return $this->cart->resetResource();
+
+                }
+
+            }
+
             //  Build the cart basket
             $cart_basket = $this->buildCartBasket($data);
 
             //  Set the template with the resource fields allowed
-            $template =  collect($cart_basket)->only($this->getFillable())->toArray();
+            $template = collect($cart_basket)->only($this->getFillable())->toArray();
 
             /**
              *  Create a new resource
@@ -104,6 +124,133 @@ trait CartTraits
         }
     }
 
+    /**
+     *  This method updates an existing cart
+     */
+    public function updateResource($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Merge the existing data with the new data
+            $data = array_merge(collect($this)->only($this->getFillable())->toArray(), $data);
+
+            //  Verify permissions
+            $this->updateResourcePermission($user);
+
+            //  Validate the data
+            $this->updateResourceValidation($data);
+
+            //  Build the cart basket
+            $cart_basket = $this->buildCartBasket($data);
+
+            //  Set the template with the resource fields allowed
+            $template =  collect($cart_basket)->only($this->getFillable())->toArray();
+
+            //  Set the original owner of this resource
+            $template['owner_id'] = $this->owner_id;
+            $template['owner_type'] = $this->owner_type;
+
+            /**
+             *  Update the resource details
+             */
+            $updated = $this->update($template);
+
+            //  If updated successfully
+            if ($updated) {
+
+                //  Update the cart item line resources
+                $this->updateResourceItemLines($cart_basket);
+
+                //  Update the cart counpon line resources
+                $this->updateResourceCouponLines($cart_basket);
+
+                //  Return a fresh instance
+                return $this->fresh();
+
+            }else{
+
+                //  Return original instance
+                return $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method updates the existing cart using already
+     *  existing item lines and coupon lines
+     */
+    public function refreshResource($user = null)
+    {
+        try {
+
+            //  Extract the cart item ids
+            $items = collect($this->itemLines)->map(function($itemLine){
+                return [
+                    'id' => $itemLine['product_id'],
+                    'quantity' => $itemLine['original_quantity']
+                ];
+            })->toArray();
+
+            //  Extract the cart coupon ids
+            $coupons = collect($this->couponLines)->map(function($couponLine){
+                return [
+                    'id' => $couponLine['coupon_id']
+                ];
+            })->toArray();
+
+            //  Set data for cart basket
+            $data = [
+                'items' => $items,
+                'coupons' => $coupons,
+                'location_id' => $this->location_id,
+                'total_refreshes' => ++$this->total_refreshes,
+                'delivery_fee' => $this->delivery_fee['amount'],
+                'allow_free_delivery' => $this->allow_free_delivery['status']
+            ];
+
+            return $this->updateResource($data, $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method resets the existing cart
+     */
+    public function resetResource($user = null)
+    {
+        try {
+
+            //  Set data for cart basket
+            $data = [
+                'items' => [],
+                'coupons' => [],
+                'delivery_fee' => 0,
+                'allow_free_delivery' => false,
+                'location_id' => $this->location_id,
+                'total_resets' => ++$this->total_resets
+            ];
+
+            return $this->updateResource($data, $user);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
 
     /**
      *  This method creates a new cart
@@ -164,8 +311,8 @@ trait CartTraits
                 $coupon_line = collect($coupon_line)->only( (new \App\CouponLine)->getFillable() )->toArray();
 
                 //  Restructure coupon line
-                $coupon_line['always_apply'] = $coupon_line['always_apply']['status'];
-                $coupon_line['uses_code'] = $coupon_line['uses_code']['status'];
+                $coupon_line['apply_discount'] = $coupon_line['apply_discount']['status'];
+                $coupon_line['activation_type'] = ((strtolower($coupon_line['activation_type']['type']) == 'always apply') ? 1 : 0);
                 $coupon_line['allow_free_delivery'] = $coupon_line['allow_free_delivery']['status'];
                 $coupon_line['currency'] = $coupon_line['currency']['code'];
                 $coupon_line['discount_rate_type'] = substr(strtolower($coupon_line['discount_rate_type']['name']), 0, 1) == 'p' ? 'p' : 'p';
@@ -174,6 +321,9 @@ trait CartTraits
                 $coupon_line['discount_on_minimum_total'] = $coupon_line['discount_on_minimum_total']['amount'];
                 $coupon_line['allow_discount_on_total_items'] = $coupon_line['allow_discount_on_total_items']['status'];
                 $coupon_line['allow_discount_on_total_unique_items'] = $coupon_line['allow_discount_on_total_unique_items']['status'];
+                $coupon_line['allow_discount_on_start_datetime'] = $coupon_line['allow_discount_on_start_datetime']['status'];
+                $coupon_line['allow_discount_on_end_datetime'] = $coupon_line['allow_discount_on_end_datetime']['status'];
+                $coupon_line['allow_usage_limit'] = $coupon_line['allow_usage_limit']['status'];
 
                 //  Update the owning cart
                 $coupon_line['cart_id'] = $this->cart->id;
@@ -212,6 +362,245 @@ trait CartTraits
     }
 
     /**
+     *  This method deletes a single cart
+     */
+    public function deleteResource($user = null)
+    {
+        try {
+
+            //  Verify permissions
+            $this->forceDeleteResourcePermission($user);
+
+            /**
+             *  Delete the resource
+             */
+            return $this->delete();
+
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of carts
+     */
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data (CommanTraits)
+            $this->getResourcesValidation($data);
+
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
+
+                //  Set the carts to this eloquent builder
+                $carts = $builder;
+
+            }else{
+
+                //  Get the carts
+                $carts = \App\Cart::latest();
+
+            }
+
+            //  Filter the carts
+            $carts = $this->filterResources($data, $carts);
+
+            //  Return carts
+            return $this->collectionResponse($data, $carts, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the carts by search or status
+     */
+    public function filterResources($data = [], $carts)
+    {
+        //  If we need to search for specific carts
+        if ( isset($data['search']) && !empty($data['search']) ) {
+
+            $carts = $this->filterResourcesBySearch($data, $carts);
+
+        }elseif ( isset($data['status']) && !empty($data['status']) ) {
+
+            $carts = $this->filterResourcesByStatus($data, $carts);
+
+        }
+
+        //  Return the carts
+        return $carts;
+    }
+
+    /**
+     *  This method filters the carts by search
+     */
+    public function filterResourcesBySearch($data = [], $carts)
+    {
+        //  Set the search term e.g "123"
+        $search_term = $data['search'] ?? null;
+
+        //  Return searched carts otherwise original carts
+        return empty($search_term) ? $carts : $carts->search($search_term);
+
+    }
+
+    /**
+     *  This method filters the carts by status
+     */
+    public function filterResourcesByStatus($data = [], $carts)
+    {
+        //  Set the statuses to an empty array
+        $statuses = [];
+
+        //  Set the status filters e.g ["active", "inactive", ...] or "active,inactive, ..."
+        $status_filters = $data['status'] ?? $data;
+
+        //  If the filters are provided as String format e.g "active,inactive"
+        if( is_string($status_filters) ){
+
+            //  Set the statuses to the exploded Array ["active", "inactive"]
+            $statuses = explode(',', $status_filters);
+
+        }elseif( is_array($status_filters) ){
+
+            //  Set the statuses to the given Array ["active", "inactive"]
+            $statuses = $status_filters;
+
+        }
+
+        //  Clean-up each status filter
+        foreach ($statuses as $key => $status) {
+
+            //  Convert " active " to "Active"
+            $statuses[$key] = ucfirst(strtolower(trim($status)));
+        }
+
+        if ( $carts && count($statuses) ) {
+
+            if( in_array('Active', $statuses) ){
+
+                $carts = $carts->active();
+
+            }elseif( in_array('Inactive', $statuses) ){
+
+                $carts = $carts->inActive();
+
+            }
+
+            if( in_array('Free delivery', $statuses) ){
+
+                $carts = $carts->offersFreeDelivery();
+
+            }
+
+        }
+
+        //  Return the carts
+        return $carts;
+    }
+
+    /**
+     *  This method returns a single cart
+     */
+    public function getResource($id)
+    {
+        try {
+
+            //  Get the resource
+            $cart = \App\Cart::where('id', $id)->first() ?? null;
+
+            //  If exists
+            if ($cart) {
+
+                //  Return cart
+                return $cart;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method updates the remaining product stock quantity
+     *  in relation to the cart item line quantities
+     */
+    public function updateRemainingProductStockQuantity()
+    {
+        //  Set the item lines
+        $item_lines = $this->itemLines;
+
+        //  Set the products
+        $products = collect($item_lines)->map(function($item_line){
+
+            //  Extract the item line product
+            $product = $item_line->product;
+
+            //  If we have a product
+            if( !empty($product) ){
+
+                //  Set the quantity on the product
+                $product['quantity'] = $item_line['quantity'];
+
+            }
+
+            return $product;
+
+        });
+
+        //  Filter the products
+        $products = collect($products)->filter(function($product){
+
+            //  If we have a product
+            if( !empty($product) ){
+
+                //  Only return products that support automatic stock management
+                return ($product->allow_stock_management && $product->auto_manage_stock);
+
+            }
+
+            return false;
+
+        });
+
+        //  Update the remaining stock quantity of each product
+        foreach ($products as $product) {
+
+            $id = $product['id'];
+            $quantity = $product['quantity'];
+            $stock_quantity = $product['stock_quantity']['value'];
+            $remaining_stock_quantity = ($stock_quantity - $quantity) > 0 ? ($stock_quantity - $quantity) : 0;
+
+            //  Update the product stock quantity
+            DB::table('products')->where('id', $id)->update(['stock_quantity' => $remaining_stock_quantity]);
+
+        }
+
+        //  Return the cart instance
+        return $this;
+    }
+
+    /**
      *  This method compiles the cart template by assembling
      *  information collected from other sources.
      */
@@ -247,7 +636,7 @@ trait CartTraits
             $location_id = $data['location_id'] ?? null;
 
             //  Set the allow free delivery otherwise default to original value
-            $this->allow_free_delivery = $data['allow_free_delivery'] ?? $this->allow_free_delivery;
+            $this->_allow_free_delivery = $data['allow_free_delivery'] ?? $this->_allow_free_delivery;
 
             //  Set the delivery fee
             $delivery_fee = $data['delivery_fee'] ?? 0;
@@ -328,7 +717,7 @@ trait CartTraits
             $coupon_total = $this->calcultateCoupons($grand_total, $location_coupons, $coupons);
 
             //  If we don't have a delivery fee or we allow free delivery
-            if( $delivery_fee == 0 || $this->allow_free_delivery ){
+            if( $delivery_fee == 0 || $this->_allow_free_delivery ){
 
                 /** Calculate the grand total (The actual amount minus how much the customer saved using coupons).
                  *  Remember that the grand total already applied the sale discounts.
@@ -355,7 +744,7 @@ trait CartTraits
 
             return [
                 'items' => $cart_items,
-                'coupons' => $this->coupons,
+                'coupons' => $this->_coupons,
                 'total_items' => $this->_total_items,
                 'total_unique_items' => $this->_total_unique_items,
                 'items_summarized_array' => $this->getItemsSummarizedInArray($cart_items),
@@ -364,11 +753,12 @@ trait CartTraits
                 'coupon_total' => $this->convertToMoney($currency, $coupon_total),
                 'sale_discount_total' => $this->convertToMoney($currency, $sale_discount_total),
                 'coupon_and_sale_discount_total' => $this->convertToMoney($currency, $coupon_and_sale_discount_total),
-                'allow_free_delivery' => $this->allow_free_delivery,
+                'allow_free_delivery' => $this->_allow_free_delivery,
                 'delivery_fee' => $this->convertToMoney($currency, $delivery_fee),
                 'grand_total' => $this->convertToMoney($currency, $grand_total),
                 'location_id' => $location_id,
-                'currency' => $currency
+                'currency' => $currency,
+                'detected_changes' => $this->_item_detected_changes
             ];
 
         } catch (\Exception $e) {
@@ -409,54 +799,272 @@ trait CartTraits
             })->toArray();
 
             //  Get product items that match the given item ID's
-            $related_items = \App\Product::whereIn('id', $item_ids)->get();
+            $related_products = \App\Product::whereIn('id', $item_ids)->get();
+
+            //  If we have a Eloquent cart instance e.g If we are updating
+            if( !empty($this->id) ){
+
+                //  Get the cart item lines (if any)
+                $item_lines = $this->itemLines;
+
+            }else{
+
+                $item_lines = [];
+
+            }
 
             //  Foreach item
             foreach ($items as $item) {
 
-                //  Foreach related item
-                foreach ($related_items as $related_item) {
+                //  Get the cart item line (If we are updating a cart)
+                $matching_item_lines = collect($item_lines)->filter(function($item_line) use($item) {
 
-                    //  If the related item id and the cart item id match
-                    if ($related_item['id'] == $item['id']) {
+                    return $item_line->product_id == $item['id'];
 
-                        //  Set the quantity
-                        $quantity =  $item['quantity'] ?? 1;
+                });
 
-                        //  Set the unit price
-                        $unit_price = $related_item['unit_price']['amount'];
+                //  Set the matching item line
+                $item_line = $matching_item_lines->count() ? $matching_item_lines->first() : null;
 
-                        //  Set the sub total (based on the unit regular price and quantity)
-                        $sub_total = $related_item['unit_regular_price']['amount'] * $quantity;
+                //  Get the related product (If we are updating a cart)
+                $matching_related_products = collect($related_products)->filter(function($related_product) use($item) {
 
-                        //  Set the sale discount (based on the sale discount and quantity)
-                        $sale_discount_total = $related_item['unit_sale_discount']['amount'] * $quantity;
+                    return $related_product->id == $item['id'];
 
-                        //  Set the grand total (based on the unit price and quantity)
-                        $grand_total = $unit_price * $quantity;
+                });
 
-                        //  Set the cart item (Extract only selected fields)
-                        $cart_item = collect($related_item)->only([
+                //  Set the matching related product
+                $related_product = $matching_related_products->count() ? $matching_related_products->first() : null;
 
-                            /*  Product Details  */
-                            'id', 'name', 'description',
-                            'is_free', 'unit_regular_price', 'unit_sale_price',
-                            'sku', 'barcode',
+                //  If we have a related product
+                if ( $related_product ) {
 
-                            /*  Product Attributes  */
-                            'unit_price', 'unit_sale_discount'
+                    //  Set the quantity otherwise
+                    $quantity =  $item['quantity'];
 
-                        ]);
+                    //  Set the original quantity
+                    $original_quantity = $quantity;
 
-                        //  Update the cart item with additional fields
-                        $cart_item['quantity'] = $quantity;
-                        $cart_item['sub_total'] = $this->convertToMoney($related_item->currency, $sub_total);
-                        $cart_item['grand_total'] = $this->convertToMoney($related_item->currency, $grand_total);
-                        $cart_item['sale_discount_total'] = $this->convertToMoney($related_item->currency, $sale_discount_total);
+                    //  Set the stock quantity
+                    $stock_quantity = $related_product['stock_quantity']['value'];
 
-                        //  Add the current cart item to the rest of the cart items
-                        array_push($cart_items, $cart_item);
+                    //  If the original quantity is not provided
+                    if( empty($original_quantity) ){
+
+                        //  Default to "1"
+                        $quantity = 1;
+
                     }
+
+                    //  If we do not have stock
+                    if( $related_product['has_stock']['type'] == 'no_stock' ){
+
+                        //  Default to "0"
+                        $quantity = 0;
+
+                    }
+
+                    //  If we have limited stock
+                    if( $related_product['has_stock']['type'] == 'has_stock' && ($original_quantity > $stock_quantity) ){
+
+                        //  Default to available stock quantity
+                        $quantity = $stock_quantity;
+
+                    }
+
+                    //  Set the unit price
+                    $unit_price = $related_product['unit_price']['amount'];
+
+                    //  Set the sub total (based on the unit regular price and quantity)
+                    $sub_total = $related_product['unit_regular_price']['amount'] * $quantity;
+
+                    //  Set the sale discount (based on the sale discount and quantity)
+                    $sale_discount_total = $related_product['unit_sale_discount']['amount'] * $quantity;
+
+                    //  Set the grand total (based on the unit price and quantity)
+                    $grand_total = $unit_price * $quantity;
+
+                    //  Set the cart item (Extract only selected fields)
+                    $cart_item = collect($related_product)->only([
+
+                        /*  Product Details  */
+                        'id', 'name', 'description',
+                        'is_free', 'unit_regular_price', 'unit_sale_price',
+                        'sku', 'barcode',
+
+                        /*  Product Attributes  */
+                        'unit_price', 'unit_sale_discount'
+
+                    ]);
+
+                    //  Set the item original quantity
+                    $cart_item['original_quantity'] = $original_quantity;
+
+                    //  Reset the item cancellation status
+                    $cart_item = $this->resetCancellationStatus($cart_item);
+
+                    //  Reset the item detected changes
+                    $cart_item = $this->resetDetectedChanges($cart_item);
+
+                    //  If we do not have stock
+                    if( $related_product['has_stock']['type'] == 'no_stock' ){
+
+                        $no_stock_message = $related_product['name'].' removed because it sold out';
+
+                        //  Record cart item change detected
+                        $cart_item = $this->recordItemDetectedChange($cart_item, $item_line, 'no_stock', $no_stock_message);
+
+                        //  Record cart item cancellation status change
+                        $cart_item = $this->setCancellationStatus($cart_item, true, $no_stock_message);
+
+                    //  If we have limited stock
+                    }elseif( $related_product['has_stock']['type'] == 'has_stock' && ($original_quantity > $stock_quantity) ){
+
+                        $limited_stock_message = $original_quantity.'x('.$related_product['name'].') reduced to ('.$quantity.') because of limited stock';
+
+                        //  Record cart item change detected
+                        $cart_item = $this->recordItemDetectedChange($cart_item, $item_line, 'limited_stock', $limited_stock_message);
+
+                        //  Record cart item cancellation status change
+                        $cart_item = $this->setCancellationStatus($cart_item, false);
+
+                    }elseif( $related_product['has_price']['status'] == false ){
+
+                        $no_price_message = $original_quantity.'x('.$related_product['name'].') removed because it has no price';
+
+                        //  Record cart item change detected
+                        $cart_item = $this->recordItemDetectedChange($cart_item, $item_line, 'no_price', $no_price_message);
+
+                        //  Record cart item cancellation status change
+                        $cart_item = $this->setCancellationStatus($cart_item, true, $no_price_message);
+
+                    //  If we have a stock now but the line item did not have stock
+                    }elseif( $item_line ){
+
+                        //  If the line item did not have stock but now we have new stock
+                        $new_stock_from_no_stock = collect($item_line->detected_changes)->contains(function($item_line_detected_change) use ($related_product){
+
+                            return ($item_line_detected_change['type'] == 'no_stock' && $related_product['has_stock']['type'] != 'no_stock');
+
+                        });
+
+                        //  If the line item was reduced due to limited stock but now we have enough stock
+                        $new_stock_from_limited_stock = collect($item_line->detected_changes)->contains(function($item_line_detected_change) use ($related_product, $original_quantity, $stock_quantity){
+
+                            return ($item_line_detected_change['type'] == 'limited_stock' && ($related_product['has_stock']['type'] == 'has_stock' && ($original_quantity <= $stock_quantity)));
+
+                        });
+
+                        if( $new_stock_from_no_stock ){
+
+                            $new_stock_message = $quantity.'x('.$related_product['name'].') added because of new stock';
+
+                            //  Record cart item change detected
+                            $cart_item = $this->recordItemDetectedChange($cart_item, $item_line, 'new_stock', $new_stock_message);
+
+                            //  Record cart item cancellation status change
+                            $cart_item = $this->setCancellationStatus($cart_item, false);
+
+                        }elseif( $new_stock_from_limited_stock ){
+
+                            $new_stock_message = $item_line->quantity.'x('.$related_product['name'].') increased to ('.$original_quantity.') because of new stock';
+
+                            //  Record cart item change detected
+                            $cart_item = $this->recordItemDetectedChange($cart_item, $item_line, 'new_stock', $new_stock_message);
+
+                            //  Record cart item cancellation status change
+                            $cart_item = $this->setCancellationStatus($cart_item, false);
+
+                        }
+
+                        //  If the line item did not have a price but now we have new price
+                        $new_price_from_no_price = collect($item_line->detected_changes)->contains(function($item_line_detected_change) use ($related_product){
+
+                            return ($item_line_detected_change['type'] == 'no_price' && $related_product['has_price']['status'] == true);
+
+                        });
+
+                        //  If the line item has a different price from the current price
+                        $new_price_from_old_price = $item_line['unit_price']['amount'] != $related_product['unit_price']['amount'];
+
+
+                        if( $new_price_from_no_price ){
+
+                            $new_price_message = $quantity.'('.$related_product['name'].') added with new price '.$related_product['unit_price']['currency_money'];
+
+                            //  Record cart item change detected
+                            $cart_item = $this->recordItemDetectedChange($cart_item, $item_line, 'new_price', $new_price_message);
+
+                            //  Record cart item cancellation status change
+                            $cart_item = $this->setCancellationStatus($cart_item, false);
+
+                        }elseif( $new_price_from_old_price ){
+
+                            $inflation = $item_line['unit_price']['amount'] < $related_product['unit_price']['amount'] ? 'increased' : 'reduced';
+
+                            //  If the item line was on sale but the sale ended
+                            if( $item_line['on_sale']['status'] && !$related_product['on_sale']['status'] ){
+
+                                $new_price_message = $related_product['name'].' price '.$inflation.' from '.$item_line['unit_price']['currency_money'].' to '.$related_product['unit_price']['currency_money'].' (Sale ended)';
+
+                                if( $inflation == 'increased' ){
+
+                                    $type = 'old_to_new_price_increase_without_sale';
+
+                                }else{
+
+                                    $type = 'old_to_new_price_decrease_without_sale';
+
+                                }
+
+                            //  If the item line was not on sale but the sale started
+                            }elseif( !$item_line['on_sale']['status'] && $related_product['on_sale']['status'] ){
+
+                                $new_price_message = $related_product['name'].' price '.$inflation.' from '.$item_line['unit_price']['currency_money'].' to '.$related_product['unit_price']['currency_money'].' (On sale)';
+
+                                if( $inflation == 'increased' ){
+
+                                    $type = 'old_to_new_price_increase_with_sale';
+
+                                }else{
+
+                                    $type = 'old_to_new_price_decrease_with_sale';
+
+                                }
+
+                            //  If we had no sale related changes
+                            }else{
+
+                                $new_price_message = $related_product['name'].' price '.$inflation.' from '.$item_line['unit_price']['currency_money'].' to '.$related_product['unit_price']['currency_money'];
+
+                                if( $inflation == 'increased' ){
+
+                                    $type = 'old_to_new_price_increase';
+
+                                }else{
+
+                                    $type = 'old_to_new_price_decrease';
+
+                                }
+                            }
+
+                            //  Record cart item change detected
+                            $cart_item = $this->recordItemDetectedChange($cart_item, $item_line, $type, $new_price_message);
+
+                            //  Record cart item cancellation status change
+                            $cart_item = $this->setCancellationStatus($cart_item, false);
+
+                        }
+                    }
+
+                    //  Update the cart item with additional fields
+                    $cart_item['quantity'] = $quantity;
+                    $cart_item['sub_total'] = $this->convertToMoney($related_product->currency, $sub_total);
+                    $cart_item['grand_total'] = $this->convertToMoney($related_product->currency, $grand_total);
+                    $cart_item['sale_discount_total'] = $this->convertToMoney($related_product->currency, $sale_discount_total);
+
+                    //  Add the current cart item to the rest of the cart items
+                    array_push($cart_items, $cart_item);
                 }
             }
 
@@ -467,6 +1075,69 @@ trait CartTraits
             throw($e);
 
         }
+    }
+
+    public function resetDetectedChanges($cart_item)
+    {
+        $cart_item['detected_changes'] = [];
+
+        return $cart_item;
+    }
+
+    public function resetCancellationStatus($cart_item)
+    {
+        $cart_item['is_cancelled'] = false;
+        $cart_item['cancellation_reason'] = null;
+
+        return $cart_item;
+    }
+
+    public function setCancellationStatus($cart_item, $status = true, $cancellation_reason = '')
+    {
+        $cart_item['is_cancelled'] = $status;
+        $cart_item['cancellation_reason'] = $cancellation_reason;
+
+        return $cart_item;
+    }
+
+    public function recordItemDetectedChange($cart_item, $item_line, $type, $message)
+    {
+        //  Convert the detected changes into an array
+        $detected_changes = collect($cart_item['detected_changes'])->toArray();
+
+        $detected_change = [
+            'type' => $type,
+            'message' => $message,
+            'notified_user' => false
+        ];
+
+        //  If we have an item line that is related to this item
+        if( $item_line ){
+
+            //  Check if the user has already been notified about this detected change
+            $detected_change['notified_user'] = collect($item_line->detected_changes)->contains(function($item_line_detected_change) use ($detected_change){
+
+                /**
+                 *  If this item line has a detected change that matches the current detected change
+                 *  then the user has already been notified, therefore we must update the status by
+                 *  setting it to true otherwise default to false.
+                 */
+                return ($item_line_detected_change['type'] == $detected_change['type']);
+
+            });
+
+        }
+
+        //  Record change
+        array_push($detected_changes, $detected_change);
+
+        //  Set change
+        $cart_item['detected_changes'] = $detected_changes;
+
+        //  Set change for cart
+        $this->_item_detected_changes = array_merge($this->_item_detected_changes, $detected_changes);
+
+        return $cart_item;
     }
 
     /**
@@ -497,13 +1168,13 @@ trait CartTraits
                     $is_valid = true;
 
                     //  If the location coupon must not always be applied
-                    if( $location_coupon['always_apply']['status'] == false ){
+                    if( $location_coupon['activation_type']['type'] != 'always apply' ){
 
                         //	Check if we have a matching coupon provided
                         $is_valid = collect($coupons)->contains(function ($coupon) use ($location_coupon, $grand_total){
 
                             //  If the location coupon is applied using a specific code
-                            if( $location_coupon['uses_code'] == true ){
+                            if( $location_coupon['activation_type']['type'] == 'use code' ){
 
                                 //	Check if we have a matching code
                                 $is_valid = ($coupon['code'] == $location_coupon['code']);
@@ -554,6 +1225,40 @@ trait CartTraits
 
                             }
 
+                            $discount_on_start_datetime = $location_coupon['discount_on_start_datetime'];
+                            $allow_discount_on_start_datetime = $location_coupon['allow_discount_on_start_datetime']['status'];
+
+                            //  If this coupon allows a discount only if the start time is reached
+                            if( $allow_discount_on_start_datetime && !(\Carbon\Carbon::parse($discount_on_start_datetime)->isPast()) ){
+
+                                //  Return false since its not valid
+                                return false;
+
+                            }
+
+                            $discount_on_end_datetime = $location_coupon['discount_on_end_datetime'];
+                            $allow_discount_on_end_datetime = $location_coupon['allow_discount_on_end_datetime']['status'];
+
+                            //  If this coupon allows a discount only if the end time is not reached
+                            if( $allow_discount_on_end_datetime && \Carbon\Carbon::parse($discount_on_end_datetime)->isPast() ){
+
+                                //  Return false since its not valid
+                                return false;
+
+                            }
+
+                            $usage_limit = $location_coupon['usage_limit'];
+                            $usage_quantity = $location_coupon['usage_quantity'];
+                            $allow_usage_limit = $location_coupon['allow_usage_limit']['status'];
+
+                            //  If this coupon allows a discount only if the usage limit is not reached
+                            if( $allow_usage_limit && $usage_quantity < $usage_limit  ){
+
+                                //  Return false since its not valid
+                                return false;
+
+                            }
+
                             //  At this point the coupon is valid
                             return true;
 
@@ -565,7 +1270,7 @@ trait CartTraits
                     if( $is_valid ){
 
                         //	Check if we have already applied this coupon
-                        $already_applied = collect($this->coupons)->contains(function ($applied_coupon) use ($location_coupon) {
+                        $already_applied = collect($this->_coupons)->contains(function ($applied_coupon) use ($location_coupon) {
 
                             //	Check if we have matching ids
                             return ($applied_coupon['id'] == $location_coupon['id']);
@@ -579,12 +1284,16 @@ trait CartTraits
                             if ($location_coupon['allow_free_delivery']['status']) {
 
                                 //  Make an update for free delivery
-                                $this->allow_free_delivery = true;
+                                $this->_allow_free_delivery = true;
 
                             }
 
-                            //  If its a percentage rate based coupon
-                            if ($location_coupon['discount_rate_type']['type'] == 'Percentage') {
+                            $apply_discount = $location_coupon['apply_discount']['status'];
+
+                            $discount_rate_type = $location_coupon['discount_rate_type']['type'];
+
+                            //  If we allow discounts and its a percentage rate based coupon
+                            if ($apply_discount && $discount_rate_type == 'Percentage') {
 
                                 //  Set the percentage rate
                                 $percentage_rate = $location_coupon['percentage_rate'];
@@ -594,8 +1303,8 @@ trait CartTraits
                                  */
                                 $total += ($percentage_rate / 100 * $grand_total);
 
-                            //  If its a flat rate based coupon
-                            } elseif ($location_coupon['discount_rate_type']['type'] == 'Fixed') {
+                            //  If we allow discounts and its a fixed rate based coupon
+                            } elseif ($apply_discount && $discount_rate_type == 'Fixed') {
 
                                 //  Set the fixed rate
                                 $fixed_rate = $location_coupon['fixed_rate']['amount'];
@@ -608,7 +1317,7 @@ trait CartTraits
                             }
 
                             //  Add this coupon as an applied coupon
-                            array_push( $this->coupons, collect($location_coupon)->except(['location_id', 'created_at', 'updated_at']));
+                            array_push( $this->_coupons, collect($location_coupon)->except(['location_id', 'created_at', 'updated_at']));
 
                         }
 
@@ -732,6 +1441,62 @@ trait CartTraits
 
     }
 
+
+
+    /**
+     *  This method checks permissions for creating a new resource
+     */
+    public function createResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to create the resource
+                if ($user->can('create', Cart::class) === false) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method checks permissions for updating an existing resource
+     */
+    public function updateResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to update the resource
+                if ($user->can('update', $this)) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
     /**
      *  This method validates creating a new resource
      */
@@ -770,7 +1535,7 @@ trait CartTraits
             $data = $this->extractRequestData($data);
 
             //  If we have the data items
-            if( isset($data['items']) && !empty($data['items']) ){
+            if( isset($data['items']) && is_array($data['items']) ){
 
                 //  Set the items
                 $items = $data['items'];
@@ -809,6 +1574,107 @@ trait CartTraits
     }
 
     /**
+     *  This method updates existing cart item lines
+     */
+    public function updateResourceItemLines($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  If we have the data items
+            if( isset($data['items']) && is_array($data['items']) ){
+
+                //  Set the items
+                $items = $data['items'];
+
+                //  If all items were removed
+                if( count($items) == 0 ){
+
+                    //  Delete all item lines
+                    $this->itemLines()->delete();
+
+                }else{
+
+                    //  Get the cart item lines
+                    $itemLines = $this->itemLines;
+
+                    //  Foreach item
+                    foreach ($items as $item) {
+
+                        //  Get the existing item line that matches this item
+                        $itemLine = collect($itemLines)->filter(function($itemLine) use ($item) {
+
+                            return $itemLine->product_id == $item['id'];
+
+                        })->first();
+
+                        //  If we have a matched item line
+                        if( $itemLine ){
+
+                            //  Convert the data of the current item to an Array
+                            $data = collect($item)->toArray();
+
+                            /**
+                             *  Update item line resource
+                             */
+                            $itemLine->updateResource($data);
+
+                        //  If we don't have a matched item line
+                        }else{
+
+                            //  Create the cart item line resource
+                            $this->createResourceItemLines([
+                                'items' => [ $item ]
+                            ]);
+
+                        }
+
+                    }
+
+                    //  Return only item lines that do not exist anymore
+                    $removedItemLines = collect($itemLines)->filter(function($itemLine) use ($items) {
+                        $itemLineExists = collect($items)->contains(function($item) use ($itemLine) {
+                            return $itemLine->product_id == $item['id'];
+                        });
+
+                        return ($itemLineExists == false);
+                    });
+
+                    //  Foreach item line that was removed
+                    foreach ($removedItemLines as $removedItemLine) {
+
+                        /**
+                         *  CANCEL THE ITEM ON THE CART
+                         *
+                         *  We do not delete since the USSD can have (2) items in the
+                         *  cart, but it will have to send the first update with only (1 item), then the second
+                         *  update with both the (2 items). On the first update we do not want to delete item
+                         *  #2 just because it was not mentioned on the first update, since we know that it
+                         *  will be mentioned on the second udpate. Therefore we must temporarily cancel
+                         *  item #2, then later on the second update it will be uncancelled if it is
+                         *  still valid for use on the cart.
+                         */
+                        $removedItemLine->update([
+                            'is_cancelled' => true,
+                            'cancellation_reason' => 'Removed from cart'
+                        ]);
+
+                    }
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method creates new cart coupon lines
      */
     public function createResourceCouponLines($data = [])
@@ -819,7 +1685,7 @@ trait CartTraits
             $data = $this->extractRequestData($data);
 
             //  If we have the coupons
-            if( isset($data['coupons']) && !empty($data['coupons']) ){
+            if( isset($data['coupons']) && is_array($data['coupons']) ){
 
                 //  Set the coupons
                 $coupons = $data['coupons'];
@@ -845,6 +1711,99 @@ trait CartTraits
                      *  Create new a coupon line resource
                      */
                     ( new \App\CouponLine() )->createResource($data);
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method updates existing cart coupon lines
+     */
+    public function updateResourceCouponLines($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  If we have the data coupons
+            if( isset($data['coupons']) && is_array($data['coupons']) ){
+
+                //  Set the coupons
+                $coupons = $data['coupons'];
+
+                //  Get the cart coupon lines
+                $couponLines = $this->couponLines;
+
+                //  Foreach coupon
+                foreach ($coupons as $coupon) {
+
+                    //  Get the existing coupon line that matches this coupon
+                    $couponLine = collect($couponLines)->filter(function($couponLine) use ($coupon) {
+
+                        return $couponLine->coupon_id == $coupon['id'];
+
+                    })->first();
+
+                    //  If we have a matched coupon line
+                    if( $couponLine ){
+
+                        //  Convert the data of the current coupon to an Array
+                        $couponArray = collect($coupon)->toArray();
+
+                        //  Convert the coupon line to an Array
+                        $couponLineArray = collect($couponLine)->toArray();
+
+                        //  Merge and replace the coupon line data with the new data
+                        $data = array_merge($couponLineArray, $couponArray);
+
+                        /**
+                         *  Update coupon line resource
+                         */
+                        $couponLine->updateResource($data);
+
+
+                    //  If we don't have a matched coupon line
+                    }else{
+
+                        //  Create the cart coupon line resource
+                        $this->createResourceCouponLines([
+                            'coupons' => [ $coupon ]
+                        ]);
+
+                    }
+
+                }
+
+                //  Return only coupon lines that do not exist anymore
+                $removedCouponLines = collect($couponLines)->filter(function($couponLine) use ($coupons) {
+                    $couponLineExists = collect($coupons)->contains(function($coupon) use ($couponLine) {
+                        return $couponLine->coupon_id == $coupon['id'];
+                    });
+
+                    return !$couponLineExists;
+                });
+
+                //  Foreach coupon line that was removed
+                foreach ($removedCouponLines as $removedCouponLine) {
+
+                    //  Delete this coupon line since it does not exist anymore
+                    $removedCouponLine->delete();
+
+                }
+
+                //  If all coupons were removed
+                if( count($coupons) == 0 ){
+
+                    //  Delete all coupon lines
+                    $this->couponLines()->delete();
 
                 }
 

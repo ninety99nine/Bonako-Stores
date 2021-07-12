@@ -37,7 +37,7 @@ let routes = [
     //  Stores
     {
         path: '/stores', name: 'show-stores',
-        meta: { layout: 'Dashboard', middlewareAuth: true },
+        meta: { layout: 'Dashboard', subHeader: 'defaultSubHeader', middlewareAuth: true },
         component: require('./views/stores/list/main.vue').default
     },
 
@@ -101,36 +101,20 @@ let routes = [
             },
         ]
     },
-    /*
-    //  Single Store Locations
+
+    //  Popular Stores
     {
-        path: '/stores/:store_url/locations',
-        meta: { layout: 'Dashboard', middlewareAuth: true },
-        component: require('./views/stores/show/main.vue').default,
-        children: [
-            {
-                path: '/', name: 'show-locations',
-                meta: { layout: 'Dashboard', middlewareAuth: true },
-                component: require('./views/stores/show/locations/list/main.vue').default
-            },
-            {
-                path: 'create', name: 'create-location',
-                meta: { layout: 'Dashboard', middlewareAuth: true },
-                component: require('./views/stores/show/locations/create/main.vue').default
-            },
-            {
-                path: ':location_url', name: 'show-location',
-                meta: { layout: 'Dashboard', middlewareAuth: true },
-                component: require('./views/stores/show/locations/show/main.vue').default
-            },
-            {
-                path: ':location_url/instant-carts', name: 'show-location-instant-carts',
-                meta: { layout: 'Dashboard', middlewareAuth: true },
-                component: require('./views/stores/show/instant-carts/main.vue').default
-            }
-        ]
-    }
-    */
+        path: '/popular-stores', name: 'show-popular-stores',
+        meta: { layout: 'Dashboard', subHeader: 'defaultSubHeader', middlewareAuth: true },
+        component: require('./views/popular-stores/list/main.vue').default
+    },
+
+    //  Adverts
+    {
+        path: '/adverts', name: 'show-adverts',
+        meta: { layout: 'Dashboard', subHeader: 'defaultSubHeader', middlewareAuth: true },
+        component: require('./views/adverts/list/main.vue').default
+    },
 
 ];
 

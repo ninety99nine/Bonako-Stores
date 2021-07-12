@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-use Carbon\Carbon;
 use App\Http\Resources\Order as OrderResource;
 use App\Http\Resources\Store as StoreResource;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,6 +29,11 @@ class ShortCode extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
 
+            /*  Attributes  */
+            '_attributes' => [
+                'resource_type' => $this->resource_type
+            ],
+
             /*  Resource Links */
             '_links' => [
 
@@ -39,7 +43,7 @@ class ShortCode extends JsonResource
 
             ],
 
-            /*  Embedded  */
+            /*  Embedded Resources */
             '_embedded' => [
 
                 'owner' => $this->owner()

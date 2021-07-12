@@ -27,13 +27,18 @@ class Address extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
 
+            /*  Attributes  */
+            '_attributes' => [
+                'resource_type' => $this->resource_type
+            ],
+
             /*  Resource Links */
             '_links' => [
 
                 'curies' => [
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ],
-                
+
             ],
 
             '_embedded' => [

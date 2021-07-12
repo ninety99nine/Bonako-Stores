@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\PaymentMethods as PaymentMethodsResource;
 
 class Location extends JsonResource
 {
@@ -16,6 +17,13 @@ class Location extends JsonResource
     public function toArray($request)
     {
         try {
+
+            //  Set the online payment methods (Extract the nested online payment methods)
+            $online_payment_methods = (new PaymentMethodsResource($this->onlinePaymentMethods ?? []))->collection;
+
+            //  Set the offline payment methods (Extract the nested offline payment methods)
+            $offline_payment_methods = (new PaymentMethodsResource($this->offlinePaymentMethods ?? []))->collection;
+
             return [
                 'id' => $this->id,
                 'name' => $this->name,
@@ -39,8 +47,6 @@ class Location extends JsonResource
                 'pickup_days' => $this->pickup_days,
                 'pickup_times' => $this->pickup_times,
                 'allow_payments' => $this->allow_payments,
-                'online_payment_methods' => $this->online_payment_methods,
-                'offline_payment_methods' => $this->offline_payment_methods,
                 'orange_money_merchant_code' => $this->orange_money_merchant_code,
                 'minimum_stock_quantity' => $this->minimum_stock_quantity,
                 'allow_sending_merchant_sms' => $this->allow_sending_merchant_sms,
@@ -48,6 +54,11 @@ class Location extends JsonResource
                 /*  Timestamp Info  */
                 'created_at' => $this->created_at,
                 'updated_at' => $this->updated_at,
+
+                /*  Attributes  */
+                '_attributes' => [
+                    'resource_type' => $this->resource_type
+                ],
 
                 /*  Resource Links */
                 '_links' => [
@@ -260,7 +271,8 @@ class Location extends JsonResource
 
                  /*  Embedded  */
                 '_embedded' => [
-
+                    'online_payment_methods' => $online_payment_methods,
+                    'offline_payment_methods' => $offline_payment_methods
                 ]
             ];
         } catch (\Exception $e) {

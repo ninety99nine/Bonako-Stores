@@ -24,6 +24,11 @@ class ProductType extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
 
+            /*  Attributes  */
+            '_attributes' => [
+                'resource_type' => $this->resource_type
+            ],
+
             /*  Resource Links */
             '_links' => [
 

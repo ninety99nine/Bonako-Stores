@@ -672,13 +672,26 @@ trait OrderTraits
             //  If we have a cart
             if( $cart ){
 
-                return $this->carts;
+                //  Update the remaining product stock quantity
+                $cart->updateRemainingProductStockQuantity();
 
-                //  Set order carts to be inactive
-                $this->carts()->update(['active' => false]);
+                //  If we have two or more carts assigned to this order
+                if( $this->carts()->count() >= 2 ){
 
-                //  Set new cart to be active
-                $cart->update(['active' => true]);
+                    //  Set order carts to be inactive
+                    $this->carts()->update(['active' => false]);
+
+                    /**
+                     *  Set new cart to be active.
+                     *
+                     *  Note: We need to use the fresh() method to get the latest updated
+                     *  version of this instance, then attempt to run the update() on
+                     *  that instance. If we don't do this then it won't update. The
+                     *  "active" attribute will remain as "0"
+                     */
+                    $cart->fresh()->update(['active' => true]);
+
+                }
 
                 //  Return the cart resource
                 return $cart;

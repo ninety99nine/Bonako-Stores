@@ -21,16 +21,35 @@ class CouponLine extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'apply_discount' => $this->apply_discount,
+            'activation_type' => $this->activation_type,
             'code' => $this->code,
+            'allow_free_delivery' => $this->allow_free_delivery,
             'currency' => $this->currency,
             'discount_rate_type' => $this->discount_rate_type,
             'fixed_rate' => $this->fixed_rate,
             'percentage_rate' => $this->percentage_rate,
-            'coupon_id' => $this->coupon_id,
+            'allow_discount_on_minimum_total' => $this->allow_discount_on_minimum_total,
+            'discount_on_minimum_total' => $this->discount_on_minimum_total,
+            'allow_discount_on_total_items' => $this->allow_discount_on_total_items,
+            'discount_on_total_items' => $this->discount_on_total_items,
+            'allow_discount_on_total_unique_items' => $this->allow_discount_on_total_unique_items,
+            'discount_on_total_unique_items' => $this->discount_on_total_unique_items,
+            'allow_discount_on_start_datetime' => $this->allow_discount_on_start_datetime,
+            'discount_on_start_datetime' => $this->discount_on_start_datetime,
+            'allow_discount_on_end_datetime' => $this->allow_discount_on_end_datetime,
+            'discount_on_end_datetime' => $this->discount_on_end_datetime,
+            'allow_usage_limit' => $this->allow_usage_limit,
+            'usage_limit' => $this->usage_limit,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+
+            /*  Attributes  */
+            '_attributes' => [
+                'resource_type' => $this->resource_type
+            ],
 
             /*  Resource Links */
             '_links' => [

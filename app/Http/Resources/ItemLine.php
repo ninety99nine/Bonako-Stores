@@ -22,6 +22,8 @@ class ItemLine extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'is_free' => $this->is_free,
+            'is_cancelled' => $this->is_cancelled,
+            'cancellation_reason' => $this->cancellation_reason,
             'currency' => $this->currency,
             'unit_regular_price' => $this->unit_regular_price,
             'unit_sale_price' => $this->unit_sale_price,
@@ -31,11 +33,18 @@ class ItemLine extends JsonResource
             'sale_discount_total' => $this->sale_discount_total,
             'grand_total' => $this->grand_total,
             'quantity' => $this->quantity,
+            'original_quantity' => $this->original_quantity,
             'product_id' => $this->product_id,
+            'detected_changes' => $this->detected_changes,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+
+            /*  Attributes  */
+            '_attributes' => [
+                'resource_type' => $this->resource_type
+            ],
 
             /*  Resource Links */
             '_links' => [

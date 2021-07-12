@@ -32,7 +32,13 @@
                                 <!-- Enter Description -->
                                 <descriptionInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></descriptionInput>
 
-                                <Row :gutter="12">
+                                <!-- Discount Settings Heading -->
+                                <Divider orientation="left" class="font-weight-bold">Discount Settings</Divider>
+
+                                <!-- Apply Discount Checkbox -->
+                                <applyDiscountCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></applyDiscountCheckbox>
+
+                                <Row v-if="couponForm.apply_discount" :gutter="12">
 
                                     <Col :span="12">
 
@@ -44,7 +50,7 @@
                                     <Col :span="12">
 
                                         <!-- Discount Rate Type Select Input -->
-                                        <fixedRateInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></fixedRateInput>
+                                        <fixedRateInput :location="location" :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></fixedRateInput>
 
                                         <!-- Discount Rate Type Select Input -->
                                         <percentageRateInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></percentageRateInput>
@@ -53,22 +59,29 @@
 
                                 </Row>
 
-                                <!-- Always Apply Checkbox -->
-                                <alwaysApplyCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></alwaysApplyCheckbox>
+                                <!-- Discount Settings Heading -->
+                                <Divider orientation="left" class="font-weight-bold">Delivery Settings</Divider>
 
-                                <!-- Always Apply Alert -->
-                                <alwaysApplyAlert :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></alwaysApplyAlert>
+                                <!-- Allow Free Delivery Checkbox -->
+                                <allowFreeDeliveryCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowFreeDeliveryCheckbox>
+
+                                <!-- Free Delivery Alert -->
+                                <freeDeliveryAlert :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></freeDeliveryAlert>
+
+                                <!-- Discount Rules Heading -->
+                                <Divider orientation="left" class="font-weight-bold">Activation Settings</Divider>
+
 
                                 <Row :gutter="12">
 
-                                    <Col :span="12">
+                                    <Col :span="14">
 
-                                        <!-- Uses Code Checkbox -->
-                                        <usesCodeCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></usesCodeCheckbox>
+                                        <!-- Always Apply Checkbox -->
+                                        <activationTypeSelectInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></activationTypeSelectInput>
 
                                     </Col>
 
-                                    <Col :span="12">
+                                    <Col :span="10">
 
                                         <!-- Code Input -->
                                         <codeInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></codeInput>
@@ -77,19 +90,16 @@
 
                                 </Row>
 
-                                <!-- Discount Rules Heading -->
-                                <Divider orientation="left" class="font-weight-bold">Discount Rules</Divider>
-
                                 <Row :gutter="12">
 
-                                    <Col :span="16">
+                                    <Col :span="14">
 
                                         <!-- Allow Discount On Minimum Total Checkbox -->
                                         <allowDiscountOnMinimumTotalCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnMinimumTotalCheckbox>
 
                                     </Col>
 
-                                    <Col :span="8">
+                                    <Col :span="10">
 
                                         <!-- Discount On Minimum Total Input -->
                                         <discountOnMinimumTotalInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></discountOnMinimumTotalInput>
@@ -100,14 +110,14 @@
 
                                 <Row :gutter="12">
 
-                                    <Col :span="16">
+                                    <Col :span="14">
 
                                         <!-- Allow Discount On Total Items Checkbox -->
                                         <allowDiscountOnTotalItemsCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnTotalItemsCheckbox>
 
                                     </Col>
 
-                                    <Col :span="8">
+                                    <Col :span="10">
 
                                         <!-- Discount On Minimum Total Input -->
                                         <discountOnTotalItemsInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></discountOnTotalItemsInput>
@@ -118,14 +128,14 @@
 
                                 <Row :gutter="12">
 
-                                    <Col :span="16">
+                                    <Col :span="14">
 
                                         <!-- Allow Discount On Total Unique Items Checkbox -->
                                         <allowDiscountOnTotalUniqueItemsCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnTotalUniqueItemsCheckbox>
 
                                     </Col>
 
-                                    <Col :span="8">
+                                    <Col :span="10">
 
                                         <!-- Discount On Total Unique Items Input -->
                                         <discountOnTotalUniqueItemsInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></discountOnTotalUniqueItemsInput>
@@ -134,18 +144,64 @@
 
                                 </Row>
 
-                                <span>Start Datetime</span>
-                                <span>End Datetime</span>
-                                <span>Limit Usage</span>
+                                <Row :gutter="12">
 
-                                <!-- Discount Rules Heading -->
-                                <Divider orientation="left" class="font-weight-bold">Delivery Rules</Divider>
+                                    <Col :span="14">
 
-                                <!-- Allow Free Delivery Checkbox -->
-                                <allowFreeDeliveryCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowFreeDeliveryCheckbox>
+                                        <!-- Allow Usage Limit Checkbox -->
+                                        <allowUsageLimitCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowUsageLimitCheckbox>
 
-                                <!-- Free Delivery Alert -->
-                                <freeDeliveryAlert :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></freeDeliveryAlert>
+                                    </Col>
+
+                                    <Col :span="10">
+
+                                        <!-- Usage Limit Input -->
+                                        <usageLimitInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></usageLimitInput>
+
+                                        <!-- Usage Quantity Input -->
+                                        <usageQuantityInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></usageQuantityInput>
+
+                                    </Col>
+
+                                </Row>
+
+                                <Row :gutter="12">
+
+                                    <Col :span="14">
+
+                                        <!-- Allow Discount On Start Datetime Checkbox -->
+                                        <allowDiscountOnStartDatetimeCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnStartDatetimeCheckbox>
+
+                                    </Col>
+
+                                    <Col :span="10">
+
+                                        <!-- Discount On Start Datetime Input -->
+                                        <discountOnStartDatetimeLimitInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></discountOnStartDatetimeLimitInput>
+
+                                    </Col>
+
+                                </Row>
+
+                                <Row :gutter="12">
+
+                                    <Col :span="14">
+
+                                        <!-- Allow Discount On End Datetime Checkbox -->
+                                        <allowDiscountOnEndDatetimeCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnEndDatetimeCheckbox>
+
+                                    </Col>
+
+                                    <Col :span="10">
+
+                                        <!-- Discount On End Datetime Input -->
+                                        <discountOnEndDatetimeLimitInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></discountOnEndDatetimeLimitInput>
+
+                                    </Col>
+
+                                </Row>
+
+                                <summaryAlert :couponForm="couponForm" :location="location"></summaryAlert>
 
                                 <!-- If we are editting -->
                                 <template v-if="isEditing">
@@ -199,33 +255,42 @@
 
     import nameInput from './components/nameInput.vue';
     import codeInput from './components/codeInput.vue';
+    import summaryAlert from './components/summaryAlert.vue';
     import activeSwitch from './components/activeSwitch.vue';
     import fixedRateInput from './components/fixedRateInput.vue';
+    import usageLimitInput from './components/usageLimitInput.vue';
     import descriptionInput from './components/descriptionInput.vue';
-    import alwaysApplyAlert from './components/alwaysApplyAlert.vue';
-    import usesCodeCheckbox from './components/usesCodeCheckbox.vue';
     import freeDeliveryAlert from './components/freeDeliveryAlert.vue';
+    import usageQuantityInput from './components/usageQuantityInput.vue';
     import percentageRateInput from './components/percentageRateInput.vue';
-    import alwaysApplyCheckbox from './components/alwaysApplyCheckbox.vue';
     import miscMixin from './../../../../../components/_mixins/misc/main.vue';
+    import applyDiscountCheckbox from './components/applyDiscountCheckbox.vue';
     import Loader from './../../../../../components/_common/loaders/default.vue';
+    import allowUsageLimitCheckbox from './components/allowUsageLimitCheckbox.vue';
+    import activationTypeSelectInput from './components/activationTypeSelectInput.vue';
     import allowFreeDeliveryCheckbox from './components/allowFreeDeliveryCheckbox.vue';
     import discountOnTotalItemsInput from './components/discountOnTotalItemsInput.vue';
     import basicButton from './../../../../../components/_common/buttons/basicButton.vue';
     import discountRateTypeSelectInput from './components/discountRateTypeSelectInput.vue';
     import discountOnMinimumTotalInput from './components/discountOnMinimumTotalInput.vue';
+    import discountOnEndDatetimeLimitInput from './components/discountOnEndDatetimeLimitInput.vue';
     import discountOnTotalUniqueItemsInput from './components/discountOnTotalUniqueItemsInput.vue';
+    import discountOnStartDatetimeLimitInput from './components/discountOnStartDatetimeLimitInput.vue';
     import allowDiscountOnTotalItemsCheckbox from './components/allowDiscountOnTotalItemsCheckbox.vue';
+    import allowDiscountOnEndDatetimeCheckbox from './components/allowDiscountOnEndDatetimeCheckbox.vue';
     import allowDiscountOnMinimumTotalCheckbox from './components/allowDiscountOnMinimumTotalCheckbox.vue';
+    import allowDiscountOnStartDatetimeCheckbox from './components/allowDiscountOnStartDatetimeCheckbox.vue';
     import allowDiscountOnTotalUniqueItemsCheckbox from './components/allowDiscountOnTotalUniqueItemsCheckbox.vue';
 
     export default {
         mixins: [miscMixin],
         components: {
-            nameInput, codeInput, activeSwitch, fixedRateInput, descriptionInput, alwaysApplyAlert, usesCodeCheckbox,
-            freeDeliveryAlert, percentageRateInput, alwaysApplyCheckbox, Loader, basicButton, allowFreeDeliveryCheckbox,
-            discountOnTotalItemsInput, discountRateTypeSelectInput, discountOnMinimumTotalInput, discountOnTotalUniqueItemsInput,
-            allowDiscountOnTotalItemsCheckbox, allowDiscountOnMinimumTotalCheckbox, allowDiscountOnTotalUniqueItemsCheckbox
+            nameInput, codeInput, summaryAlert, activeSwitch, fixedRateInput, usageLimitInput, descriptionInput,
+            freeDeliveryAlert, usageQuantityInput, percentageRateInput, applyDiscountCheckbox, Loader, allowUsageLimitCheckbox,
+            activationTypeSelectInput, basicButton, allowFreeDeliveryCheckbox, discountOnTotalItemsInput, discountRateTypeSelectInput,
+            discountOnMinimumTotalInput, discountOnEndDatetimeLimitInput, discountOnTotalUniqueItemsInput, discountOnStartDatetimeLimitInput,
+            allowDiscountOnTotalItemsCheckbox, allowDiscountOnEndDatetimeCheckbox, allowDiscountOnMinimumTotalCheckbox,
+            allowDiscountOnStartDatetimeCheckbox, allowDiscountOnTotalUniqueItemsCheckbox
         },
         props: {
             store: {
@@ -383,8 +448,8 @@
                         name: '',
                         description: '',
                         active: true,
-                        always_apply: false,
-                        uses_code: false,
+                        apply_discount: false,
+                        activation_type: 'use code',
                         code: '',
                         allow_free_delivery: false,
 
@@ -401,6 +466,16 @@
                         allow_discount_on_total_unique_items: false,
                         discount_on_total_unique_items: 2,
 
+                        allow_discount_on_start_datetime: false,
+                        discount_on_start_datetime: null,
+
+                        allow_discount_on_end_datetime: false,
+                        discount_on_end_datetime: null,
+
+                        allow_usage_limit: false,
+                        usage_limit: 100,
+                        usage_quantity: 0,
+
                         location_id: this.location.id,
 
 
@@ -410,17 +485,18 @@
                     if( this.localCoupon ){
 
                         form.active = this.localCoupon.active.status;
-                        form.always_apply = this.localCoupon.always_apply.status;
-                        form.uses_code = this.localCoupon.uses_code.status;
+                        form.apply_discount = this.localCoupon.apply_discount.status;
+                        form.activation_type = this.localCoupon.activation_type.type;
                         form.allow_free_delivery = this.localCoupon.allow_free_delivery.status;
                         form.currency = this.localCoupon.currency.code;
                         form.discount_rate_type = this.localCoupon.discount_rate_type.type;
-                        form.fixed_rate = this.localCoupon.fixed_rate.amount;
                         form.allow_discount_on_minimum_total = this.localCoupon.allow_discount_on_minimum_total.status;
                         form.discount_on_minimum_total = this.localCoupon.discount_on_minimum_total.amount;
                         form.allow_discount_on_total_items = this.localCoupon.allow_discount_on_total_items.status;
                         form.allow_discount_on_total_unique_items = this.localCoupon.allow_discount_on_total_unique_items.status;
-
+                        form.allow_discount_on_start_datetime = this.localCoupon.allow_discount_on_start_datetime.status;
+                        form.allow_discount_on_end_datetime = this.localCoupon.allow_discount_on_end_datetime.status;
+                        form.allow_usage_limit = this.localCoupon.allow_usage_limit.status;
                     }
 
                 return form;

@@ -26,6 +26,10 @@ class CreateCartsTable extends Migration
             $table->float('grand_total')->default(0);
             $table->unsignedTinyInteger('total_items')->default(0);
             $table->unsignedTinyInteger('total_unique_items')->default(0);
+            $table->unsignedTinyInteger('total_refreshes')->default(0);
+            $table->unsignedTinyInteger('total_resets')->default(0);
+            $table->json('products_arrangement')->nullable();
+            $table->json('detected_changes')->nullable();
 
             /*  Currency Info  */
             $table->char('currency', 3)->default('BWP');

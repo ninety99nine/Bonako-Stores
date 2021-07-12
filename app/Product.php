@@ -355,7 +355,7 @@ class Product extends Model
     /**
      *  Returns the product price for one unit.
      *
-     *  This is the total price of the product based 
+     *  This is the total price of the product based
      *  on the regular price and the sale price.
      */
     public function getUnitPriceAttribute()
@@ -369,19 +369,19 @@ class Product extends Model
 
             //  If we have a sale price that is less than the regular price
             if (($this->unit_sale_price['amount'] != 0) && ($this->unit_sale_price['amount'] < $this->unit_regular_price['amount'])) {
-    
+
                 //  Return the sale price
                 return $this->unit_sale_price;
-    
+
             } else {
-    
+
                 //  Return the regular price
                 return $this->unit_regular_price;
-    
+
             }
 
         }
-        
+
     }
 
     /**
@@ -390,7 +390,7 @@ class Product extends Model
     public function getOnSaleAttribute()
     {
         //  If we have a regular price and the sale price and if the sale price is less than the regular price
-        $value = ( !$this->is_free['status'] && ($this->unit_sale_price['amount'] != 0) && ($this->unit_regular_price['amount'] != 0) && 
+        $value = ( !$this->is_free['status'] && ($this->unit_sale_price['amount'] != 0) && ($this->unit_regular_price['amount'] != 0) &&
                  ( $this->unit_sale_price['amount'] < $this->unit_regular_price['amount'] ));
 
         return [
@@ -437,7 +437,7 @@ class Product extends Model
 
         return $this->convertToMoney($this->currency, $amount);
     }
-    
+
     /**
      *  Returns the product profit for one unit.
      *
@@ -450,9 +450,9 @@ class Product extends Model
         if( $profit < 0 ){
 
             $profit = 0;
-            
+
         }
-        
+
         return $this->convertToMoney($this->currency, $profit);
     }
 
@@ -470,7 +470,7 @@ class Product extends Model
 
             //  Set the loss to Zero
             $loss = 0;
-        
+
         //  If we have a loss (then the result is negative since the unit cost is greater than the unit price)
         }else{
 
@@ -478,7 +478,7 @@ class Product extends Model
             $loss = -$loss;
 
         }
-        
+
         return $this->convertToMoney($this->currency, $loss);
     }
 
@@ -486,7 +486,7 @@ class Product extends Model
      *  Returns true/false if the product has stock
      */
     public function getHasPriceAttribute()
-    {   
+    {
         //  If this product is not free and the unit price is greater than 0
         $value = !$this->is_free['status'] && $this->unit_price['amount'] > 0;
 
@@ -501,7 +501,7 @@ class Product extends Model
      *  Returns true/false if the product has stock
      */
     public function getHasStockAttribute()
-    {   
+    {
         //  If this product does not allow stock management (Then it means we have unlimited stock)
         $unlimited = $this->allow_stock_management['status'] === false;
 
@@ -509,23 +509,25 @@ class Product extends Model
 
             return [
                 'status' => $unlimited,
+                'type' => 'unlimited_stock',
                 'name' => 'Unlimited Stock',
                 'description' => 'This product has unlimited stock'
             ];
 
         }else{
-            
+
             //  If this product does not allow stock management or the product allows stock management and has stock quantity
             $status = ($this->allow_stock_management && $this->stock_quantity['value'] > 0);
 
             return [
                 'status' => $status,
+                'type' => $status ? 'has_stock' : 'no_stock',
                 'name' => $status ? 'Has Stock' : 'No Stock',
                 'description' => $status ? 'This product has limited stock' : 'This product does not have stock'
             ];
 
         }
-        
+
     }
 
     public function setShowDescriptionAttribute($value)
@@ -533,7 +535,7 @@ class Product extends Model
         if( is_array($value) ){
             $this->attributes['show_description'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['show_description'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['show_description'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 
@@ -542,7 +544,7 @@ class Product extends Model
         if( is_array($value) ){
             $this->attributes['visible'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['visible'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['visible'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 
@@ -551,7 +553,7 @@ class Product extends Model
         if( is_array($value) ){
             $this->attributes['allow_variants'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['allow_variants'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['allow_variants'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 
@@ -560,7 +562,7 @@ class Product extends Model
         if( is_array($value) ){
             $this->attributes['is_free'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['is_free'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['is_free'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 
@@ -589,7 +591,7 @@ class Product extends Model
         if( is_array($value) ){
             $this->attributes['allow_multiple_quantity_per_order'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['allow_multiple_quantity_per_order'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['allow_multiple_quantity_per_order'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 
@@ -598,7 +600,7 @@ class Product extends Model
         if( is_array($value) ){
             $this->attributes['allow_maximum_quantity_per_order'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['allow_maximum_quantity_per_order'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['allow_maximum_quantity_per_order'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 
@@ -613,7 +615,7 @@ class Product extends Model
         if( is_array($value) ){
             $this->attributes['allow_stock_management'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['allow_stock_management'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['allow_stock_management'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 
@@ -622,7 +624,7 @@ class Product extends Model
         if( is_array($value) ){
             $this->attributes['auto_manage_stock'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
-            $this->attributes['auto_manage_stock'] = (($value == 'true' || $value == '1') ? 1 : 0);
+            $this->attributes['auto_manage_stock'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 

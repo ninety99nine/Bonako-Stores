@@ -18,9 +18,12 @@ class CreateItemLinesTable extends Migration
             /*  Basic Info  */
             $table->string('name')->nullable();
             $table->string('description', 500)->nullable();
+            $table->boolean('is_free')->default(false);
+            $table->boolean('is_cancelled')->default(false);
+            $table->string('cancellation_reason')->nullable();
+            $table->json('detected_changes')->nullable();
 
             /*  Unit Pricing Info  */
-            $table->boolean('is_free')->default(false);
             $table->char('currency', 3)->default('BWP');
             $table->float('unit_regular_price')->default(0);
             $table->float('unit_sale_price')->default(0);
@@ -34,6 +37,7 @@ class CreateItemLinesTable extends Migration
 
             /*  Quantity Info  */
             $table->unsignedInteger('quantity')->default(0);
+            $table->unsignedInteger('original_quantity')->default(0);
 
             /*  Product Info  */
             $table->unsignedInteger('product_id');

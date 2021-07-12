@@ -18,10 +18,16 @@ class PaymentMethod extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'type' => $this->type,
             'description' => $this->description,
             'used_online' => $this->used_online,
             'used_offline' => $this->used_offline,
             'active' => $this->active,
+
+            /*  Attributes  */
+            '_attributes' => [
+                'resource_type' => $this->resource_type
+            ],
 
             /*  Resource Links */
             '_links' => [
@@ -29,7 +35,7 @@ class PaymentMethod extends JsonResource
                 'curies' => [
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ]
-                
+
             ]
 
         ];

@@ -113,6 +113,9 @@
                         <Table class="instant-cart-table" :columns="dynamicColumns" :data="instantCarts"
                                 :loading="isLoading" no-data-text="No instant carts found" :style="{ overflow: 'visible' }">
 
+                            <!-- ID Poptip -->
+                            <idPoptip slot-scope="{ row, index }" slot="id" :instantCart="row"></idPoptip>
+
                             <!-- Name Poptip -->
                             <namePoptip slot-scope="{ row, index }" slot="name" :instantCart="row"></namePoptip>
 
@@ -239,6 +242,7 @@
 
 <script>
 
+    import idPoptip from './../show/components/idPoptip.vue';
     import dialToPay from './../../../../payment/dialToPay.vue';
     import namePoptip from './../show/components/namePoptip.vue';
     import cartItems from './../../carts/show/components/cartItems.vue';
@@ -256,7 +260,7 @@
     export default {
         mixins: [ miscMixin ],
         components: {
-            dialToPay, namePoptip, cartItems, cartCoupons, cartPricing, activeStatusBadge, Loader,
+            idPoptip, dialToPay, namePoptip, cartItems, cartCoupons, cartPricing, activeStatusBadge, Loader,
             visitShortCodeExpiryTimePoptip, visitShortCodeDialingCodePoptip, deleteInstantCartModal,
             manageInstantCartDrawer, basicButton
         },
@@ -298,7 +302,7 @@
                     }
                 ],
                 tableColumnsToShowByDefault: [
-                    'Selector', 'Name', 'Active', 'Items', 'Coupons', 'Total', 'Dialing Code', 'Expiry Date'
+                    'Selector', 'ID', 'Name', 'Active', 'Items', 'Coupons', 'Total', 'Dialing Code', 'Expiry Date'
                 ],
                 statuses: [
                     {
@@ -395,6 +399,17 @@
                         align: 'center',
                         width: 60
                     });
+                }
+
+                //  Instant Cart ID
+                if(this.tableColumnsToShowByDefault.includes('ID')){
+                    allowedColumns.push(
+                        {
+                            title: 'ID',
+                            slot: 'id',
+                            width: 100
+                        }
+                    );
                 }
 
                 //  Instant Cart Name
@@ -551,10 +566,16 @@
                 //  Navigate to "Unpaid" instant carts (Watcher will force a refresh on activeNavTab change)
                 this.activeNavTab = '2';
 
+                //  Re-calculate the totals
+                this.$emit('fetchLocationTotals');
+
             },
             handleDeletedInstantCart(){
 
                 this.fetchInstantCarts();
+
+                //  Re-calculate the totals
+                this.$emit('fetchLocationTotals');
 
             },
             handleSavedInstantCart(instantCart){
@@ -617,6 +638,15 @@
 
             //  Get the location instant carts
             this.fetchInstantCarts();
+
+            //  If we want to add an instant cart
+            if( this.$route.query.add_instant_cart == 'true' ){
+
+                this.handleAddInstantCart();
+
+            }
+
+
 
         }
     };

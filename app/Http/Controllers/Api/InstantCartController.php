@@ -44,6 +44,20 @@ class InstantCartController extends Controller
         }
     }
 
+    public function getInstantCarts(Request $request)
+    {
+        try {
+
+            //  Return a list of instant carts
+            return (new InstantCart())->getResources($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function getInstantCart($instant_cart_id)
     {
         try {
