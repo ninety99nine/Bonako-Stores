@@ -10,6 +10,18 @@ use Illuminate\Validation\ValidationException;
 trait CommonTraits
 {
     /**
+     *  This method updates the existing cart using already
+     *  existing item lines and coupon lines
+     */
+    public function setResourceOwner($model)
+    {
+        $this->update([
+            'owner_id' => $model->id,
+            'owner_type' => $model->resource_type,
+        ]);
+    }
+
+    /**
      *  This method generates a resource payment short code
      */
     public function generateResourcePaymentShortCode($user)

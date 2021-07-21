@@ -34,6 +34,10 @@ class Cart extends Model
         'active', 'sub_total', 'coupon_total', 'sale_discount_total', 'coupon_and_sale_discount_total',
         'allow_free_delivery', 'delivery_fee', 'grand_total', 'total_items', 'total_unique_items',
         'total_refreshes', 'total_resets', 'products_arrangement', 'detected_changes',
+        'abandoned_status',
+
+        /*  Instant Cart Info  */
+        'instant_cart_id',
 
         /*  Currency Info  */
         'currency',
@@ -100,6 +104,14 @@ class Cart extends Model
     public function couponLines()
     {
         return $this->hasMany(CouponLine::class);
+    }
+
+    /**
+     *  Returns the instant cart used to create this cart
+     */
+    public function instantCart()
+    {
+        return $this->belongsTo(InstantCart::class);
     }
 
     /** ATTRIBUTES
@@ -193,6 +205,19 @@ class Cart extends Model
         return $this->convertToMoney($this->currency, $amount);
     }
 
+    /**
+     *  Returns the abandoned status and description
+     */
+    public function getAbandonedStatusAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Abandoned' : 'Not Abandoned',
+            'description' => $value ? 'This cart is abandoned'
+                                    : 'This cart is not abandoned'
+        ];
+    }
+
     public function setActiveAttribute($value)
     {
         if( is_array($value) ){
@@ -244,6 +269,15 @@ class Cart extends Model
     public function setGrandTotalAttribute($value)
     {
         $this->attributes['grand_total'] = is_array($value) ? $value['amount'] : $value;
+    }
+
+    public function setAbandonedStatusAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['abandoned_status'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['abandoned_status'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
     }
 
     //  ON DELETE EVENT

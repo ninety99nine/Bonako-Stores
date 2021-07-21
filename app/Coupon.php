@@ -18,6 +18,10 @@ class Coupon extends Model
     protected $casts = [
         'discount_on_start_datetime' => 'datetime',
         'discount_on_end_datetime' => 'datetime',
+        'discount_on_times' => 'array',
+        'discount_on_days_of_the_week' => 'array',
+        'discount_on_days_of_the_month' => 'array',
+        'discount_on_months_of_the_year' => 'array'
     ];
 
     /**
@@ -33,6 +37,12 @@ class Coupon extends Model
         'allow_discount_on_start_datetime', 'discount_on_start_datetime',
         'allow_discount_on_end_datetime', 'discount_on_end_datetime',
         'allow_usage_limit', 'usage_limit', 'usage_quantity',
+
+        'allow_discount_on_times', 'discount_on_times', 'allow_discount_on_days_of_the_week',
+        'discount_on_days_of_the_week', 'allow_discount_on_days_of_the_month',
+        'discount_on_days_of_the_month', 'allow_discount_on_months_of_the_year',
+        'discount_on_months_of_the_year', 'allow_discount_on_new_customer',
+        'allow_discount_on_existing_customer',
 
         'location_id'
     ];
@@ -243,6 +253,96 @@ class Coupon extends Model
     }
 
     /**
+     *  Returns the coupon allow_discount_on_times status and description
+     */
+    public function getAllowDiscountOnTimesAttribute($value)
+    {
+        $times_of_day = collect($this->discount_on_times)->map(function($time){
+            return ($time.':00');
+        })->join(', ', ' and ');
+
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'Allows discount only on the following times of the day ('.$times_of_day.')'
+                                    : 'Discount on any time of the day'
+        ];
+    }
+
+    /**
+     *  Returns the coupon allow_discount_on_days_of_the_week status and description
+     */
+    public function getAllowDiscountOnDaysOfTheWeekAttribute($value)
+    {
+        $days_of_the_week = collect($this->discount_on_days_of_the_week)->join(', ', ' and ');
+
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'Allows discount only on the following days of the week ('.$days_of_the_week.')'
+                                    : 'Discount on any day of the week'
+        ];
+    }
+
+    /**
+     *  Returns the coupon allow_discount_on_days_of_the_month status and description
+     */
+    public function getAllowDiscountOnDaysOfTheMonthAttribute($value)
+    {
+        $days_of_the_month = collect($this->discount_on_days_of_the_month)->map(function($day){
+            return ($day < 10) ? '0'.$day : $day;
+        })->join(', ', ' and ');
+
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'Allows discount only on the following days of the month ('.$days_of_the_month.')'
+                                    : 'Discount on any day of the month'
+        ];
+    }
+
+    /**
+     *  Returns the coupon allow_discount_on_months_of_the_year status and description
+     */
+    public function getAllowDiscountOnMonthsOfTheYearAttribute($value)
+    {
+        $months_of_the_year = collect($this->discount_on_months_of_the_year)->join(', ', ' and ');
+
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'Allows discount only on the following months of the year ('.$months_of_the_year.')'
+                                    : 'Discount on any month of the year'
+        ];
+    }
+
+    /**
+     *  Returns the coupon allow_discount_on_new_customer status and description
+     */
+    public function getAllowDiscountOnNewCustomerAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'Allows discount only for new customers'
+                                    : 'Discount regardless if this is not a new customer'
+        ];
+    }
+
+    /**
+     *  Returns the coupon allow_discount_on_existing_customer status and description
+     */
+    public function getAllowDiscountOnExistingCustomerAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'Allows discount only for existing customers'
+                                    : 'Discount regardless if this is not an existing customer'
+        ];
+    }
+
+    /**
      *  Returns the coupon usage_limit as integer
      */
     public function getUsageLimitAttribute($amount)
@@ -443,6 +543,67 @@ class Coupon extends Model
     public function setUsageLimitAttribute($value)
     {
         $this->attributes['usage_limit'] = ($value > 0) ? $value : 0;
+    }
+
+
+
+
+
+
+
+
+    public function setAllowDiscountOnTimesAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['allow_discount_on_times'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_discount_on_times'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
+    }
+
+    public function setAllowDiscountOnDaysOfTheWeekAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['allow_discount_on_days_of_the_week'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_discount_on_days_of_the_week'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
+    }
+
+    public function setAllowDiscountOnDaysOfTheMonthAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['allow_discount_on_days_of_the_month'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_discount_on_days_of_the_month'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
+    }
+
+    public function setAllowDiscountOnMonthsOfTheYearAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['allow_discount_on_months_of_the_year'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_discount_on_months_of_the_year'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
+    }
+
+    public function setAllowDiscountOnNewCustomerAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['allow_discount_on_new_customer'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_discount_on_new_customer'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
+    }
+
+    public function setAllowDiscountOnExistingCustomerAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['allow_discount_on_existing_customer'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_discount_on_existing_customer'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
     }
 
 }

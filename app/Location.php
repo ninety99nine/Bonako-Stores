@@ -154,6 +154,14 @@ class Location extends Model
     }
 
     /**
+     *  Returns the carts that have been assigned to this location
+     */
+    public function carts()
+    {
+        return $this->hasMany('App\Cart')->latest();
+    }
+
+    /**
      *  Returns the instant carts that have been assigned to this location
      */
     public function instantCarts()

@@ -454,10 +454,9 @@ trait AdvertTraits
                 $arrangement = ($key + 1);
 
                 //  Update the advert arrangement
-                $advert_record['arrangement'] = $arrangement;
-
-                //  Capture the updated advert
-                array_push($updated_adverts, $advert_record);
+                \App\Advert::where('id', $advert_record['id'])->update([
+                    'arrangement' => $arrangement
+                ]);
 
             }
 

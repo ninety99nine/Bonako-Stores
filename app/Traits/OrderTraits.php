@@ -63,70 +63,90 @@ trait OrderTraits
             //  Verify permissions
             $this->createResourcePermission($user);
 
-            //  Set the template with the resource fields allowed
-            $template = collect($data)->only($this->getFillable())->toArray();
+            //  Get the cart
+            $cart = (new \App\Cart())->getResource($data['cart_id']);
 
-            //  If the current authenticated user is a Super Admin and the "customer_id" is provided
-            if( auth('api')->user()->isSuperAdmin() && isset($data['customer_id']) ){
+            //  If the cart was found
+            if( $cart ){
 
-                //  Set the "customer_id" provided as the user responsible for owning this resource
-                $template['customer_id'] = $data['customer_id'];
+                //  Set the template
+                $template = $data;
 
-            }else{
+                //  If the current authenticated user is a Super Admin and the "customer_id" is provided
+                if( auth('api')->user()->isSuperAdmin() && isset($data['customer_id']) ){
 
-                //  Set the current authenticated user as the user responsible for owning this resource
-                $template['customer_id'] = auth('api')->user()->id;
-
-            }
-
-            /**
-             *  Create a new resource
-             */
-            $this->order = $this->create($template)->fresh();
-
-            //  If created successfully
-            if ($this->order) {
-
-                //  Set the order number
-                $this->order->generateResourceNumber();
-
-                if( $data['is_paid'] === true ){
-
-                    //  Update the order status as "Paid"
-                    $this->order->setPaymentStatusToPaid();
-
-                    //  Send the order delivery confirmation code sms
-                    $this->order->sendDeliveryConfirmationCodeSms($user);
+                    //  Set the "customer_id" provided as the user responsible for owning this resource
+                    $template['customer_id'] = $data['customer_id'];
 
                 }else{
 
-                    //  Update the order status as "Unpaid"
-                    $this->order->setPaymentStatusToUnpaid();
+                    //  Set the current authenticated user as the user responsible for owning this resource
+                    $template['customer_id'] = auth('api')->user()->id;
 
                 }
 
-                //  Update the order status as "Undelivered"
-                $this->order->setDeliveryStatusToUndelivered();
+                /**
+                 *  Create a new resource
+                 */
+                $this->order = $this->create($template)->fresh();
 
-                //  Assign order to location
-                $this->order->assignResourceToLocation($data);
+                //  If created successfully
+                if ($this->order) {
 
-                //  Create a new cart resource
-                $this->order->createResourceCart($data);
+                    //  Set the order as the cart owner
+                    $cart->setResourceOwner($this->order);
 
-                //  Create a new delivery line resource
-                $this->order->createResourceDeliveryLine($data);
+                    //  Set the order number
+                    $this->order->generateResourceNumber();
 
-                //  Refresh the instance to load the delivery line
-                $this->order = $this->order->fresh();
+                    if( isset($data['is_paid']) && $data['is_paid'] === true ){
 
-                //  Send the new order merchant sms
-                $this->order->sendNewOrderMerchantSms($user);
+                        //  Update the order status as "Paid"
+                        $this->order->setPaymentStatusToPaid();
+
+                        //  Send the order delivery confirmation code sms
+                        $this->order->sendDeliveryConfirmationCodeSms($user);
+
+                    }else{
+
+                        //  Update the order status as "Unpaid"
+                        $this->order->setPaymentStatusToUnpaid();
+
+                    }
+
+                    //  Update the order status as "Undelivered"
+                    $this->order->setDeliveryStatusToUndelivered();
+
+                    //  Assign order to location
+                    $this->order->assignResourceToLocation($data);
+
+                    //  Create a new cart resource
+                    // $this->order->createResourceCart($data);
+
+                    //  Create a new delivery line resource
+                    $this->order->createResourceDeliveryLine($data);
+
+                    //  Refresh the instance to load the delivery line and active cart
+                    $this->order = $this->order->fresh();
+
+                    //  Update the remaining instant cart stock quantity
+                    $this->order->updateRemainingInstantCartStockQuantity();
+
+                    //  Send the new order merchant sms
+                    $this->order->sendNewOrderMerchantSms($user);
+
+                    //  Generate the resource cart conversion report
+                    $this->order->activeCart->generateResourceConversionReport();
+
+                    //  Generate the resource creation report
+                    $this->order->generateResourceCreationReport();
+
+                }
+
+                //  Return a fresh instance
+                return $this->order->fresh();
 
             }
-
-            //  Return a fresh instance
-            return $this->order->fresh();
 
         } catch (\Exception $e) {
 
@@ -134,6 +154,120 @@ trait OrderTraits
 
         }
 
+    }
+
+    /**
+     *  This method generates a order creation report
+     */
+    public function generateResourceCreationReport()
+    {
+        //  Get the store with locations holding this order
+        $store = \App\Store::with('locations')->whereHas('locations', function (Builder $query) {
+            $query->whereHas('orders', function (Builder $query) {
+                $query->where('orders.id', $this->id);
+            });
+        })->first();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource creation report
+            ( new \App\Report() )->generateResourceCreationReport($this, [
+                'status_id' => $this->status_id,
+                'payment_status_id' => $this->payment_status_id,
+                'delivery_status_id' => $this->delivery_status_id,
+                'delivery_verified' => $this->delivery_verified
+            ], $store->id, $location->id);
+
+        }
+    }
+
+    /**
+     *  This method updates the remaining instant cart stock quantity
+     *  in relation to the cart item line quantities
+     */
+    public function updateRemainingInstantCartStockQuantity()
+    {
+        /**
+         *  Retrieve the instant cart linked to the order cart. Note that
+         *  some orders do not have a linked instant cart.
+         */
+        $instant_cart = $this->activeCart->instantCart;
+
+        //  If this order has a linked instant cart
+        if( $instant_cart ){
+
+            //  If we allow stock management
+            if( $instant_cart['allow_stock_management']['status'] ){
+
+                //  Extract the stock quantity value
+                $stock_quantity = $instant_cart['stock_quantity']['value'];
+
+                //  Reduce the stock quantity by 1
+                $stock_quantity = ($stock_quantity - 1) >= 0 ? ($stock_quantity - 1) : 0;
+
+                //  Update the remaining stock quantity
+                $instant_cart->update([
+                    'stock_quantity' => $stock_quantity
+                ]);
+
+            }
+
+        }
+
+
+
+        //  Set the item lines
+        $item_lines = $this->itemLines;
+
+        //  Set the products
+        $products = collect($item_lines)->map(function($item_line){
+
+            //  Extract the item line product
+            $product = $item_line->product;
+
+            //  If we have a product
+            if( !empty($product) ){
+
+                //  Set the quantity on the product
+                $product['quantity'] = $item_line['quantity'];
+
+            }
+
+            return $product;
+
+        });
+
+        //  Filter the products
+        $products = collect($products)->filter(function($product){
+
+            //  If we have a product
+            if( !empty($product) ){
+
+                //  Only return products that support automatic stock management
+                return ($product->allow_stock_management && $product->auto_manage_stock);
+
+            }
+
+            return false;
+
+        });
+
+        //  Update the remaining stock quantity of each product
+        foreach ($products as $product) {
+
+            $id = $product['id'];
+            $quantity = $product['quantity'];
+            $stock_quantity = $product['stock_quantity']['value'];
+            $remaining_stock_quantity = ($stock_quantity - $quantity) > 0 ? ($stock_quantity - $quantity) : 0;
+
+            //  Update the product stock quantity
+            DB::table('products')->where('id', $id)->update(['stock_quantity' => $remaining_stock_quantity]);
+
+        }
+
+        //  Return the cart instance
+        return $this;
     }
 
     /**

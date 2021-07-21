@@ -39,6 +39,10 @@ class Cart extends JsonResource
             'total_unique_items' => $this->total_unique_items,
             'products_arrangement' => $this->products_arrangement,
             'detected_changes' => $this->detected_changes,
+            'abandoned_status' => $this->abandoned_status,
+
+            /*  Instant Cart Info  */
+            'instant_cart_id' => $this->instant_cart_id,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,

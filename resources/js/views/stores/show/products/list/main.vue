@@ -137,7 +137,7 @@
                         <!-- Sale Poptip -->
                         <salePoptip slot-scope="{ row, index }" slot="sale" :product="row"></salePoptip>
 
-                        <!-- Price Poptip -->
+                        <!-- Stock Poptip -->
                         <stockPoptip slot-scope="{ row, index }" slot="stock" :product="row"></stockPoptip>
 
                         <template slot-scope="{ row, index }" slot="action">

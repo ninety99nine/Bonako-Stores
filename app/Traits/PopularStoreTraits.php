@@ -433,9 +433,6 @@ trait PopularStoreTraits
 
             }
 
-            //  Set the updated popular stores
-            $updated_popular_stores = [];
-
             //  Foreach of the popular store
             foreach ($popular_store_records as $key => $popular_store_record) {
 
@@ -443,18 +440,9 @@ trait PopularStoreTraits
                 $arrangement = ($key + 1);
 
                 //  Update the popular store arrangement
-                $popular_store_record['arrangement'] = $arrangement;
-
-                //  Capture the updated popular store
-                array_push($updated_popular_stores, $popular_store_record);
-
-            }
-
-            //  If we have updated popular stores
-            if( count($updated_popular_stores) ){
-
-                //  Update the popular store arrangements
-                \App\PopularStore::upsert($updated_popular_stores, ['id'], ['arrangement']);
+                \App\PopularStore::where('id', $popular_store_record['id'])->update([
+                    'arrangement' => $arrangement
+                ]);
 
             }
 
@@ -462,7 +450,7 @@ trait PopularStoreTraits
             if( !$this->id ){
 
                 //  Return a list of popular stores in their new arrangement
-                return $this->getResources($data);
+                return $this->getResources();
 
             }
 

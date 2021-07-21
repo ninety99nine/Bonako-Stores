@@ -30,6 +30,10 @@ class CreateCartsTable extends Migration
             $table->unsignedTinyInteger('total_resets')->default(0);
             $table->json('products_arrangement')->nullable();
             $table->json('detected_changes')->nullable();
+            $table->boolean('abandoned_status')->default(false);
+
+            /*  Instant Cart Info  */
+            $table->unsignedBigInteger('instant_cart_id')->nullable();
 
             /*  Currency Info  */
             $table->char('currency', 3)->default('BWP');
@@ -38,7 +42,7 @@ class CreateCartsTable extends Migration
             $table->unsignedInteger('location_id')->nullable();
 
             /*  Ownership Information  */
-            $table->bigInteger('owner_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('owner_id')->nullable();
             $table->string('owner_type')->nullable();
 
             /*  Timestamps  */

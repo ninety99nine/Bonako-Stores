@@ -21,7 +21,7 @@ class OrderController extends Controller
         try {
 
             //  Return a new order
-            return (new Order())->createResource($request, $this->user);//->convertToApiFormat();
+            return (new Order())->createResource($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 
@@ -35,7 +35,7 @@ class OrderController extends Controller
         try {
 
             //  Get the order
-            $order = \App\Order::where('id', $order_id)->first() ?? null;
+            $order = Order::where('id', $order_id)->first() ?? null;
 
             //  Check if the order exists
             if ($order) {
@@ -219,7 +219,7 @@ class OrderController extends Controller
         try {
 
             //  Get the order
-            $order = \App\Order::find($order_id) ?? null;
+            $order = Order::find($order_id) ?? null;
 
             //  Check if the order exists
             if ($order) {
@@ -289,7 +289,7 @@ class OrderController extends Controller
         try{
 
             //  Get the order
-            $order = \App\Order::where('id', $order_id)->first() ?? null;
+            $order = Order::where('id', $order_id)->first() ?? null;
 
             //  Check if the order exists
             if ($order) {

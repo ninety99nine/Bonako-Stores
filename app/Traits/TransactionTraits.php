@@ -93,6 +93,9 @@ trait TransactionTraits
 
                 }
 
+                //  Generate the resource creation report
+                $this->transaction->generateResourceCreationReport($model);
+
                 //  Return a fresh instance
                 return $this->transaction->fresh();
 
@@ -103,6 +106,19 @@ trait TransactionTraits
             throw($e);
 
         }
+    }
+
+    /**
+     *  This method generates a transaction creation report
+     */
+    public function generateResourceCreationReport($model)
+    {
+        //  Generate the resource creation report
+        ( new \App\Report() )->generateResourceCreationReport($this, [
+            'type' => $this->type,
+            'amount' => $this->amount['amount'],
+            'payment_method_id' => $this->payment_method_id
+        ]);
     }
 
     /**
@@ -142,8 +158,8 @@ trait TransactionTraits
 
             //  Set validation rules
             $rules = [
-                /** 
-                 *  Note that the amount can be a Float or Array value that has the money format, 
+                /**
+                 *  Note that the amount can be a Float or Array value that has the money format,
                  *  therefore we must make sure our validation can cater for both scenerios. For
                  *  now the validation only support a Float value so we are disabling it until
                  *  we can offer support for both data types.

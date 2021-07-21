@@ -91,6 +91,9 @@ trait LocationTraits
             //  If created successfully
             if ( $this->location ) {
 
+                //  Generate the resource creation report
+                $this->location->generateResourceCreationReport();
+
                 //  Update the supported payment methods
                 $this->location->updateSupportedPaymentMethods($data);
 
@@ -108,6 +111,15 @@ trait LocationTraits
 
         }
 
+    }
+
+    /**
+     *  This method generates a location creation report
+     */
+    public function generateResourceCreationReport()
+    {
+        //  Generate the resource creation report
+        ( new \App\Report() )->generateResourceCreationReport($this, ['name' => $this->name], $this->store_id, $this->id);
     }
 
     /**

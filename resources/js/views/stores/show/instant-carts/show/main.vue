@@ -57,6 +57,28 @@
                                                     :serverErrors="serverErrors">
                                 </couponSelectInput>
 
+                                <!-- Inventory Heading -->
+                                <Divider orientation="left" class="font-weight-bold mt-4">Inventory</Divider>
+
+                                <!-- Stock Management -->
+                                <Row :gutter="12">
+
+                                    <Col :span="12">
+
+                                        <!-- Allow Stock Management Checkbox -->
+                                        <allowStockManagementCheckbox :instantCartForm="instantCartForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowStockManagementCheckbox>
+
+                                    </Col>
+
+                                    <Col :span="12" v-if="instantCartForm.allow_stock_management">
+
+                                        <!-- Stock Quantity Input -->
+                                        <stockQuantityInput :instantCartForm="instantCartForm" :isLoading="isLoading" :serverErrors="serverErrors"></stockQuantityInput>
+
+                                    </Col>
+
+                                </Row>
+
                                 <!-- Locations Heading -->
                                 <Divider orientation="left" class="font-weight-bold mt-4">Locations</Divider>
 
@@ -115,17 +137,20 @@
     import descriptionInput from './components/descriptionInput.vue';
     import couponSelectInput from './components/couponSelectInput.vue';
     import freeDeliveryAlert from './components/freeDeliveryAlert.vue';
+    import stockQuantityInput from './components/stockQuantityInput.vue';
     import productSelectInput from './components/productSelectInput.vue';
     import miscMixin from './../../../../../components/_mixins/misc/main.vue';
     import Loader from './../../../../../components/_common/loaders/default.vue';
     import allowFreeDeliveryCheckbox from './components/allowFreeDeliveryCheckbox.vue';
     import basicButton from './../../../../../components/_common/buttons/basicButton.vue';
+    import allowStockManagementCheckbox from './components/allowStockManagementCheckbox.vue';
 
     export default {
         mixins: [miscMixin],
         components: {
             nameInput, activeSwitch, descriptionInput, couponSelectInput, freeDeliveryAlert,
-            productSelectInput, Loader, basicButton, allowFreeDeliveryCheckbox
+            stockQuantityInput, productSelectInput, Loader, basicButton, allowFreeDeliveryCheckbox,
+            allowStockManagementCheckbox
         },
         props: {
             store: {
@@ -379,6 +404,10 @@
                         allow_free_delivery: false,
                         location_id: this.location.id,
 
+                        //  Stock Management
+                        allow_stock_management: false,
+                        stock_quantity: 10,
+
                         //  Pricing Management
                         currency: this.locationCurrencyCode
 
@@ -388,11 +417,13 @@
                     if( this.localInstantCart ){
 
                         form.active = this.localInstantCart.active.status;
+                        form.allow_stock_management = this.localInstantCart.allow_stock_management.status;
+                        form.stock_quantity = this.localInstantCart.stock_quantity.value;
 
                         //  Set the coupons
                         form.coupons = (this.localInstantCart['_embedded']['cart']['_embedded']['coupon_lines']).map((coupon_line) => {
                             return {
-                                id: coupon_line.coupon_id
+                                id: coupon_line['_embedded']['coupon']['id']
                             }
                         });
 

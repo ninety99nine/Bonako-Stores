@@ -91,6 +91,9 @@ trait ProductTraits
                 //  Re-arrange location products
                 $this->product->assignResourceToLocations($data);
 
+                //  Generate the resource creation report
+                $this->product->generateResourceCreationReport();
+
             }
 
             //  Return a fresh instance
@@ -102,6 +105,37 @@ trait ProductTraits
 
         }
 
+    }
+
+    /**
+     *  This method generates a product creation report
+     */
+    public function generateResourceCreationReport()
+    {
+        //  Get the store with locations holding this product
+        $store = \App\Store::with('locations')->whereHas('locations', function (Builder $query) {
+            $query->whereHas('products', function (Builder $query) {
+                $query->where('products.id', $this->id);
+            });
+        })->first();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource creation report
+            ( new \App\Report() )->generateResourceCreationReport($this, [
+                'name' => $this->name,
+                'unit_regular_price' => $this->unit_regular_price['amount'],
+                'unit_sale_price' => $this->unit_sale_price['amount'],
+                'unit_cost' => $this->unit_cost['amount'],
+                'is_free' => $this->is_free['status'],
+                'name' => $this->name,
+                'allow_variants' => $this->allow_variants['status'],
+                'allow_stock_management' => $this->allow_stock_management['status'],
+                'stock_quantity' => $this->stock_quantity['value']
+            ], $store->id, $location->id);
+
+        }
     }
 
     /**

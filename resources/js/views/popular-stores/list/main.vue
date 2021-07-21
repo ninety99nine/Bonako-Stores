@@ -523,6 +523,9 @@
                             //  Swith to table view
                             self.arrangePopularStores = false;
 
+                            //  Set the popular stores
+                            self.popularStores = data['_embedded']['popular_stores'] || [];
+
                             //  Turn off any changes detected
                             self.copyPopularStoresBeforeUpdate();
 

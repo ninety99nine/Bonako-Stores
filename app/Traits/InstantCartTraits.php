@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use Carbon\Carbon;
 use App\InstantCart;
+use Illuminate\Database\Eloquent\Builder;
 use App\Http\Resources\InstantCart as InstantCartResource;
 use App\Http\Resources\InstantCarts as InstantCartsResource;
 
@@ -72,8 +73,11 @@ trait InstantCartTraits
             //  If created successfully
             if ( $this->instant_cart ) {
 
+                //  Generate the resource creation report
+                $this->instant_cart->generateResourceCreationReport();
+
                 //  Create a new cart resource
-                $this->instant_cart->createResourceCart($data);
+                $this->instant_cart->createResourceCart($data, $user);
 
                 //  Generate a payment shortcode (So that we can pay for the istant cart via USSD)
                 $this->instant_cart->generateResourcePaymentShortCode($user);
@@ -89,6 +93,89 @@ trait InstantCartTraits
 
         }
 
+    }
+
+    /**
+     *  This method generates an instant cart creation report
+     */
+    public function generateResourceCreationReport()
+    {
+        //  Get the store with locations holding this instant cart
+        $store = \App\Store::with('locations')->whereHas('locations', function (Builder $query) {
+            $query->whereHas('instantCarts', function (Builder $query) {
+                $query->where('instant_carts.id', $this->id);
+            });
+        })->first();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource creation report
+            ( new \App\Report() )->generateResourceCreationReport($this, [
+                'name' => $this->name,
+                'allow_stock_management' => $this->allow_stock_management['status'],
+                'stock_quantity' => $this->stock_quantity['value']
+            ], $store->id, $location->id);
+
+        }
+    }
+
+    /**
+     *  This method updates an existing instant cart
+     */
+    public function updateResource($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Verify permissions
+        //    $this->updateResourcePermission($user);
+
+            //  Validate the data
+        //    $this->updateResourceValidation($data);
+
+            //  Set the template with the resource fields allowed
+            $template = collect($data)->only($this->getFillable())->toArray();
+
+            /**
+             *  Update the resource details
+             */
+            $updated = $this->update($template);
+
+            //  If updated successfully
+            if ($updated) {
+
+                //  Extract the cart
+                $cart = $this->cart;
+
+                //  If we have a cart
+                if( $cart ){
+
+                    //  Extract the cart id
+                    $cart_id = $cart->id;
+
+                    //  Update the cart
+                    (new \App\Cart())->getResource($cart_id)->updateResource($data, $user);
+
+                }
+
+                //  Return a fresh instance
+                return $this->fresh();
+
+            }else{
+
+                //  Return original instance
+                return $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -379,7 +466,7 @@ trait InstantCartTraits
     /**
      *  This method creates a new instant cart
      */
-    public function createResourceCart($data = [])
+    public function createResourceCart($data = [], $user = null)
     {
         try {
 
@@ -389,7 +476,7 @@ trait InstantCartTraits
             /**
              *  Create new a cart resource
              */
-            $cart = ( new \App\Cart() )->createResource($data, $model);
+            $cart = ( new \App\Cart() )->createResource($data, $model, $user);
 
             //  Return the cart resource
             return $cart;

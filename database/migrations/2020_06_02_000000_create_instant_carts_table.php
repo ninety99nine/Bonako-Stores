@@ -22,6 +22,10 @@ class CreateInstantCartsTable extends Migration
             $table->string('name')->nullable();
             $table->string('description', 500)->nullable();
 
+            /*  Stock Management  */
+            $table->boolean('allow_stock_management')->default(false);
+            $table->unsignedInteger('stock_quantity')->default(0);
+
             /*  Location Info  */
             $table->unsignedInteger('location_id')->nullable();
 

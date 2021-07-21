@@ -24,6 +24,10 @@ class InstantCart extends JsonResource
             'description' => $this->description,
             'location_id' => $this->location_id,
 
+            /*  Stock Management  */
+            'allow_stock_management' => $this->allow_stock_management,
+            'stock_quantity' => $this->stock_quantity,
+
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
@@ -32,7 +36,8 @@ class InstantCart extends JsonResource
             '_attributes' => [
                 'resource_type' => $this->resource_type,
                 'visit_short_code' => !empty($this->visitShortCode) ? collect($this->visitShortCode)->only(['dialing_code', 'expires_at']) : null,
-                'payment_short_code' => !empty($this->paymentShortCode) ? collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']) : null
+                'payment_short_code' => !empty($this->paymentShortCode) ? collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']) : null,
+                'has_stock' => $this->has_stock,
             ],
 
             /*  Resource Links */

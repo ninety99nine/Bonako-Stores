@@ -521,6 +521,9 @@
                             //  Swith to table view
                             self.arrangeAdverts = false;
 
+                            //  Get the adverts
+                            self.adverts = data['_embedded']['adverts'] || [];
+
                             //  Turn off any changes detected
                             self.copyAdvertsBeforeUpdate();
 

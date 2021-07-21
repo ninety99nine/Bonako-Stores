@@ -45,6 +45,17 @@ class CreateCouponLinesTable extends Migration
             $table->tinyInteger('allow_usage_limit')->default(false);
             $table->string('usage_limit')->nullable();
 
+            $table->boolean('allow_discount_on_times')->default(false);
+            $table->json('discount_on_times')->nullable();
+            $table->boolean('allow_discount_on_days_of_the_week')->default(false);
+            $table->json('discount_on_days_of_the_week')->nullable();
+            $table->boolean('allow_discount_on_days_of_the_month')->default(false);
+            $table->json('discount_on_days_of_the_month')->nullable();
+            $table->boolean('allow_discount_on_months_of_the_year')->default(false);
+            $table->json('discount_on_months_of_the_year')->nullable();
+            $table->boolean('allow_discount_on_new_customer')->default(false);
+            $table->boolean('allow_discount_on_existing_customer')->default(false);
+
             /*  Coupon Info  */
             $table->unsignedInteger('coupon_id');
 

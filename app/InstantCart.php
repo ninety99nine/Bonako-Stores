@@ -28,6 +28,9 @@ class InstantCart extends Model
         /*  Basic Info  */
         'name', 'description',
 
+        /*  Stock Management  */
+        'allow_stock_management', 'stock_quantity',
+
         /*  Location Info  */
         'location_id'
 
@@ -174,6 +177,65 @@ class InstantCart extends Model
         ];
     }
 
+    /**
+     *  Returns the instant cart allow stock management status and description
+     */
+    public function getAllowStockManagementAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'This instant cart allows stock management'
+                                    : 'This instant cart does not allow stock management'
+        ];
+    }
+
+    /**
+     *  Returns the instant cart stock quantity status and description
+     */
+    public function getStockQuantityAttribute($value)
+    {
+        $value = ($value >= 0) ? $value : 0;
+
+        return [
+            'value' => $value,
+            'description' => $value ? ($value . ' available') : 'No stock'
+        ];
+    }
+
+    /**
+     *  Returns true/false if the instant cart has stock
+     */
+    public function getHasStockAttribute()
+    {
+        //  If this instant cart does not allow stock management (Then it means we have unlimited stock)
+        $unlimited = $this->allow_stock_management['status'] === false;
+
+        if( $unlimited ){
+
+            return [
+                'status' => $unlimited,
+                'type' => 'unlimited_stock',
+                'name' => 'Unlimited Stock',
+                'description' => 'This instant cart has unlimited stock'
+            ];
+
+        }else{
+
+            //  If this instant cart does not allow stock management or the instant cart allows stock management and has stock quantity
+            $status = ($this->allow_stock_management && $this->stock_quantity['value'] > 0);
+
+            return [
+                'status' => $status,
+                'type' => $status ? 'has_stock' : 'no_stock',
+                'name' => $status ? 'Has Stock' : 'No Stock',
+                'description' => $status ? 'This instant cart has limited stock' : 'This instant cart does not have stock'
+            ];
+
+        }
+
+    }
+
     public function setActiveAttribute($value)
     {
         if( is_array($value) ){
@@ -181,6 +243,20 @@ class InstantCart extends Model
         }else{
             $this->attributes['active'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
+    }
+
+    public function setAllowStockManagementAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['allow_stock_management'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_stock_management'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
+    }
+
+    public function setStockQuantityAttribute($value)
+    {
+        $this->attributes['stock_quantity'] = is_array($value) ? $value['value'] : $value;
     }
 
     //  ON DELETE EVENT

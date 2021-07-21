@@ -47,6 +47,17 @@ class CreateCouponsTable extends Migration
             $table->string('usage_limit')->nullable();
             $table->string('usage_quantity')->nullable();
 
+            $table->boolean('allow_discount_on_times')->default(false);
+            $table->json('discount_on_times')->nullable();
+            $table->boolean('allow_discount_on_days_of_the_week')->default(false);
+            $table->json('discount_on_days_of_the_week')->nullable();
+            $table->boolean('allow_discount_on_days_of_the_month')->default(false);
+            $table->json('discount_on_days_of_the_month')->nullable();
+            $table->boolean('allow_discount_on_months_of_the_year')->default(false);
+            $table->json('discount_on_months_of_the_year')->nullable();
+            $table->boolean('allow_discount_on_new_customer')->default(false);
+            $table->boolean('allow_discount_on_existing_customer')->default(false);
+
             /*  Ownership Information  */
             $table->unsignedInteger('location_id')->nullable();
 

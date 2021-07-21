@@ -201,6 +201,100 @@
 
                                 </Row>
 
+                                <!-- START FROM HERE -->
+                                <!-- START FROM HERE -->
+                                <!-- START FROM HERE -->
+
+                                <Row :gutter="12">
+
+                                    <Col :span="14">
+
+                                        <!-- Allow Discount On Times Checkbox -->
+                                        <allowDiscountOnTimesCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnTimesCheckbox>
+
+                                    </Col>
+
+                                    <Col :span="10">
+
+                                        <!-- Discount On Times Input -->
+                                        <discountOnTimesInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></discountOnTimesInput>
+
+                                    </Col>
+
+                                </Row>
+
+                                <Row :gutter="12">
+
+                                    <Col :span="14">
+
+                                        <!-- Allow Discount On Days Of The Week Checkbox -->
+                                        <allowDiscountOnDaysOfTheWeekCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnDaysOfTheWeekCheckbox>
+
+                                    </Col>
+
+                                    <Col :span="10">
+
+                                        <!-- Discount On Days Of The Week Input -->
+                                        <discountOnDaysOfTheWeekInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></discountOnDaysOfTheWeekInput>
+
+                                    </Col>
+
+                                </Row>
+
+                                <Row :gutter="12">
+
+                                    <Col :span="14">
+
+                                        <!-- Allow Discount On Days Of The Month Checkbox -->
+                                        <allowDiscountOnDaysOfTheMonthCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnDaysOfTheMonthCheckbox>
+
+                                    </Col>
+
+                                    <Col :span="10">
+
+                                        <!-- Discount On Days Of The Month Input -->
+                                        <discountOnDaysOfTheMonthInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></discountOnDaysOfTheMonthInput>
+
+                                    </Col>
+
+                                </Row>
+
+                                <Row :gutter="12">
+
+                                    <Col :span="14">
+
+                                        <!-- Allow Discount On Months Of The Year Checkbox -->
+                                        <allowDiscountOnMonthsOfTheYearCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnMonthsOfTheYearCheckbox>
+
+                                    </Col>
+
+                                    <Col :span="10">
+
+                                        <!-- Discount On Months Of The Year Input -->
+                                        <discountOnMonthsOfTheYearInput :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></discountOnMonthsOfTheYearInput>
+
+                                    </Col>
+
+                                </Row>
+
+                                <Row :gutter="12">
+
+                                    <Col :span="24">
+
+                                        <!-- Allow Discount On New Customer Checkbox -->
+                                        <allowDiscountOnNewCustomerCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnNewCustomerCheckbox>
+
+                                    </Col>
+
+                                    <Col :span="24">
+
+                                        <!-- Allow Discount On Existing Customer Checkbox -->
+                                        <allowDiscountOnExistingCustomerCheckbox :couponForm="couponForm" :isLoading="isLoading" :serverErrors="serverErrors"></allowDiscountOnExistingCustomerCheckbox>
+
+                                    </Col>
+
+                                </Row>
+
                                 <summaryAlert :couponForm="couponForm" :location="location"></summaryAlert>
 
                                 <!-- If we are editting -->
@@ -263,6 +357,7 @@
     import freeDeliveryAlert from './components/freeDeliveryAlert.vue';
     import usageQuantityInput from './components/usageQuantityInput.vue';
     import percentageRateInput from './components/percentageRateInput.vue';
+    import discountOnTimesInput from './components/discountOnTimesInput.vue';
     import miscMixin from './../../../../../components/_mixins/misc/main.vue';
     import applyDiscountCheckbox from './components/applyDiscountCheckbox.vue';
     import Loader from './../../../../../components/_common/loaders/default.vue';
@@ -273,24 +368,33 @@
     import basicButton from './../../../../../components/_common/buttons/basicButton.vue';
     import discountRateTypeSelectInput from './components/discountRateTypeSelectInput.vue';
     import discountOnMinimumTotalInput from './components/discountOnMinimumTotalInput.vue';
+    import allowDiscountOnTimesCheckbox from './components/allowDiscountOnTimesCheckbox.vue';
+    import discountOnDaysOfTheWeekInput from './components/discountOnDaysOfTheWeekInput.vue';
+    import discountOnDaysOfTheMonthInput from './components/discountOnDaysOfTheMonthInput.vue';
+    import discountOnMonthsOfTheYearInput from './components/discountOnMonthsOfTheYearInput.vue';
     import discountOnEndDatetimeLimitInput from './components/discountOnEndDatetimeLimitInput.vue';
     import discountOnTotalUniqueItemsInput from './components/discountOnTotalUniqueItemsInput.vue';
     import discountOnStartDatetimeLimitInput from './components/discountOnStartDatetimeLimitInput.vue';
     import allowDiscountOnTotalItemsCheckbox from './components/allowDiscountOnTotalItemsCheckbox.vue';
+    import allowDiscountOnNewCustomerCheckbox from './components/allowDiscountOnNewCustomerCheckbox.vue';
     import allowDiscountOnEndDatetimeCheckbox from './components/allowDiscountOnEndDatetimeCheckbox.vue';
     import allowDiscountOnMinimumTotalCheckbox from './components/allowDiscountOnMinimumTotalCheckbox.vue';
+    import allowDiscountOnDaysOfTheWeekCheckbox from './components/allowDiscountOnDaysOfTheWeekCheckbox.vue';
     import allowDiscountOnStartDatetimeCheckbox from './components/allowDiscountOnStartDatetimeCheckbox.vue';
+    import allowDiscountOnDaysOfTheMonthCheckbox from './components/allowDiscountOnDaysOfTheMonthCheckbox.vue';
+    import allowDiscountOnMonthsOfTheYearCheckbox from './components/allowDiscountOnMonthsOfTheYearCheckbox.vue';
+    import allowDiscountOnExistingCustomerCheckbox from './components/allowDiscountOnExistingCustomerCheckbox.vue';
     import allowDiscountOnTotalUniqueItemsCheckbox from './components/allowDiscountOnTotalUniqueItemsCheckbox.vue';
 
     export default {
         mixins: [miscMixin],
         components: {
             nameInput, codeInput, summaryAlert, activeSwitch, fixedRateInput, usageLimitInput, descriptionInput,
-            freeDeliveryAlert, usageQuantityInput, percentageRateInput, applyDiscountCheckbox, Loader, allowUsageLimitCheckbox,
+            freeDeliveryAlert, usageQuantityInput, percentageRateInput, discountOnTimesInput, applyDiscountCheckbox, Loader, allowUsageLimitCheckbox,
             activationTypeSelectInput, basicButton, allowFreeDeliveryCheckbox, discountOnTotalItemsInput, discountRateTypeSelectInput,
-            discountOnMinimumTotalInput, discountOnEndDatetimeLimitInput, discountOnTotalUniqueItemsInput, discountOnStartDatetimeLimitInput,
-            allowDiscountOnTotalItemsCheckbox, allowDiscountOnEndDatetimeCheckbox, allowDiscountOnMinimumTotalCheckbox,
-            allowDiscountOnStartDatetimeCheckbox, allowDiscountOnTotalUniqueItemsCheckbox
+            discountOnMinimumTotalInput, allowDiscountOnTimesCheckbox, discountOnDaysOfTheWeekInput, discountOnDaysOfTheMonthInput, discountOnMonthsOfTheYearInput, discountOnEndDatetimeLimitInput, discountOnTotalUniqueItemsInput, discountOnStartDatetimeLimitInput,
+            allowDiscountOnTotalItemsCheckbox, allowDiscountOnNewCustomerCheckbox, allowDiscountOnEndDatetimeCheckbox, allowDiscountOnMinimumTotalCheckbox, allowDiscountOnDaysOfTheWeekCheckbox,
+            allowDiscountOnStartDatetimeCheckbox, allowDiscountOnDaysOfTheMonthCheckbox, allowDiscountOnMonthsOfTheYearCheckbox, allowDiscountOnExistingCustomerCheckbox, allowDiscountOnTotalUniqueItemsCheckbox
         },
         props: {
             store: {
@@ -476,6 +580,21 @@
                         usage_limit: 100,
                         usage_quantity: 0,
 
+                        allow_discount_on_times: false,
+                        discount_on_times: [],
+
+                        allow_discount_on_days_of_the_week: false,
+                        discount_on_days_of_the_week: [],
+
+                        allow_discount_on_days_of_the_month: false,
+                        discount_on_days_of_the_month: [],
+
+                        allow_discount_on_months_of_the_year: false,
+                        discount_on_months_of_the_year: [],
+
+                        allow_discount_on_new_customer: false,
+                        allow_discount_on_existing_customer: false,
+
                         location_id: this.location.id,
 
 
@@ -497,6 +616,13 @@
                         form.allow_discount_on_start_datetime = this.localCoupon.allow_discount_on_start_datetime.status;
                         form.allow_discount_on_end_datetime = this.localCoupon.allow_discount_on_end_datetime.status;
                         form.allow_usage_limit = this.localCoupon.allow_usage_limit.status;
+
+                        form.allow_discount_on_times = this.localCoupon.allow_discount_on_times.status;
+                        form.allow_discount_on_days_of_the_week = this.localCoupon.allow_discount_on_days_of_the_week.status;
+                        form.allow_discount_on_days_of_the_month = this.localCoupon.allow_discount_on_days_of_the_month.status;
+                        form.allow_discount_on_months_of_the_year = this.localCoupon.allow_discount_on_months_of_the_year.status;
+                        form.allow_discount_on_new_customer = this.localCoupon.allow_discount_on_new_customer.status;
+                        form.allow_discount_on_existing_customer = this.localCoupon.allow_discount_on_existing_customer.status;
                     }
 
                 return form;

@@ -136,6 +136,9 @@ trait SubscriptionTraits
 
                 }
 
+                //  Generate the resource creation report
+                $this->subscription->generateResourceCreationReport($model);
+
                 //  Generate a new transaction
                 $this->subscription->createResourceTransaction($data, $subscription_plan);
 
@@ -150,6 +153,24 @@ trait SubscriptionTraits
 
         }
     }
+
+    /**
+     *  This method generates a subscription creation report
+     */
+    public function generateResourceCreationReport($model)
+    {
+        $subscription_plan = $this->subscriptionPlan;
+
+        //  Generate the resource creation report
+        ( new \App\Report() )->generateResourceCreationReport($this, [
+            'name' => $subscription_plan->name,
+            'frequency' => $subscription_plan->frequency,
+            'duration' => $subscription_plan->duration,
+            'price' => $subscription_plan->price['amount'],
+            'owner_type' => $model->resource_type,
+        ]);
+    }
+
     /**
      *  This method creates a new subscription transaction
      */

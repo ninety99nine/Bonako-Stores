@@ -45,6 +45,17 @@ class Coupon extends JsonResource
             'quantity_remaining' => $this->quantity_remaining,
             'has_quantity_remaining' => $this->has_quantity_remaining,
 
+            'allow_discount_on_times' => $this->allow_discount_on_times,
+            'discount_on_times' => $this->discount_on_times,
+            'allow_discount_on_days_of_the_week' => $this->allow_discount_on_days_of_the_week,
+            'discount_on_days_of_the_week' => $this->discount_on_days_of_the_week,
+            'allow_discount_on_days_of_the_month' => $this->allow_discount_on_days_of_the_month,
+            'discount_on_days_of_the_month' => $this->discount_on_days_of_the_month,
+            'allow_discount_on_months_of_the_year' => $this->allow_discount_on_months_of_the_year,
+            'discount_on_months_of_the_year' => $this->discount_on_months_of_the_year,
+            'allow_discount_on_new_customer' => $this->allow_discount_on_new_customer,
+            'allow_discount_on_existing_customer' => $this->allow_discount_on_existing_customer,
+
             'location_id' => $this->location_id,
 
             /*  Timestamp Info  */

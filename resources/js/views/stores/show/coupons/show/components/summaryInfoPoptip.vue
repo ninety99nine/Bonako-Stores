@@ -7,7 +7,7 @@
         <div slot="content">
             <div v-for="(couponProperty, index) in couponProperties" :key="index">
 
-                <div v-if="couponProperty.active" class="mb-2">
+                <div v-if="couponProperty.active" class="d-flex mb-2">
                     <Icon :type="couponProperty.isValid ? 'ios-checkmark-circle' : 'ios-close-circle'"
                         :class="[couponProperty.isValid ? 'text-success' : 'text-danger', 'mr-1']"
                         :size="16" />
@@ -15,6 +15,7 @@
                 </div>
 
             </div>
+
         </div>
 
         <Icon type="ios-information-circle-outline" :size="20" />
@@ -95,23 +96,23 @@
                     },
                     {
                         active: this.coupon.allow_discount_on_minimum_total.status,
-                        desc: 'Allows dicount if the cart total is '+this.formatPrice(this.coupon.discount_on_minimum_total, this.locationCurrencySymbol)+' or more',
+                        desc: 'Allows discount if the cart total is '+this.formatPrice(this.coupon.discount_on_minimum_total, this.locationCurrencySymbol)+' or more',
                         isValid: true
                     },
                     {
                         active: this.coupon.allow_discount_on_total_items.status,
-                        desc: 'Allows dicount if the cart has atleast '+this.coupon.discount_on_total_items+
+                        desc: 'Allows discount if the cart has atleast '+this.coupon.discount_on_total_items+
                               ((this.coupon.discount_on_total_items == 1) ? ' item': ' items'),
                         isValid: true
                     },
                     {
                         active: this.coupon.allow_discount_on_total_unique_items.status,
-                        desc: 'Allows dicount if the cart has atleast '+this.coupon.discount_on_total_unique_items+
+                        desc: 'Allows discount if the cart has atleast '+this.coupon.discount_on_total_unique_items+
                               ((this.coupon.discount_on_total_unique_items == 1) ? ' unique item': ' unique items'),
                         isValid: true
                     },
                     {
-                        active: this.coupon.allow_usage_limit,
+                        active: this.coupon.allow_usage_limit.status,
                         desc: 'Limited for use only '+usage_limit+
                                 ((usage_limit == 1) ? ' time': ' times')+
                                 ' ('+quantity_remaining + ((quantity_remaining == 1) ? ' coupon': ' coupons')+' left)',
@@ -126,6 +127,36 @@
                         active: this.coupon.allow_discount_on_end_datetime.status,
                         desc: discount_on_end_datetime ? 'Valid till '+ discount_on_end_datetime : 'Provide the coupon ending date',
                         isValid: discount_on_end_datetime ? true : false
+                    },
+                    {
+                        active: this.coupon.allow_discount_on_times.status,
+                        desc: this.coupon.allow_discount_on_times.description,
+                        isValid: true
+                    },
+                    {
+                        active: this.coupon.allow_discount_on_days_of_the_week.status,
+                        desc: this.coupon.allow_discount_on_days_of_the_week.description,
+                        isValid: true
+                    },
+                    {
+                        active: this.coupon.allow_discount_on_days_of_the_month.status,
+                        desc: this.coupon.allow_discount_on_days_of_the_month.description,
+                        isValid: true
+                    },
+                    {
+                        active: this.coupon.allow_discount_on_months_of_the_year.status,
+                        desc: this.coupon.allow_discount_on_months_of_the_year.description,
+                        isValid: true
+                    },
+                    {
+                        active: this.coupon.allow_discount_on_new_customer.status,
+                        desc: this.coupon.allow_discount_on_new_customer.description,
+                        isValid: true
+                    },
+                    {
+                        active: this.coupon.allow_discount_on_existing_customer.status,
+                        desc: this.coupon.allow_discount_on_existing_customer.description,
+                        isValid: true
                     }
                 ]
             }

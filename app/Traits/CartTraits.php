@@ -3,6 +3,8 @@
 namespace App\Traits;
 
 use DB;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use App\Http\Resources\Cart as CartResource;
 use App\Http\Resources\Carts as CartsResource;
 
@@ -13,6 +15,7 @@ trait CartTraits
     public $_total_items = 0;
     public $_total_unique_items = 0;
     public $_item_detected_changes = [];
+    public $is_existing_customer = false;
     public $_allow_free_delivery = false;
 
 
@@ -74,18 +77,27 @@ trait CartTraits
                 //  If we have an existing cart
                 if( $this->cart ){
 
-                    //  Reset and return the existing cart
-                    return $this->cart->resetResource();
+                    if( isset($data['items']) && !empty($data['items']) ){
+
+                        //  Update and return the existing cart
+                        return $this->cart->updateResource($data, $user);
+
+                    }else{
+
+                        //  Reset and return the existing cart
+                        return $this->cart->resetResource($user);
+
+                    }
 
                 }
 
             }
 
             //  Build the cart basket
-            $cart_basket = $this->buildCartBasket($data);
+            $cart_basket = $this->buildCartBasket($data, $user);
 
-            //  Set the template with the resource fields allowed
-            $template = collect($cart_basket)->only($this->getFillable())->toArray();
+            //  Merge the existing data with the new data
+            $template = array_merge($data, collect($cart_basket)->only($this->getFillable())->toArray());
 
             /**
              *  Create a new resource
@@ -99,10 +111,7 @@ trait CartTraits
                 if( $model ){
 
                     //  Update the cart owner id and owner type
-                    $this->cart->update([
-                        'owner_id' => $model->id,
-                        'owner_type' => $model->resource_type,
-                    ]);
+                    $this->cart->setResourceOwner($model);
 
                 }
 
@@ -111,6 +120,9 @@ trait CartTraits
 
                 //  Create the cart counpon line resources
                 $this->cart->createResourceCouponLines($cart_basket);
+
+                //  Generate the resource creation report
+                $this->cart->generateResourceCreationReport();
 
                 //  Return a fresh instance
                 return $this->cart->fresh();
@@ -125,6 +137,128 @@ trait CartTraits
     }
 
     /**
+     *  This method generates a cart creation report
+     */
+    public function generateResourceCreationReport()
+    {
+        //  Get the store with locations holding this cart
+        $store = \App\Store::with('locations')->whereHas('locations', function (Builder $query) {
+            $query->whereHas('carts', function (Builder $query) {
+                $query->where('carts.id', $this->id);
+            });
+        })->first();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource creation report
+            ( new \App\Report() )->generateResourceCreationReport($this, [
+                'instant_cart_id' => $this->instant_cart_id,
+                'sub_total' => $this->sub_total['amount'],
+                'coupon_total' => $this->coupon_total['amount'],
+                'sale_discount_total' => $this->sale_discount_total['amount'],
+                'coupon_and_sale_discount_total' => $this->coupon_and_sale_discount_total['amount'],
+                'delivery_fee' => $this->delivery_fee['amount'],
+                'grand_total' => $this->grand_total['amount'],
+                'total_items' => $this->total_items,
+                'total_unique_items' => $this->total_unique_items,
+                'allow_free_delivery' => $this->allow_free_delivery['status'],
+                'owner_type' => $this->owner_type,
+            ], $store->id, $location->id);
+
+        }
+    }
+
+    /**
+     *  This method generates a cart conversion report
+     */
+    public function generateResourceConversionReport()
+    {
+        //  Get the store with locations holding this cart
+        $store = \App\Store::with('locations')->whereHas('locations', function (Builder $query) {
+            $query->whereHas('carts', function (Builder $query) {
+                $query->where('carts.id', $this->id);
+            });
+        })->first();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource creation report
+            ( new \App\Report() )->generateResourceConversionReport($this, [
+                'instant_cart_id' => $this->instant_cart_id,
+                'sub_total' => $this->sub_total['amount'],
+                'coupon_total' => $this->coupon_total['amount'],
+                'sale_discount_total' => $this->sale_discount_total['amount'],
+                'coupon_and_sale_discount_total' => $this->coupon_and_sale_discount_total['amount'],
+                'delivery_fee' => $this->delivery_fee['amount'],
+                'grand_total' => $this->grand_total['amount'],
+                'total_items' => $this->total_items,
+                'total_unique_items' => $this->total_unique_items,
+                'allow_free_delivery' => $this->allow_free_delivery['status'],
+                'owner_type' => $this->owner_type,
+            ], $store->id, $location->id);
+
+        }
+    }
+
+    /**
+     *  This method generates a cart conversion report
+     */
+    public function generateResourceAbandonedReport()
+    {
+        /** The setEagerLoads([]) helps us to removed the default relationships that are
+         *  eager loaded on the store. When trying to eager load "myActiveSubscription",
+         *  the system fails since it requores an authenticated user. Since this method
+         *  is called by the system when running background processes, we do not have
+         *  an authenticated user and this causes issues. We need to simply reject
+         *  the default eager loaded relationships and only request the "locations"
+         *
+         *  Set $with = [ ... ] to [] on the Store Model
+         *
+         */
+        $store = \App\Store::setEagerLoads([])->with('locations')->whereHas('locations', function (Builder $query) {
+            $query->whereHas('carts', function (Builder $query) {
+                $query->where('carts.id', $this->id);
+            });
+        })->first();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource creation report
+            ( new \App\Report() )->generateResourceAbandonedReport($this, [
+                'instant_cart_id' => $this->instant_cart_id,
+                'sub_total' => $this->sub_total['amount'],
+                'coupon_total' => $this->coupon_total['amount'],
+                'sale_discount_total' => $this->sale_discount_total['amount'],
+                'coupon_and_sale_discount_total' => $this->coupon_and_sale_discount_total['amount'],
+                'delivery_fee' => $this->delivery_fee['amount'],
+                'grand_total' => $this->grand_total['amount'],
+                'total_items' => $this->total_items,
+                'total_unique_items' => $this->total_unique_items,
+                'allow_free_delivery' => $this->allow_free_delivery['status'],
+                'owner_type' => $this->owner_type,
+            ], $store->id, $location->id);
+
+        }
+    }
+
+    /**
+     *  This method marks a cart as abandoned
+     */
+    public function markResourceAsAbandoned()
+    {
+        //  Set the abandoned status to true
+        $this->update([
+            'abandoned_status' => '1'
+        ]);
+
+        //  Generate the resource abandoned report
+        $this->generateResourceAbandonedReport();
+    }
+
+    /**
      *  This method updates an existing cart
      */
     public function updateResource($data = [], $user = null)
@@ -134,9 +268,6 @@ trait CartTraits
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
-            //  Merge the existing data with the new data
-            $data = array_merge(collect($this)->only($this->getFillable())->toArray(), $data);
-
             //  Verify permissions
             $this->updateResourcePermission($user);
 
@@ -144,14 +275,17 @@ trait CartTraits
             $this->updateResourceValidation($data);
 
             //  Build the cart basket
-            $cart_basket = $this->buildCartBasket($data);
+            $cart_basket = $this->buildCartBasket($data, $user);
 
-            //  Set the template with the resource fields allowed
-            $template =  collect($cart_basket)->only($this->getFillable())->toArray();
+            //  Merge the existing data with the new data
+            $template = array_merge($data, collect($cart_basket)->only($this->getFillable())->toArray());
 
             //  Set the original owner of this resource
             $template['owner_id'] = $this->owner_id;
             $template['owner_type'] = $this->owner_type;
+
+            //  Make sure the cart is not abandoned
+            $template['abandoned_status'] = '0';
 
             /**
              *  Update the resource details
@@ -203,7 +337,8 @@ trait CartTraits
             //  Extract the cart coupon ids
             $coupons = collect($this->couponLines)->map(function($couponLine){
                 return [
-                    'id' => $couponLine['coupon_id']
+                    'id' => $couponLine['coupon_id'],
+                    'code' => $couponLine['code']
                 ];
             })->toArray();
 
@@ -214,7 +349,7 @@ trait CartTraits
                 'location_id' => $this->location_id,
                 'total_refreshes' => ++$this->total_refreshes,
                 'delivery_fee' => $this->delivery_fee['amount'],
-                'allow_free_delivery' => $this->allow_free_delivery['status']
+                'allow_free_delivery' => $this->allow_free_delivery['status'],
             ];
 
             return $this->updateResource($data, $user);
@@ -619,7 +754,7 @@ trait CartTraits
      *  This method builds a detailed cart on the fly using the supplied
      *  items, coupons, delivery fees and location information.
      */
-    public function buildCartBasket($data = [])
+    public function buildCartBasket($data = [], $user = null)
     {
         try {
 
@@ -635,6 +770,9 @@ trait CartTraits
             //  Set the location id
             $location_id = $data['location_id'] ?? null;
 
+            //  Set the instant cart id
+            $instant_cart_id = $data['instant_cart_id'] ?? null;
+
             //  Set the allow free delivery otherwise default to original value
             $this->_allow_free_delivery = $data['allow_free_delivery'] ?? $this->_allow_free_delivery;
 
@@ -648,7 +786,12 @@ trait CartTraits
             $currency = null;
 
             //  If the location id is provided
-            if( $location_id != null  ){
+            if( $location_id != null ){
+
+                //  Set the check for existing customer
+                $this->is_existing_customer = \App\Order::where('customer_id', $user->id)->whereHas('locations', function (Builder $query) use ($location_id){
+                    $query->where('location_id', $location_id);
+                })->exists();
 
                 //  Get the location matching the location id
                 $location = \App\Location::where('id', $location_id)->with('coupons')->first();
@@ -756,9 +899,10 @@ trait CartTraits
                 'allow_free_delivery' => $this->_allow_free_delivery,
                 'delivery_fee' => $this->convertToMoney($currency, $delivery_fee),
                 'grand_total' => $this->convertToMoney($currency, $grand_total),
-                'location_id' => $location_id,
                 'currency' => $currency,
-                'detected_changes' => $this->_item_detected_changes
+                'detected_changes' => $this->_item_detected_changes,
+                'location_id' => $location_id,
+                'instant_cart_id' => $instant_cart_id,
             ];
 
         } catch (\Exception $e) {
@@ -1144,7 +1288,7 @@ trait CartTraits
      *  This method calculates the total coupon discount that
      *  must be applied on the grand total provided.
      */
-    public function calcultateCoupons($grand_total = 0 , $location_coupons = [], $coupons = [])
+    public function calcultateCoupons($grand_total = 0 , $location_coupons = [], $customer_coupons = [])
     {
         try {
 
@@ -1155,6 +1299,16 @@ trait CartTraits
 
                 //  Return "0" as the total coupon amount applied
                 return $total;
+
+            }else{
+
+                //  Capture location coupons that must always be applied (Add to the customers list of coupons)
+                $customer_coupons = collect(array_merge(collect($location_coupons)->filter(function($location_coupon) {
+
+                    //  If we must always apply this location coupon
+                    return ($location_coupon['activation_type']['type'] == 'always apply');
+
+                })->toArray(), $customer_coupons))->unique('id');
 
             }
 
@@ -1167,104 +1321,169 @@ trait CartTraits
                     //  Set the "Is valid" variable
                     $is_valid = true;
 
-                    //  If the location coupon must not always be applied
-                    if( $location_coupon['activation_type']['type'] != 'always apply' ){
+                    //	Check if we have a matching coupon provided
+                    $is_valid = collect($customer_coupons)->contains(function ($coupon) use ($location_coupon, $grand_total){
 
-                        //	Check if we have a matching coupon provided
-                        $is_valid = collect($coupons)->contains(function ($coupon) use ($location_coupon, $grand_total){
+                        //  If the location coupon is applied using a specific code
+                        if( $location_coupon['activation_type']['type'] == 'use code' ){
 
-                            //  If the location coupon is applied using a specific code
-                            if( $location_coupon['activation_type']['type'] == 'use code' ){
+                            //	Check if we have a matching code
+                            $is_valid = isset($coupon['code']) && ($coupon['code'] == $location_coupon['code']);
 
-                                //	Check if we have a matching code
-                                $is_valid = ($coupon['code'] == $location_coupon['code']);
+                            //  If not valid return false
+                            if( !$is_valid ) return false;
 
-                                //  If not valid return false
-                                if( !$is_valid ) return false;
+                        }else{
 
-                            }else{
+                            //	Check if we have a matching id
+                            $is_valid = ($coupon['id'] == $location_coupon['id']);
 
-                                //	Check if we have a matching id
-                                $is_valid = ($coupon['id'] == $location_coupon['id']);
+                            //  If not valid return false
+                            if( !$is_valid ) return false;
 
-                                //  If not valid return false
-                                if( !$is_valid ) return false;
+                        }
 
-                            }
+                        $discount_on_minimum_total = $location_coupon['discount_on_minimum_total']['amount'];
+                        $allow_discount_on_minimum_total = $location_coupon['allow_discount_on_minimum_total']['status'];
 
-                            $discount_on_minimum_total = $location_coupon['discount_on_minimum_total']['amount'];
-                            $allow_discount_on_minimum_total = $location_coupon['allow_discount_on_minimum_total']['status'];
+                        //  If this coupon allows a discount on a minimum total
+                        if( $allow_discount_on_minimum_total && $grand_total < $discount_on_minimum_total ){
 
-                            //  If this coupon allows a discount on a minimum total
-                            if( $allow_discount_on_minimum_total && $grand_total < $discount_on_minimum_total ){
+                            //  Return false since its not valid
+                            return false;
 
-                                //  Return false since its not valid
-                                return false;
+                        }
 
-                            }
+                        $discount_on_total_items = $location_coupon['discount_on_total_items'];
+                        $allow_discount_on_total_items = $location_coupon['allow_discount_on_total_items']['status'];
 
-                            $discount_on_total_items = $location_coupon['discount_on_total_items'];
-                            $allow_discount_on_total_items = $location_coupon['allow_discount_on_total_items']['status'];
+                        //  If this coupon allows a discount on minimum total items
+                        if( $allow_discount_on_total_items && $this->_total_items < $discount_on_total_items ){
 
-                            //  If this coupon allows a discount on minimum total items
-                            if( $allow_discount_on_total_items && $this->_total_items < $discount_on_total_items ){
+                            //  Return false since its not valid
+                            return false;
 
-                                //  Return false since its not valid
-                                return false;
+                        }
 
-                            }
+                        $discount_on_total_unique_items = $location_coupon['discount_on_total_unique_items'];
+                        $allow_discount_on_total_unique_items = $location_coupon['allow_discount_on_total_unique_items']['status'];
 
-                            $discount_on_total_unique_items = $location_coupon['discount_on_total_unique_items'];
-                            $allow_discount_on_total_unique_items = $location_coupon['allow_discount_on_total_unique_items']['status'];
+                        //  If this coupon allows a discount on minimum total unique items
+                        if( $allow_discount_on_total_unique_items && $this->_total_unique_items < $discount_on_total_unique_items ){
 
-                            //  If this coupon allows a discount on minimum total unique items
-                            if( $allow_discount_on_total_unique_items && $this->_total_unique_items < $discount_on_total_unique_items ){
+                            //  Return false since its not valid
+                            return false;
 
-                                //  Return false since its not valid
-                                return false;
+                        }
 
-                            }
+                        $discount_on_start_datetime = $location_coupon['discount_on_start_datetime'];
+                        $allow_discount_on_start_datetime = $location_coupon['allow_discount_on_start_datetime']['status'];
 
-                            $discount_on_start_datetime = $location_coupon['discount_on_start_datetime'];
-                            $allow_discount_on_start_datetime = $location_coupon['allow_discount_on_start_datetime']['status'];
+                        //  If this coupon allows a discount only if the start time is reached
+                        if( $allow_discount_on_start_datetime && !(\Carbon\Carbon::parse($discount_on_start_datetime)->isPast()) ){
 
-                            //  If this coupon allows a discount only if the start time is reached
-                            if( $allow_discount_on_start_datetime && !(\Carbon\Carbon::parse($discount_on_start_datetime)->isPast()) ){
+                            //  Return false since its not valid
+                            return false;
 
-                                //  Return false since its not valid
-                                return false;
+                        }
 
-                            }
+                        $discount_on_end_datetime = $location_coupon['discount_on_end_datetime'];
+                        $allow_discount_on_end_datetime = $location_coupon['allow_discount_on_end_datetime']['status'];
 
-                            $discount_on_end_datetime = $location_coupon['discount_on_end_datetime'];
-                            $allow_discount_on_end_datetime = $location_coupon['allow_discount_on_end_datetime']['status'];
+                        //  If this coupon allows a discount only if the end time is not reached
+                        if( $allow_discount_on_end_datetime && \Carbon\Carbon::parse($discount_on_end_datetime)->isPast() ){
 
-                            //  If this coupon allows a discount only if the end time is not reached
-                            if( $allow_discount_on_end_datetime && \Carbon\Carbon::parse($discount_on_end_datetime)->isPast() ){
+                            //  Return false since its not valid
+                            return false;
 
-                                //  Return false since its not valid
-                                return false;
+                        }
 
-                            }
+                        $usage_limit = $location_coupon['usage_limit'];
+                        $usage_quantity = $location_coupon['usage_quantity'];
+                        $allow_usage_limit = $location_coupon['allow_usage_limit']['status'];
 
-                            $usage_limit = $location_coupon['usage_limit'];
-                            $usage_quantity = $location_coupon['usage_quantity'];
-                            $allow_usage_limit = $location_coupon['allow_usage_limit']['status'];
+                        //  If this coupon allows a discount only if the usage limit is not reached
+                        if( $allow_usage_limit && $usage_quantity < $usage_limit  ){
 
-                            //  If this coupon allows a discount only if the usage limit is not reached
-                            if( $allow_usage_limit && $usage_quantity < $usage_limit  ){
+                            //  Return false since its not valid
+                            return false;
 
-                                //  Return false since its not valid
-                                return false;
+                        }
 
-                            }
 
-                            //  At this point the coupon is valid
-                            return true;
 
-                        });
 
-                    }
+
+
+
+                        $discount_on_times = $location_coupon['discount_on_times'];
+                        $allow_discount_on_times = $location_coupon['allow_discount_on_times']['status'];
+
+                        //  If this coupon allows a discount only on specific times
+                        if( $allow_discount_on_times && in_array(Carbon::now()->format('H'), $discount_on_times) === false  ){
+
+                            //  Return false since its not valid
+                            return false;
+
+                        }
+
+                        $discount_on_days_of_the_week = $location_coupon['discount_on_days_of_the_week'];
+                        $allow_discount_on_days_of_the_week = $location_coupon['allow_discount_on_days_of_the_week']['status'];
+
+                        //  If this coupon allows a discount only on specific days of the week
+                        if( $allow_discount_on_days_of_the_week && in_array(Carbon::now()->format('l'), $discount_on_days_of_the_week) === false  ){
+
+                            //  Return false since its not valid
+                            return false;
+
+                        }
+
+                        $discount_on_days_of_the_month = $location_coupon['discount_on_days_of_the_month'];
+                        $allow_discount_on_days_of_the_month = $location_coupon['allow_discount_on_days_of_the_month']['status'];
+
+                        //  If this coupon allows a discount only on specific days of the month
+                        if( $allow_discount_on_days_of_the_month && in_array(Carbon::now()->format('d'), $discount_on_days_of_the_month) === false  ){
+
+                            //  Return false since its not valid
+                            return false;
+
+                        }
+
+                        $discount_on_months_of_the_year = $location_coupon['discount_on_months_of_the_year'];
+                        $allow_discount_on_months_of_the_year = $location_coupon['allow_discount_on_months_of_the_year']['status'];
+
+                        //  If this coupon allows a discount only on specific months of the year
+                        if( $allow_discount_on_months_of_the_year && in_array(Carbon::now()->format('F'), $discount_on_months_of_the_year) === false  ){
+
+                            //  Return false since its not valid
+                            return false;
+
+                        }
+
+                        $allow_discount_on_new_customer = $location_coupon['allow_discount_on_new_customer']['status'];
+
+                        //  If this coupon allows a discount only if the user is a new customer
+                        if( $allow_discount_on_new_customer && $this->is_existing_customer === true  ){
+
+                            //  Return false since its not valid
+                            return false;
+
+                        }
+
+                        $allow_discount_on_existing_customer = $location_coupon['allow_discount_on_existing_customer']['status'];
+
+                        //  If this coupon allows a discount only if the user is an existing customer
+                        if( $allow_discount_on_existing_customer && $this->is_existing_customer === false  ){
+
+                            //  Return false since its not valid
+                            return false;
+
+                        }
+
+                        //  At this point the coupon is valid
+                        return true;
+
+                    });
 
                     //  If we can continue
                     if( $is_valid ){

@@ -92,6 +92,9 @@ trait StoreTraits
             //  If created successfully
             if ( $this->store ) {
 
+                //  Generate the resource creation report
+                $this->store->generateResourceCreationReport();
+
                 //  Generate a payment shortcode (So that we can subscribe to the store via USSD) (CommonTraits)
                 $this->store->generateResourcePaymentShortCode($user);
 
@@ -122,6 +125,15 @@ trait StoreTraits
 
         }
 
+    }
+
+    /**
+     *  This method generates a store creation report
+     */
+    public function generateResourceCreationReport()
+    {
+        //  Generate the resource creation report
+        ( new \App\Report() )->generateResourceCreationReport($this, ['name' => $this->name], $this->id);
     }
 
     /**

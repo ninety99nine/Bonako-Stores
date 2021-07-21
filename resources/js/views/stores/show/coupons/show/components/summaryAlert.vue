@@ -6,7 +6,7 @@
 
         <div v-for="(couponProperty, index) in couponProperties" :key="index">
 
-            <div v-if="couponProperty.active" class="mb-2">
+            <div v-if="couponProperty.active" class="d-flex mb-2">
                 <Icon :type="couponProperty.isValid ? 'ios-checkmark-circle' : 'ios-close-circle'"
                       :class="[couponProperty.isValid ? 'text-success' : 'text-danger', 'mr-1']"
                       :size="16" />
@@ -66,6 +66,18 @@
 
                 var quantity_remaining = (usage_limit - usage_quantity) > 0 ? (usage_limit - usage_quantity) : 0;
 
+                var discount_on_times = this.couponForm.discount_on_times.map((time) => {
+                    return (time+':00');
+                }).join(', ');
+
+                var discount_on_days_of_the_week = this.couponForm.discount_on_days_of_the_week.join(', ');
+
+                var discount_on_days_of_the_month = this.couponForm.discount_on_days_of_the_month.map((day) => {
+                    return (day < 10) ? '0'+day : day;
+                }).join(', ');
+
+                var discount_on_months_of_the_year = this.couponForm.discount_on_months_of_the_year.join(', ');
+
                 return [
                     {
                         active: this.couponForm.apply_discount,
@@ -91,18 +103,18 @@
                     },
                     {
                         active: this.couponForm.allow_discount_on_minimum_total,
-                        desc: 'Allows dicount if the cart total is '+this.formatPrice(this.couponForm.discount_on_minimum_total, this.locationCurrencySymbol)+' or more',
+                        desc: 'Allows discount if the cart total is '+this.formatPrice(this.couponForm.discount_on_minimum_total, this.locationCurrencySymbol)+' or more',
                         isValid: true
                     },
                     {
                         active: this.couponForm.allow_discount_on_total_items,
-                        desc: 'Allows dicount if the cart has atleast '+this.couponForm.discount_on_total_items+
+                        desc: 'Allows discount if the cart has atleast '+this.couponForm.discount_on_total_items+
                               ((this.couponForm.discount_on_total_items == 1) ? ' item': ' items'),
                         isValid: true
                     },
                     {
                         active: this.couponForm.allow_discount_on_total_unique_items,
-                        desc: 'Allows dicount if the cart has atleast '+this.couponForm.discount_on_total_unique_items+
+                        desc: 'Allows discount if the cart has atleast '+this.couponForm.discount_on_total_unique_items+
                               ((this.couponForm.discount_on_total_unique_items == 1) ? ' unique item': ' unique items'),
                         isValid: true
                     },
@@ -122,6 +134,39 @@
                         active: this.couponForm.allow_discount_on_end_datetime,
                         desc: discount_on_end_datetime ? 'Valid till '+ discount_on_end_datetime : 'Provide the coupon ending date',
                         isValid: discount_on_end_datetime ? true : false
+                    },
+
+
+
+                    {
+                        active: this.couponForm.allow_discount_on_times,
+                        desc: discount_on_times ? 'Allows discount only on the following times of the day ('+discount_on_times+')' : 'Select times of the day to discount',
+                        isValid: discount_on_times ? true : false
+                    },
+                    {
+                        active: this.couponForm.allow_discount_on_days_of_the_week,
+                        desc: discount_on_days_of_the_week ? 'Allows discount only on the following days of the week ('+discount_on_days_of_the_week+')' : 'Select days of the week to discount',
+                        isValid: discount_on_days_of_the_week ? true : false
+                    },
+                    {
+                        active: this.couponForm.allow_discount_on_days_of_the_month,
+                        desc: discount_on_days_of_the_month ? 'Allows discount only on the following days of the month ('+discount_on_days_of_the_month+')' : 'Select days of the month to discount',
+                        isValid: discount_on_days_of_the_month ? true : false
+                    },
+                    {
+                        active: this.couponForm.allow_discount_on_months_of_the_year,
+                        desc: discount_on_months_of_the_year ? 'Allows discount only on the following months of the year ('+discount_on_months_of_the_year+')' : 'Select months of the year to discount',
+                        isValid: discount_on_months_of_the_year ? true : false
+                    },
+                    {
+                        active: this.couponForm.allow_discount_on_new_customer,
+                        desc: 'Allows discount only for new customers',
+                        isValid: true
+                    },
+                    {
+                        active: this.couponForm.allow_discount_on_existing_customer,
+                        desc: 'Allows discount only for existing customers',
+                        isValid: true
                     }
                 ]
             }

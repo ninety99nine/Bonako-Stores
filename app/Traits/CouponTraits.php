@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Coupon as CouponResource;
 use App\Http\Resources\Coupons as CouponsResource;
@@ -84,6 +85,9 @@ trait CouponTraits
             //  If created successfully
             if ( $this->coupon ) {
 
+                //  Generate the resource creation report
+                $this->coupon->generateResourceCreationReport();
+
                 //  Return the coupon
                 return $this->coupon;
 
@@ -95,6 +99,35 @@ trait CouponTraits
 
         }
 
+    }
+
+    /**
+     *  This method generates a coupon creation report
+     */
+    public function generateResourceCreationReport()
+    {
+        //  Get the store with locations holding this coupon
+        $store = \App\Store::with('locations')->whereHas('locations', function (Builder $query) {
+            $query->whereHas('coupons', function (Builder $query) {
+                $query->where('coupons.id', $this->id);
+            });
+        })->first();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource creation report
+            ( new \App\Report() )->generateResourceCreationReport($this, [
+                'name' => $this->name,
+                'activation_type' => $this->activation_type['type'],
+                'apply_discount' => $this->apply_discount['status'],
+                'discount_rate_type' => $this->discount_rate_type['type'],
+                'fixed_rate' => $this->fixed_rate['amount'],
+                'percentage_rate' => $this->percentage_rate,
+                'allow_free_delivery' => $this->allow_free_delivery['status'],
+            ], $store->id, $location->id);
+
+        }
     }
 
     /**

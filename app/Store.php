@@ -132,9 +132,13 @@ class Store extends Model
      */
     public function myActiveSubscription()
     {
-        $user_id = auth()->user()->id;
+        if( auth()->user() ){
 
-        return $this->subscription()->active()->asOwner($user_id);
+            $user_id = auth()->user()->id;
+
+            return $this->subscription()->active()->asOwner($user_id);
+
+        }
     }
 
     /*

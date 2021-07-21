@@ -128,6 +128,9 @@
                             <!-- Cart Coupons Poptip -->
                             <cartCoupons slot-scope="{ row, index }" slot="coupons" :cart="(row._embedded || {}).cart"></cartCoupons>
 
+                            <!-- Stock Poptip -->
+                            <stockPoptip slot-scope="{ row, index }" slot="stock" :instantCart="row"></stockPoptip>
+
                             <!-- Cart Total Poptip -->
                             <cartPricing slot-scope="{ row, index }" slot="total" :cart="(row._embedded || {}).cart"></cartPricing>
 
@@ -245,6 +248,7 @@
     import idPoptip from './../show/components/idPoptip.vue';
     import dialToPay from './../../../../payment/dialToPay.vue';
     import namePoptip from './../show/components/namePoptip.vue';
+    import stockPoptip from './../show/components/stockPoptip.vue';
     import cartItems from './../../carts/show/components/cartItems.vue';
     import cartCoupons from './../../carts/show/components/cartCoupons.vue';
     import cartPricing from './../../carts/show/components/cartPricing.vue';
@@ -260,7 +264,7 @@
     export default {
         mixins: [ miscMixin ],
         components: {
-            idPoptip, dialToPay, namePoptip, cartItems, cartCoupons, cartPricing, activeStatusBadge, Loader,
+            idPoptip, dialToPay, namePoptip, stockPoptip, cartItems, cartCoupons, cartPricing, activeStatusBadge, Loader,
             visitShortCodeExpiryTimePoptip, visitShortCodeDialingCodePoptip, deleteInstantCartModal,
             manageInstantCartDrawer, basicButton
         },
@@ -302,7 +306,7 @@
                     }
                 ],
                 tableColumnsToShowByDefault: [
-                    'Selector', 'ID', 'Name', 'Active', 'Items', 'Coupons', 'Total', 'Dialing Code', 'Expiry Date'
+                    'Selector', 'ID', 'Name', 'Stock', 'Active', 'Items', 'Coupons', 'Total', 'Dialing Code', 'Expiry Date'
                 ],
                 statuses: [
                     {
@@ -440,7 +444,8 @@
                         {
                             title: 'Items',
                             slot: 'items',
-                            align: 'center'
+                            align: 'center',
+                            width: 100
                         }
                     );
                 }
@@ -451,7 +456,19 @@
                         {
                             title: 'Coupons',
                             slot: 'coupons',
-                            align: 'center'
+                            align: 'center',
+                            width: 100
+                        }
+                    );
+                }
+
+                //  Stock
+                if(this.tableColumnsToShowByDefault.includes('Stock')){
+                    allowedColumns.push(
+                        {
+                            title: 'Stock',
+                            slot: 'stock',
+                            width: 150,
                         }
                     );
                 }
@@ -461,7 +478,8 @@
                     allowedColumns.push(
                         {
                             title: 'Total',
-                            slot: 'total'
+                            slot: 'total',
+                            width: 100
                         }
                     );
                 }
@@ -471,7 +489,8 @@
                     allowedColumns.push(
                         {
                             title: 'Shortcode',
-                            slot: 'shortcode'
+                            slot: 'shortcode',
+                            width: 110
                         }
                     );
                 }
