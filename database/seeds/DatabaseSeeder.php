@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
         DB::table('coupon_lines')->truncate();
         DB::table('delivery_lines')->truncate();
         DB::table('location_order')->truncate();
+        DB::table('customers')->truncate();
 
         DB::table('coupons')->truncate();
         DB::table('coupon_allocations')->truncate();

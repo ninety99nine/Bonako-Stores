@@ -173,6 +173,12 @@ class Home extends JsonResource
                     'title' => 'Get address types',
                 ],
 
+                //  Link to report statistics (Used to get performance statistics)
+                'bos:report_statistics' => [
+                    'href' => route('report-statistics'),
+                    'title' => 'Get report statistics',
+                ],
+
                 //  Link to product types resources (Used to get product types)
                 'bos:cart_calculate' => [
                     'href' => route('cart-calculate'),

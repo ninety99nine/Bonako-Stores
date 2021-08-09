@@ -90,7 +90,7 @@
                 return this.customer._attributes.name;
             },
             customerMobileNumber(){
-                return this.customer.mobile_number;
+                return (this.customer.mobile_number || {}).number_with_code;
             },
             paymentStatus(){
                 return (this.order._embedded.payment_status || {});

@@ -31,6 +31,8 @@ class ShortCode extends JsonResource
 
             /*  Attributes  */
             '_attributes' => [
+                'is_creator' => $this->is_creator,
+                'is_expired' => $this->is_expired,
                 'resource_type' => $this->resource_type
             ],
 

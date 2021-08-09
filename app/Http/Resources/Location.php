@@ -114,6 +114,12 @@ class Location extends JsonResource
                         'title' => 'The location products',
                     ],
 
+                    //  Link to the customers
+                    'bos:customers' => [
+                        'href' => route('location-customers', ['location_id' => $this->id]),
+                        'title' => 'The location customers',
+                    ],
+
                     //  Link to update product arrangement
                     'bos:product_arrangement' => [
                         'href' => route('location-product-arrangement', ['location_id' => $this->id]),
@@ -136,6 +142,12 @@ class Location extends JsonResource
                     'bos:toggle_favourite' => [
                         'href' => route('location-toggle-favourite', ['location_id' => $this->id]),
                         'title' => 'The POST route to Mark or unmark location as favourite',
+                    ],
+
+                    //  Link to the report statistics
+                    'bos:report_statistics' => [
+                        'href' => route('location-report-statistics', ['location_id' => $this->id]),
+                        'title' => 'The location statistics',
                     ],
 
 

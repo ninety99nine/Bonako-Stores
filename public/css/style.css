@@ -428,7 +428,9 @@ body {
     }
 }
 
-/*  iView UI Style Fixes / Overides */
+/*
+ *  iView UI Style Fixes / Overides
+ */
 
 /*  Avoid the form item error message using position:absolute, because the causes the
  *  error contents to be cut off if the error is too long. Increase the space between
@@ -479,6 +481,17 @@ body {
  */
 .poptip-w-100,
 .poptip-w-100 .ivu-poptip-rel{
+    width:100% !important;
+}
+
+/*
+ *  Highcharts Style Fixes / Overides
+ */
+.highcharts-container {
+    width:100% !important;
+    height:100% !important;
+}
+.highcharts-container svg {
     width:100% !important;
 }
 

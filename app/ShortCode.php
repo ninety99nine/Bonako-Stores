@@ -26,7 +26,7 @@ class ShortCode extends Model
      * @var array
      */
     protected $fillable = [
-        'code', 'action', 'expires_at', 'owner_id', 'owner_type'
+        'code', 'action', 'expires_at', 'user_id', 'owner_id', 'owner_type'
     ];
 
     /**
@@ -42,8 +42,35 @@ class ShortCode extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'dialing_code'
+        'resource_type', 'dialing_code', 'is_creator', 'is_expired'
     ];
+
+    /*
+     *  Returns if the current user created this shortcode
+     */
+    public function getIsCreatorAttribute()
+    {
+        $status = ($this->user_id == auth()->user()->id);
+
+        return [
+            'status' => $status,
+            'description' => $status ? 'This shortcode belongs to you' : 'This shortcode does not belong to you'
+        ];
+    }
+
+    /*
+     *  Returns if the shortcode has expired
+     */
+    public function getIsExpiredAttribute()
+    {
+        $status = \Carbon\Carbon::parse($this->expires_at)->isPast();
+
+        return [
+            'status' => $status,
+            'name' => $status ? 'Expired' : 'Not expired',
+            'description' => $status ? 'This shortcode is not expired yet' : 'This shortcode has expired'
+        ];
+    }
 
     /*
      *  Returns the resource type

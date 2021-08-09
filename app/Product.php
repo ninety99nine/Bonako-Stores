@@ -53,14 +53,40 @@ class Product extends Model
 
     ];
 
+    /**
+     *  Scope:
+     *  Returns products that are not not variations of another product
+     */
+    public function scopeIsVariation($query)
+    {
+        return $query->whereNotNull('parent_product_id');
+    }
 
     /**
      *  Scope:
-     *  Returns products that are not variables of another product
+     *  Returns products that are not variations of another product
      */
     public function scopeIsNotVariation($query)
     {
         return $query->whereNull('parent_product_id');
+    }
+
+    /**
+     *  Scope:
+     *  Returns products that have variations
+     */
+    public function scopeHasVariations($query)
+    {
+        return $query->where('allow_variants', '1');
+    }
+
+    /**
+     *  Scope:
+     *  Returns products that have variations
+     */
+    public function scopeHasNoVariations($query)
+    {
+        return $query->where('allow_variants', '0');
     }
 
     /**
@@ -85,7 +111,7 @@ class Product extends Model
      *  Scope:
      *  Returns products that are not active (Hidden products)
      */
-    public function scopeInVisible($query)
+    public function scopeHidden($query)
     {
         return $query->whereVisible('0');
     }
@@ -97,12 +123,14 @@ class Product extends Model
     public function scopeOnSale($query)
     {
         /**
-         *  A product is on sale if we have the sale price or
+         *  A product is on sale if its not free and we have the unit sale price,
+         *  the unit regular price
          *  the sale price is less than the regular price
          */
-        return $query->whereNotNull('unit_sale_price')
-                        ->orWhere('unit_sale_price', '!=', '0')
-                            ->orWhereRaw('unit_sale_price < unit_regular_price');
+        return $query->where('is_free', '0')
+                     ->where('unit_sale_price', '!=', '0')
+                     ->where('unit_regular_price', '!=', '0')
+                     ->whereRaw('unit_sale_price < unit_regular_price');
     }
 
     /*
@@ -115,9 +143,117 @@ class Product extends Model
          *  A product is not on sale if we don't have the sale price or
          *  the sale price is more than or equal to the regular price
          */
-        return $query->whereNull('unit_sale_price')
-                        ->orWhere('unit_sale_price', '0')
-                            ->orWhereRaw('unit_sale_price >= unit_regular_price');
+        return $query->where('is_free', '1')
+                     ->orWhere('unit_sale_price', '=', '0')
+                     ->orWhere('unit_regular_price', '=', '0')
+                     ->whereRaw('unit_sale_price > unit_regular_price');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that have no price
+     */
+    public function scopeNoPrice($query)
+    {
+        return $query->whereNull('unit_regular_price')
+                        ->orWhere('unit_regular_price', '0');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that have no cost
+     */
+    public function scopeNoCost($query)
+    {
+        return $query->whereNull('unit_cost')
+                        ->orWhere('unit_cost', '0');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that have a cost
+     */
+    public function scopeHasCost($query)
+    {
+        return $query->whereNotNull('unit_cost')->where('unit_cost', '>', '0');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that have limited stock
+     */
+    public function scopeLimitedStock($query)
+    {
+        return $query->where('allow_stock_management', '1')->where('stock_quantity', '>', '0');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that are out of stock
+     */
+    public function scopeOutOfStock($query)
+    {
+        return $query->where('allow_stock_management', '1')->where('stock_quantity', '0');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that have unlimited stock
+     */
+    public function scopeUnlimitedStock($query)
+    {
+        return $query->where('allow_stock_management', '0');
+    }
+
+    /*
+     *  Scope:
+     *  Returns products that have unlimited stock
+     */
+    public function scopeStockStatus($query, $statuses = [])
+    {
+        $scopeMethods = collect($statuses)->filter(function ($status) {
+
+            //  Only accept allowed stock filters
+            return collect(['limited stock', 'unlimited stock', 'out of stock'])->contains( strtolower($status) );
+
+        })->map(function ($status) {
+
+            //  Return appropriate scope method matching filter
+            if(strtolower($status) == 'limited stock'){
+                return 'limitedStock';
+            }elseif(strtolower($status) == 'unlimited stock'){
+                return 'unlimitedStock';
+            }elseif(strtolower($status) == 'out of stock'){
+                return 'outOfStock';
+            }
+
+        })->all();
+
+        //  If we qualified to filter by the stock status
+        if( count($scopeMethods) ){
+
+            foreach($scopeMethods as $key => $scopeMethod){
+
+                //  if this is the first scope method
+                if( $key == 0){
+
+                    //  Filter by the scope e.g limitedStock(), unlimitedStock() or outOfStock()
+                    $query->$scopeMethod();
+
+                }else{
+
+                    //  Filter other scope methods within the orWhere() method
+                    $query->orWhere(function($query) use ($scopeMethod) {
+                        $query->$scopeMethod();
+                    });
+
+                }
+
+            }
+
+        }
+
+        return $query;
     }
 
     /**
@@ -390,8 +526,12 @@ class Product extends Model
     public function getOnSaleAttribute()
     {
         //  If we have a regular price and the sale price and if the sale price is less than the regular price
-        $value = ( !$this->is_free['status'] && ($this->unit_sale_price['amount'] != 0) && ($this->unit_regular_price['amount'] != 0) &&
-                 ( $this->unit_sale_price['amount'] < $this->unit_regular_price['amount'] ));
+        $value = (
+                !$this->is_free['status'] &&
+                ($this->unit_sale_price['amount'] != 0) &&
+                ($this->unit_regular_price['amount'] != 0) &&
+                ( $this->unit_sale_price['amount'] < $this->unit_regular_price['amount'] )
+        );
 
         return [
             'status' => $value,

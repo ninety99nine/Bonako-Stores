@@ -110,7 +110,7 @@ class AuthController extends Controller
                  */
 
                 //  Get the user that owns the given mobile number
-                $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+                $user = \App\User::searchMobile($mobile_number)->first();
 
                 //  If the user was found
                 if ($user) {
@@ -168,13 +168,13 @@ class AuthController extends Controller
                     if( $verification_code ){
 
                         //  Get the first user that matches the given mobile number
-                        $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+                        $user = \App\User::searchMobile($mobile_number)->first();
 
                         //  If the verification codes match
                         if( $user->mobile_number_verification_code === $verification_code ){
 
                             //  Reset the mobile number verification code and set the new password
-                            DB::table('users')->where('mobile_number', $mobile_number)->update([
+                            \App\User::searchMobile($mobile_number)->update([
                                 'mobile_number_verification_code' => null,
                                 'password' => bcrypt($password)
                             ]);
@@ -184,7 +184,7 @@ class AuthController extends Controller
                     }
 
                     //  Get the first user that matches the given mobile number
-                    $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+                    $user = \App\User::searchMobile($mobile_number)->first();
 
                     //  Verify if the provided password matches the user's password
                     if( Hash::check($password, $user->password) ){
@@ -204,7 +204,7 @@ class AuthController extends Controller
                     }else{
 
                         //  Check if a user with the given mobile number exists
-                        if (DB::table('users')->where('mobile_number', $mobile_number)->exists()) {
+                        if ( \App\User::searchMobile($mobile_number)->exists() ) {
                             //  Since the mobile number exists, this means that the password is incorrent. Throw a validation error
                             throw ValidationException::withMessages(['password' => 'Your password is incorrect']);
                         } else {
@@ -269,7 +269,7 @@ class AuthController extends Controller
             }elseif( !empty( $mobile_number ) ){
 
                 //  Get the first user that matches the given mobile number
-                $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+                $user = \App\User::searchMobile($mobile_number)->first();
 
             }
 
@@ -318,7 +318,7 @@ class AuthController extends Controller
             $mobile_number = $request->input('mobile_number');
 
             //  Get the first user that matches the given mobile number
-            $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+            $user = \App\User::searchMobile($mobile_number)->first();
 
             //  If we have a user that matches the given mobile number
             if($user){
@@ -331,7 +331,7 @@ class AuthController extends Controller
                 $six_digit_random_number = mt_rand(100000, 999999);
 
                 //  Update the mobile number verification code that matches the given mobile number
-                DB::table('users')->where('mobile_number', $mobile_number)->update([
+                \App\User::searchMobile($mobile_number)->update([
                     'mobile_number_verification_code' => $six_digit_random_number
                 ]);
 
@@ -399,7 +399,7 @@ class AuthController extends Controller
             $mobile_number = $request->input('mobile_number');
 
             //  Get the first user that matches the given mobile number
-            $user = DB::table('users')->where('mobile_number', $mobile_number)->first();
+            $user = \App\User::searchMobile($mobile_number)->first();
 
             //  If we have a user that matches the given mobile number
             if($user){

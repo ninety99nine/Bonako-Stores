@@ -247,24 +247,29 @@
                     {
                         name: 'instant carts',
                         linkName: 'show-store-instant-carts',
-                        icon: 'ios-pricetags-outline',
+                        icon: 'ios-cart-outline',
                         total: 0
                     },
                     {
                         name: 'customers',
-                        linkName: '',
+                        linkName: 'show-store-customers',
                         icon: 'ios-person-outline'
                     },
                     {
                         name: 'reports',
-                        linkName: '',
+                        linkName: 'show-store-reports',
                         icon: 'ios-pie-outline'
                     },
                     {
                         name: 'settings',
                         linkName: 'show-store-location',
                         icon: 'ios-settings-outline'
-                    }
+                    },
+                    {
+                        name: 'feedback',
+                        linkName: 'show-store-location',
+                        icon: 'ios-settings-outline'
+                    },
                 ],
             }
         },
@@ -327,6 +332,10 @@
                     return 'coupons';
                 }else if( ['show-store-instant-carts'].includes(this.$route.name) ){
                     return 'instant carts';
+                }else if( ['show-store-customers', 'show-store-customer'].includes(this.$route.name) ){
+                    return 'customers';
+                }else if( ['show-store-reports'].includes(this.$route.name) ){
+                    return 'reports';
                 }
             },
         },
@@ -601,7 +610,8 @@
                 //  Set the orderUrl
                 var orderUrl = event.value;
 
-                //  Reset the search word
+                //  Reset the search
+                this.orders = [];
                 ++this.searchRenderKey;
 
                 //  Navigate to the order

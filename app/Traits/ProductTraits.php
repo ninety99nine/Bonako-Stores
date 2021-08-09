@@ -245,20 +245,18 @@ trait ProductTraits
 
             //  Set the totals
             $totals = [
-                'visibility' => [],
+                'statuses' => [],
                 'total' => $builder->count()
             ];
 
             //  Set the status filters to calculate the totals
             $filters = [
-                'visible', 'invisible'
+                'visible', 'hidden', 'limited stock', 'unlimited stock', 'out of stock'
             ];
 
             collect($filters)->map(function($filter) use (&$totals, $builder){
 
-                $data['visible'] = ($filter === 'visible') ? 1 : 0;
-
-                $totals['visibility'][$filter] = $this->filterResourcesByVisibility($data, clone $builder)->count();
+                $totals['statuses'][$filter] = $this->filterResourcesByStatus($filter, clone $builder)->count();
 
             })->toArray();
 
@@ -270,7 +268,7 @@ trait ProductTraits
              *  [
              *    "visibility" => [
              *       "visible" => 1,
-             *       "invisible" => 0
+             *       "hidden" => 0
              *      ]
 
              *  ]
@@ -296,11 +294,11 @@ trait ProductTraits
 
         }else{
 
-            //  Filter products by visibility
-            $products = $this->filterResourcesByVisibility($data, $products);
+            if ( isset($data['status']) && !empty($data['status']) ) {
 
-            //  Filter products by promotion (On sale)
-            $products = $this->filterResourcesByOnSale($data, $products);
+                $products = $this->filterResourcesByStatus($data, $products);
+
+            }
 
         }
 
@@ -322,54 +320,134 @@ trait ProductTraits
     }
 
     /**
-     *  This method filters the products by visibility
+     *  This method filters the products by status
      */
-    public function filterResourcesByVisibility($data = [], $products)
+    public function filterResourcesByStatus($data = [], $products)
     {
-        if( isset($data['visible']) && !is_null($data['visible']) ) {
+        //  Set the statuses to an empty array
+        $statuses = [];
 
-            //  Set the visible
-            $visible = $data['visible'];
+        //  Set the status filters e.g ["visible", "hidden", "limited stock", ...] or "visible,hidden,limited stock, ..."
+        $status_filters = $data['status'] ?? $data;
 
-            //  If the visible is set to "true" or "1"
-            if( in_array($visible, [true, 1, '1']) ){
+        //  If the filters are provided as String format e.g "visible,hidden,limited stock"
+        if( is_string($status_filters) ){
 
-                $products = $products->visible();
+            //  Set the statuses to the exploded Array ["visible", "hidden", "limited stock"]
+            $statuses = explode(',', $status_filters);
 
-            //  If the visible is set to "false" or "0"
-            }elseif( in_array($visible, [false, 0, '0']) ){
+        }elseif( is_array($status_filters) ){
 
-                $products = $products->inVisible();
-
-            }
+            //  Set the statuses to the given Array ["visible", "hidden", "limited stock"]
+            $statuses = $status_filters;
 
         }
 
-        //  Return the products
-        return $products;
-    }
+        //  Clean-up each status filter
+        foreach ($statuses as $key => $status) {
 
-    /**
-     *  This method filters the products by sale
-     */
-    public function filterResourcesByOnSale($data = [], $products)
-    {
-        if( isset($data['on_sale']) && !is_null($data['on_sale']) ) {
+            //  Convert " visible " to "visible"
+            $statuses[$key] = strtolower(trim($status));
+        }
 
-            //  Set the onsale
-            $on_sale = $data['on_sale'];
+        if ( $products && count($statuses) ) {
 
-            //  If the on_sale is set to "true" or "1"
-            if( in_array($on_sale, [true, 1, '1']) ){
+            /*****************************
+             *  VISIBILITY               *
+             ****************************/
+
+            //  If we want only visible products and not hidden products
+            if( in_array('visible', $statuses) && !in_array('hidden', $statuses) ){
+
+                $products = $products->visible();
+
+            //  If we want only hidden products and not visible products
+            }elseif( in_array('hidden', $statuses) && !in_array('visible', $statuses) ){
+
+                $products = $products->hidden();
+
+            }
+
+            /*****************************
+             *  PRICE                    *
+             ****************************/
+
+            //  If we want only products without a price
+            if( in_array('no price', $statuses) ){
+
+                $products = $products->noPrice();
+
+            }
+
+            /*****************************
+             *  COST                     *
+             ****************************/
+
+            //  If we want only products without a cost
+            if( in_array('no cost', $statuses) && !in_array('has cost', $statuses) ){
+
+                $products = $products->noCost();
+
+            //  If we want only products with a cost
+            }elseif( in_array('has cost', $statuses) && !in_array('no cost', $statuses) ){
+
+                $products = $products->hasCost();
+
+            }
+
+            /*****************************
+             *  SALE                     *
+             ****************************/
+
+            //  If we want only products on sale
+            if( in_array('on sale', $statuses) && !in_array('not on sale', $statuses) ){
 
                 $products = $products->onSale();
 
-            //  If the on_sale is set to "false" or "0"
-            }elseif( in_array($on_sale, [false, 0, '0']) ){
+            //  If we want only products not on sale
+            }elseif( in_array('not on sale', $statuses) && !in_array('on sale', $statuses) ){
 
                 $products = $products->notOnSale();
 
             }
+
+            /*****************************
+             *  VARIATIONS               *
+             ****************************/
+
+            //  If we want only products that have variations
+            if( in_array('has variations', $statuses) && !in_array('has no variations', $statuses) ){
+
+                $products = $products->hasVariations();
+
+            //  If we want only products that do not have variations
+            }elseif( in_array('has no variations', $statuses) && !in_array('has variations', $statuses) ){
+
+                $products = $products->hasNoVariations();
+
+            }
+
+            //  If we want only products that are variations
+            if( in_array('is variation', $statuses) && !in_array('is not variation', $statuses) ){
+
+                $products = $products->isVariation();
+
+            //  If we want only products that are not variations
+            }elseif( in_array('is not variation', $statuses) && !in_array('is variation', $statuses) ){
+
+                $products = $products->isNotVariation();
+
+            }
+
+            /*****************************
+             *  STOCK                    *
+             ****************************/
+            $products = $products->stockStatus($statuses);
+
+            //  Location -> products -> variations
+
+
+
 
         }
 

@@ -72,19 +72,6 @@ trait OrderTraits
                 //  Set the template
                 $template = $data;
 
-                //  If the current authenticated user is a Super Admin and the "customer_id" is provided
-                if( auth('api')->user()->isSuperAdmin() && isset($data['customer_id']) ){
-
-                    //  Set the "customer_id" provided as the user responsible for owning this resource
-                    $template['customer_id'] = $data['customer_id'];
-
-                }else{
-
-                    //  Set the current authenticated user as the user responsible for owning this resource
-                    $template['customer_id'] = auth('api')->user()->id;
-
-                }
-
                 /**
                  *  Create a new resource
                  */
@@ -93,12 +80,31 @@ trait OrderTraits
                 //  If created successfully
                 if ($this->order) {
 
-                    //  Set the order as the cart owner
-                    $cart->setResourceOwner($this->order);
-
                     //  Set the order number
                     $this->order->generateResourceNumber();
 
+                    //  Set the order as the cart owner
+                    $cart->setResourceOwner($this->order);
+
+                    //  Generate the resource cart converted report
+                    $cart->generateResourceConvertedReport();
+
+                    //  If the cart has an instant cart id
+                    if( $cart->instant_cart_id ){
+
+                        //  Update the remaining instant cart stock quantity
+                        $cart->updateRemainingInstantCartStockQuantity();
+
+                    }else{
+
+                        //  Update the remaining product stock quantity
+                        $cart->updateRemainingProductStockQuantity();
+
+                    }
+
+                    /****************************
+                     *  SET PAYMENT STATUS      *
+                     * *************************/
                     if( isset($data['is_paid']) && $data['is_paid'] === true ){
 
                         //  Update the order status as "Paid"
@@ -113,40 +119,80 @@ trait OrderTraits
                         $this->order->setPaymentStatusToUnpaid();
 
                     }
-
-                    //  Update the order status as "Undelivered"
-                    $this->order->setDeliveryStatusToUndelivered();
-
-                    //  Assign order to location
-                    $this->order->assignResourceToLocation($data);
-
-                    //  Create a new cart resource
-                    // $this->order->createResourceCart($data);
-
-                    //  Create a new delivery line resource
-                    $this->order->createResourceDeliveryLine($data);
-
-                    //  Refresh the instance to load the delivery line and active cart
-                    $this->order = $this->order->fresh();
-
-                    //  Update the remaining instant cart stock quantity
-                    $this->order->updateRemainingInstantCartStockQuantity();
-
-                    //  Send the new order merchant sms
-                    $this->order->sendNewOrderMerchantSms($user);
-
-                    //  Generate the resource cart conversion report
-                    $this->order->activeCart->generateResourceConversionReport();
-
-                    //  Generate the resource creation report
-                    $this->order->generateResourceCreationReport();
-
                 }
+
+                /****************************
+                 *  SET DELIVERY STATUS     *
+                 * *************************/
+
+                //  Update the order status as "Undelivered"
+                $this->order->setDeliveryStatusToUndelivered();
+
+                //  Assign order to location
+                $this->order->assignResourceToLocation($data);
+
+                //  Refresh the instance to load the delivery line and active cart
+                $this->order = $this->order->fresh();
+
+                $this->order->createOrUpdateResourceCustomer($cart, $user);
+
+                //  Create a new delivery line resource
+                $this->order->createResourceDeliveryLine($data);
+
+                //  Generate the resource creation report
+                $this->order->generateResourceCreationReport();
+
+                //  Send the new order merchant sms
+                $this->order->sendNewOrderMerchantSms($user);
 
                 //  Return a fresh instance
                 return $this->order->fresh();
 
             }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method creates or updates the location customer
+     */
+    public function createOrUpdateResourceCustomer($cart, $user = null)
+    {
+        try{
+
+            $received_location = $this->receivedLocations()->first();
+
+            $data = [
+                'user_id' => $user->id,
+                'location_id' => $received_location->id,
+                'total_coupons_used_on_checkout' => count($cart->couponLines),
+                'total_instant_carts_used_on_checkout' => isset($cart->instant_cart_id) ? 1 : 0,
+                //  'total_adverts_used_on_checkout' => isset($cart->advert_id) ? 1 : 0,
+                //  'total_orders_placed_by_customer' => $this->origin == 'customer' ? 1 : 0,
+                //  'total_orders_placed_by_store' => $this->origin == 'store' ? 1 : 0,
+                'checkout_grand_total' => $cart->grand_total['amount'],
+                'checkout_sub_total' => $cart->sub_total['amount'],
+                'checkout_coupons_total' => $cart->coupon_total['amount'],
+                'checkout_sale_discount_total' => $cart->sale_discount_total['amount'],
+                'checkout_coupons_and_sale_discount_total' => $cart->coupon_and_sale_discount_total['amount'],
+                'checkout_delivery_fee' => $cart->delivery_fee['amount'],
+                'total_free_delivery_on_checkout' => $cart->allow_free_delivery['status'] ? 1 : 0,
+                'checkout_total_items' => $cart->total_items,
+                'checkout_total_unique_items' => $cart->total_unique_items
+            ];
+
+            //  Create / Update the location customer
+            $customer = ( new \App\Customer() )->createResource($data, $user);
+
+            //  Assign the customer to this order
+            $this->update([
+                'customer_id' => $customer->id,
+            ]);
 
         } catch (\Exception $e) {
 
@@ -172,102 +218,25 @@ trait OrderTraits
         foreach( $store->locations as $location ){
 
             //  Generate the resource creation report
-            ( new \App\Report() )->generateResourceCreationReport($this, [
-                'status_id' => $this->status_id,
-                'payment_status_id' => $this->payment_status_id,
-                'delivery_status_id' => $this->delivery_status_id,
-                'delivery_verified' => $this->delivery_verified
-            ], $store->id, $location->id);
+            ( new \App\Report() )->generateResourceCreationReport($this, $this->resourceReportMetadata(), $store->id, $location->id);
 
         }
     }
 
     /**
-     *  This method updates the remaining instant cart stock quantity
-     *  in relation to the cart item line quantities
+     *  This method generates a cart creation report
      */
-    public function updateRemainingInstantCartStockQuantity()
+    public function resourceReportMetadata($additionalMetadata = [])
     {
-        /**
-         *  Retrieve the instant cart linked to the order cart. Note that
-         *  some orders do not have a linked instant cart.
-         */
-        $instant_cart = $this->activeCart->instantCart;
+        $defaultMetadata = [
+            'status_id' => $this->status_id,
+            'payment_status_id' => $this->payment_status_id,
+            'delivery_status_id' => $this->delivery_status_id,
+            'delivery_verified' => $this->delivery_verified,
+            'cart' => $this->activeCart->resourceReportMetadata()
+        ];
 
-        //  If this order has a linked instant cart
-        if( $instant_cart ){
-
-            //  If we allow stock management
-            if( $instant_cart['allow_stock_management']['status'] ){
-
-                //  Extract the stock quantity value
-                $stock_quantity = $instant_cart['stock_quantity']['value'];
-
-                //  Reduce the stock quantity by 1
-                $stock_quantity = ($stock_quantity - 1) >= 0 ? ($stock_quantity - 1) : 0;
-
-                //  Update the remaining stock quantity
-                $instant_cart->update([
-                    'stock_quantity' => $stock_quantity
-                ]);
-
-            }
-
-        }
-
-
-
-        //  Set the item lines
-        $item_lines = $this->itemLines;
-
-        //  Set the products
-        $products = collect($item_lines)->map(function($item_line){
-
-            //  Extract the item line product
-            $product = $item_line->product;
-
-            //  If we have a product
-            if( !empty($product) ){
-
-                //  Set the quantity on the product
-                $product['quantity'] = $item_line['quantity'];
-
-            }
-
-            return $product;
-
-        });
-
-        //  Filter the products
-        $products = collect($products)->filter(function($product){
-
-            //  If we have a product
-            if( !empty($product) ){
-
-                //  Only return products that support automatic stock management
-                return ($product->allow_stock_management && $product->auto_manage_stock);
-
-            }
-
-            return false;
-
-        });
-
-        //  Update the remaining stock quantity of each product
-        foreach ($products as $product) {
-
-            $id = $product['id'];
-            $quantity = $product['quantity'];
-            $stock_quantity = $product['stock_quantity']['value'];
-            $remaining_stock_quantity = ($stock_quantity - $quantity) > 0 ? ($stock_quantity - $quantity) : 0;
-
-            //  Update the product stock quantity
-            DB::table('products')->where('id', $id)->update(['stock_quantity' => $remaining_stock_quantity]);
-
-        }
-
-        //  Return the cart instance
-        return $this;
+        return array_merge($defaultMetadata, $additionalMetadata);
     }
 
     /**
@@ -393,6 +362,13 @@ trait OrderTraits
      */
     public function filterResources($data = [], $orders)
     {
+        //  Filter by customer id before we can filter by search and status
+        if ( isset($data['customer_id']) && !empty($data['customer_id']) ) {
+
+            $orders = $this->filterResourcesByCustomerId($data, $orders);
+
+        }
+
         //  If we need to search for specific orders
         if ( isset($data['search']) && !empty($data['search']) ) {
 
@@ -424,6 +400,19 @@ trait OrderTraits
 
         //  Return searched orders otherwise original orders
         return empty($search_term) ? $orders : $orders->search($search_term);
+
+    }
+
+    /**
+     *  This method filters the orders by customer id
+     */
+    public function filterResourcesByCustomerId($data = [], $orders)
+    {
+        //  Set the customer id
+        $customer_id = $data['customer_id'] ?? null;
+
+        //  Return orders that match the customer id
+        return $orders->where('customer_id', $customer_id);
 
     }
 
@@ -752,86 +741,6 @@ trait OrderTraits
             //  Set the unique order number
             $this->update(['number' => $order_number]);
 
-            //  Update the resource
-            $this->order = $this->fresh();
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method creates a new order cart
-     */
-    public function createResourceCart($data = [])
-    {
-        try {
-
-            //  Set the cart owning model
-            $model = $this;
-
-            //  If we have an instant cart id
-            if( isset($data['instant_cart_id']) && !empty($data['instant_cart_id']) ){
-
-                //  Set the instant_cart_id
-                $instant_cart_id = $data['instant_cart_id'];
-
-                //  Get the matching instant cart
-                $instant_cart = \App\InstantCart::find($instant_cart_id);
-
-                //  If we have a matching instant cart
-                if( $instant_cart ){
-
-                    //  Get the related cart
-                    $cart = $instant_cart->cart;
-
-                    /**
-                     *  Clone the existing cart resource
-                     */
-                    $cart = $cart->cloneResource($model);
-
-                }
-
-            }else{
-
-                /**
-                 *  Create new a cart resource
-                 */
-                $cart = ( new \App\Cart() )->createResource($data, $model);
-
-            }
-
-            //  If we have a cart
-            if( $cart ){
-
-                //  Update the remaining product stock quantity
-                $cart->updateRemainingProductStockQuantity();
-
-                //  If we have two or more carts assigned to this order
-                if( $this->carts()->count() >= 2 ){
-
-                    //  Set order carts to be inactive
-                    $this->carts()->update(['active' => false]);
-
-                    /**
-                     *  Set new cart to be active.
-                     *
-                     *  Note: We need to use the fresh() method to get the latest updated
-                     *  version of this instance, then attempt to run the update() on
-                     *  that instance. If we don't do this then it won't update. The
-                     *  "active" attribute will remain as "0"
-                     */
-                    $cart->fresh()->update(['active' => true]);
-
-                }
-
-                //  Return the cart resource
-                return $cart;
-
-            }
-
         } catch (\Exception $e) {
 
             throw($e);
@@ -945,7 +854,7 @@ trait OrderTraits
             $this->update(['delivery_confirmation_code' => $code]);
 
             //  Set the delivery reference name
-            $name = $this->deliveryLine->name ?? $this->customer->first_name;
+            $name = $this->deliveryLine->name ?? $this->customer->user->first_name;
 
             //  Craft the sms message
             $message =  trim('Hi '.$name).', your delivery confirmation code '.
@@ -963,7 +872,7 @@ trait OrderTraits
                 'message' => $message,
 
                 //  Set the mobile_number on the data
-                'mobile_number' => $user->mobile_number
+                'mobile_number' => $user->mobile_number['number_with_code']
 
             ];
 
@@ -1000,13 +909,13 @@ trait OrderTraits
                 $merchant_name = $store->owner->first_name;
 
                 //  Set the store owner mobile number as the merchant mobile number
-                $merchant_mobile_number = $store->owner->mobile_number;
+                $merchant_mobile_number = $store->owner->mobile_number['number_with_code'];
 
                 //  Set the customer name otherwise to the billing name
-                $customer_name = $this->customer->first_name;
+                $customer_name = $this->customer->user->first_name;
 
                 //  Set the customer mobile number otherwise to the billing mobile number
-                $customer_mobile_number = $this->customer->mobile_number;
+                $customer_mobile_number = $this->customer->user->mobile_number['number'];
 
                 //  Set the main short code
                 $main_short_code = '*'.env('MAIN_SHORT_CODE').'#';
@@ -1069,7 +978,7 @@ trait OrderTraits
             if( $store && $payment_short_code ){
 
                 //  Craft the sms message
-                $message = $store->name.': Hi '.$this->customer->first_name.', dial '.
+                $message = $store->name.': Hi '.$this->customer->user->first_name.', dial '.
                            $payment_short_code->dialing_code.' to pay for order #'.$this->number.
                            '. Expires after 24hrs.';
 
@@ -1084,7 +993,7 @@ trait OrderTraits
                     'message' => $message,
 
                     //  Set the mobile_number on the data
-                    'mobile_number' => $this->customer->mobile_number
+                    'mobile_number' => $this->customer->user->mobile_number['number_with_code']
 
                 ];
 
@@ -1144,7 +1053,7 @@ trait OrderTraits
                     'message' => $message,
 
                     //  Set the mobile_number on the data
-                    'mobile_number' => $this->customer->mobile_number
+                    'mobile_number' => $this->customer->user->mobile_number['number_with_code']
 
                 ];
 

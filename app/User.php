@@ -2,13 +2,14 @@
 
 namespace App;
 
+use DB;
 use App\Traits\UserTraits;
 use App\Traits\CommonTraits;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use \Staudenmeir\EloquentHasManyDeep\HasRelationships;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Builder;
+use \Staudenmeir\EloquentHasManyDeep\HasRelationships;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable
 {
@@ -47,10 +48,30 @@ class User extends Authenticatable
      */
     public function scopeSearch($query, $searchTerm)
     {
-        return $query->where('mobile_number', 'like', '%'.$searchTerm.'%')
-                     ->orWhere('first_name', 'like', '%'.$searchTerm.'%')
-                     ->orWhere('last_name', 'like', '%'.$searchTerm.'%')
-                     ->orWhere('email', 'like', '%'.$searchTerm.'%');
+        //  Remove spaces from the search term
+        $searchTerm = str_replace(' ', '', $searchTerm);
+
+        return $query->where('mobile_number', 'like', "%".$searchTerm."%")
+                     ->orWhere('mobile_number', 'like', "%267".$searchTerm."%")
+                     ->orWhere(DB::raw("CONCAT(`first_name`, `last_name`)"), 'LIKE', "%".$searchTerm."%");
+    }
+
+    /*
+     *  Scope:
+     *  Returns users that are being searched
+     */
+    public function scopeSearchMobile($query, $searchTerm)
+    {
+        return $query->where('mobile_number', $searchTerm)->orWhere('mobile_number', "267".$searchTerm);
+    }
+
+    /**
+     *  Scope:
+     *  Returns users that have orders
+     */
+    public function scopeHasOrders($query)
+    {
+        return $query->whereHas('orders');
     }
 
     /****************************
@@ -159,6 +180,14 @@ class User extends Authenticatable
         return $this->morphMany(Address::class, 'owner')->latest();
     }
 
+    /**
+     *  Returns the customers orders
+     */
+    public function orders()
+    {
+        return $this->hasMany('App\Order', 'customer_id');
+    }
+
     /** ATTRIBUTES
      *
      *  Note that the "resource_type" is defined within CommonTraits.
@@ -170,6 +199,16 @@ class User extends Authenticatable
     public function getNameAttribute($value)
     {
         return trim($this->first_name.' '.$this->last_name);
+    }
+
+    public function getMobileNumberAttribute($value)
+    {
+        return [
+            'number' => substr($value, 3),
+            'code' => substr($value, 0, 3),
+            'number_with_code' => $value,
+            'calling_number' => '+'.$value
+        ];
     }
 
     public function setDeliveryTypeAttribute($value)

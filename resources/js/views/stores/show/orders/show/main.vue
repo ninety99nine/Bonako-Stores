@@ -2,7 +2,7 @@
 
     <Row class="mt-4">
 
-        <Col :span="22" :offset="1">
+        <Col :span="addPadding ? 22 : 24" :offset="addPadding ? 1 : 0">
 
             <Row :gutter="12">
 
@@ -18,10 +18,10 @@
 
                             <div class="d-flex" :style="{ alignItems: 'flex-end' }">
 
-                                <!-- Back Button -->
+                                <!-- Back To Orders Button -->
                                 <Button type="default" size="default" class="mr-4" @click.native="closeOrder()">
                                     <Icon type="md-arrow-back" class="mr-1" :size="20" />
-                                    <span>Back</span>
+                                    <span>Orders</span>
                                 </Button>
 
                                 <span :style="{ fontSize: 'x-large', lineHeight: 'initial' }" :class="['font-weight-bold', 'mr-4']">
@@ -37,8 +37,8 @@
                         <Col :span="6">
 
                             <div :class="['d-flex', 'mt-1']" :style="{ alignItems: 'flex-end' }">
-                                <orderStatusBadge :status="status"></orderStatusBadge>
-                                <orderStatusBadge :status="paymentStatus"></orderStatusBadge>
+                                <orderStatusBadge :status="status" class="mr-2"></orderStatusBadge>
+                                <orderStatusBadge :status="paymentStatus" class="mr-2"></orderStatusBadge>
                                 <orderStatusBadge :status="deliveryStatus"></orderStatusBadge>
                             </div>
 
@@ -103,7 +103,7 @@
                                     <Poptip trigger="hover" word-wrap width="300">
 
                                         <div slot="content" class="py-2" :style="{ lineHeight: 'normal' }">
-                                            <p>Inform your customer to Dial <span class="text-primary">{{ paymentShortCode.dialing_code }}</span> to pay for their order using their mobile number <span class="text-primary">{{ customer.mobile_number }}</span></p>
+                                            <p>Inform your customer to Dial <span class="text-primary">{{ paymentShortCode.dialing_code }}</span> to pay for their order using their mobile number <span class="text-primary">{{ customerMobileNumber }}</span></p>
                                         </div>
 
                                         <!-- Show the info icon -->
@@ -411,7 +411,7 @@
                     <Col :span="8" class="clearfix">
 
                         <!-- Customer -->
-                        <Card v-if="customer" class="cursor-pointer mb-2">
+                        <Card v-if="customer" class="mb-2">
 
                             <span :class="['font-weight-bold', 'd-block', 'mb-3']"
                                     :style="{ fontSize: 'large', lineHeight: 'initial' }">
@@ -420,17 +420,17 @@
 
                             <div :class="['align-items-center', 'd-flex']">
                                 <Avatar icon="ios-person" :style="{ background: '#19be6b' }" class="mr-2" />
-                                <p class="mr-2">{{ customerName }}</p>
-                                <p>
+                                <a href="#" @click.prevent="viewCustomer()" class="mr-2">{{ customerName }}</a>
+                                <a href="#" @click.prevent="viewCustomer()">
                                     <Icon type="ios-call-outline" class="mr-1" :size="20" />
-                                    <span>{{ customer.mobile_number }}</span>
-                                </p>
+                                    <span>{{ customerMobileNumber }}</span>
+                                </a>
                             </div>
 
                             <div class="clearfix">
 
                                 <!-- View Button -->
-                                <Button type="default" size="default" :class="['float-right']" @click.native="closeOrder()">
+                                <Button type="default" size="default" :class="['float-right']" @click.native="viewCustomer()">
                                     <Icon type="md-eye" class="mr-1" :size="20" />
                                     <span>View</span>
                                 </Button>
@@ -614,6 +614,10 @@
                 default: function(){
                     return [];
                 }
+            },
+            addPadding: {
+                type: Boolean,
+                default: true
             }
         },
         components: {
@@ -621,6 +625,7 @@
         },
         data () {
             return {
+                orderUrl: null,
                 isLoadingOrder: false,
                 localOrder: this.order,
                 itemLineColumns: [
@@ -700,6 +705,9 @@
             //  If the route changes
             $route (newVal, oldVal) {
 
+                //  Set the order url
+                this.orderUrl = decodeURIComponent(newVal.params.order_url);
+
                 //  Prepare the order
                 this.prepareOrder();
 
@@ -775,25 +783,19 @@
                 return (this.localOrder._embedded.transaction || {});
             },
             customer(){
-                return (this.localOrder._embedded.customer || {});
+                return (this.order._embedded.customer || {});
             },
             customerName(){
-                return this.customer._attributes.name;
+                return ((((this.customer._embedded || {}).user || {})._attributes || {}).name || '...');
+            },
+            customerMobileNumber(){
+                return (((this.customer._embedded || {}).user || {}).mobile_number || [])['number'];
             },
             deliveryLine(){
                 return (this.localOrder._embedded.delivery_line || {});
             },
             deliveryType(){
                 return this.deliveryLine.delivery_type;
-            },
-            orderUrl(){
-                if(this.localOrder){
-                    //  If we have the order url via order resource
-                    return this.localOrder['_links']['self']['href'];
-                }else{
-                    //  If we have the order url via route
-                    return decodeURIComponent(this.$route.params.order_url);
-                }
             },
             receivedLocationUrl(){
                 return this.localOrder ? this.localOrder['_links']['bos:received-location'].href : null;
@@ -825,6 +827,25 @@
             }
         },
         methods: {
+            viewCustomer(){
+                let params = Object.assign({}, this.$route.params, { customer_url: encodeURIComponent(this.customer._links.self.href) });
+
+                this.$router.push({ name: 'show-store-customer', params: params }).catch(()=>{
+
+                    //  Handle redundant navigation by refreshing the page
+                    this.$router.go();
+
+                });
+            },
+            getOrderUrl(){
+                if(this.localOrder){
+                    //  If we have the order url via order resource
+                    return this.localOrder['_links']['self']['href'];
+                }else{
+                    //  If we have the order url via route
+                    return decodeURIComponent(this.$route.params.order_url);
+                }
+            },
             closeOrder(){
 
                 //  If we have the orders
@@ -1056,6 +1077,9 @@
             }
         },
         created(){
+
+            //  Set the order url
+            this.orderUrl = this.getOrderUrl();
 
             //  Prepare the order
             this.prepareOrder();

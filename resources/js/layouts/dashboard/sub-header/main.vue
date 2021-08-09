@@ -40,6 +40,10 @@
                     {
                         name: 'advertiser',
                         linkName: 'show-adverts'
+                    },
+                    {
+                        name: 'reports',
+                        linkName: 'show-reports'
                     }
                 ]
             }
@@ -53,6 +57,8 @@
                     return 'popular stores';
                 }else if( ['show-adverts'].includes(this.$route.name) ){
                     return 'advertiser';
+                }else if( ['show-reports'].includes(this.$route.name) ){
+                    return 'reports';
                 }
             },
         },

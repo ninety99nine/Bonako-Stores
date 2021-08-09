@@ -7,8 +7,9 @@
 
             <!-- Single Order -->
             <singleOrder :store="store" :location="location" :assignedLocations="assignedLocations"
-                         :orders="orders" :order="order" @close="handleCloseOrder()"
-                         @verified="handleVerifiedOrder">
+                         :orders="orders" :order="order" :addPadding="addPadding"
+                         @verified="handleVerifiedOrder"
+                         @close="handleCloseOrder()">
             </singleOrder>
 
         </template>
@@ -16,13 +17,13 @@
         <!-- If viewing a list of orders -->
         <Row v-else class="mt-4">
 
-            <Col :span="22" :offset="1">
+            <Col :span="addPadding ? 22 : 24" :offset="addPadding ? 1 : 0">
 
                 <!-- If viewing orders -->
                 <template>
 
                     <!-- Heading & Watch Video Button -->
-                    <Row :gutter="12" :class="['border-bottom-dashed', 'mb-4', 'mt-3', 'pb-4']">
+                    <Row v-if="showHeader" :gutter="12" :class="['border-bottom-dashed', 'mb-4', 'mt-3', 'pb-4']">
 
                         <Col :span="12">
 
@@ -123,6 +124,22 @@
                         <!-- Cart Total Poptip -->
                         <cartPricing slot-scope="{ row, index }" slot="total" :cart="(row._embedded || {}).active_cart"></cartPricing>
 
+                        <!-- Created Date Poptip -->
+                        <template slot-scope="{ row, index }" slot="date">
+
+                            <Poptip trigger="hover" placement="top" width="300">
+
+                                <span slot="content" :class="['text-center', 'd-block']">
+                                    <span>Created Date</span>
+                                    <span :class="['text-success', 'd-block']" :style="{ fontSize: '20px' }">{{ formatDateTime(row.created_at.date, true) }}</span>
+                                </span>
+
+                                <span>{{ formatDateTime(row.created_at.date) }}</span>
+
+                            </Poptip>
+
+                        </template>
+
                         <template slot-scope="{ row, index }" slot="action">
 
                             <div>
@@ -188,12 +205,24 @@
                 type: Object,
                 default: null
             },
+            customer: {
+                type: Object,
+                default: null
+            },
             assignedLocations: {
                 type: Array,
                 default: function(){
                     return [];
                 }
             },
+            showHeader: {
+                type: Boolean,
+                default: true
+            },
+            addPadding: {
+                type: Boolean,
+                default: true
+            }
         },
         components: {
             singleOrder, orderNumber, orderCustomer, cartItems, cartCoupons, cartPricing, orderStatusBadge,
@@ -259,7 +288,12 @@
         },
         computed: {
             locationOrdersUrl(){
-                return (this.location || {})['_links']['bos:orders'].href;
+                //  If we have a customer
+                if( this.customer ){
+                    return (this.customer || {})['_links']['bos:orders'].href;
+                }else{
+                    return (this.location || {})['_links']['bos:orders'].href;
+                }
             },
             dynamicColumns(status){
 
@@ -353,26 +387,8 @@
                     allowedColumns.push(
                     {
                         title: 'Date',
-                        sortable: true,
-                        render: (h, params) => {
-                            return h('Poptip', {
-                                style: {
-                                    width: '100%',
-                                    textAlign:'left'
-                                },
-                                props: {
-                                    width: 280,
-                                    wordWrap: true,
-                                    trigger:'hover',
-                                    placement: 'top',
-                                    content: 'Date: '+ this.formatDateTime(params.row.created_at.date, true)
-                                }
-                            }, [
-                                h('span', {
-                                    class: ['cut-text', (this.checkIfCancelledOrder(params.row) ? 'text-danger text-cancelled' : '')]
-                                }, this.formatDateTime(params.row.created_at.date))
-                            ])
-                        }
+                        slot: 'date',
+                        width: 120,
                     })
                 }
 
@@ -405,10 +421,16 @@
                 this.order = order;
                 this.index = index;
                 this.isViewingOrder = true;
+
+                //  Notify parent
+                this.$emit('viewingOrder', true);
             },
             handleCloseOrder(){
                 this.isViewingOrder = false;
                 this.fetchOrders();
+
+                //  Notify parent
+                this.$emit('viewingOrder', false);
             },
             handleDeliverOrder(order, index){
                 this.order = order;

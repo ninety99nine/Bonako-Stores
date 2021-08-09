@@ -170,6 +170,20 @@ class LocationController extends Controller
         }
     }
 
+    public function getLocationCustomers(Request $request, $location_id)
+    {
+        try {
+
+            //  Return a list of location customers
+            return (new Location())->getResource($location_id)->getResourceCustomers($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function getLocationInstantCarts(Request $request, $location_id)
     {
         try {
@@ -218,6 +232,20 @@ class LocationController extends Controller
 
             //  Arrange location products
             return (new Location())->getResource($location_id)->arrangeResourceProducts($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocationReportStatistics(Request $request, $location_id)
+    {
+        try {
+
+            //  Return Location report statistics
+            return (new Location())->getResource($location_id)->getResourceStatistics($request);
 
         } catch (\Exception $e) {
 

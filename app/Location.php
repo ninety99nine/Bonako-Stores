@@ -170,7 +170,7 @@ class Location extends Model
     }
 
     /**
-     *  Returns coupons for this store.
+     *  Returns coupons for this location
      */
     public function coupons()
     {
@@ -178,11 +178,26 @@ class Location extends Model
     }
 
     /**
+     *  Returns customers for this location
+     */
+    public function customers()
+    {
+        return $this->hasMany('App\Customer')->latest();
+    }
+    /**
      *  Get the location ratings.
      */
     public function ratings()
     {
         return $this->hasMany('App\LocationRating');
+    }
+
+    /**
+     *  Get the location reports.
+     */
+    public function reports()
+    {
+        return $this->hasMany('App\Report');
     }
 
     /** ATTRIBUTES

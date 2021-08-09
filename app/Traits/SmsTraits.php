@@ -110,7 +110,12 @@ trait SmsTraits
             //  Get mobile number
             $mobile_number = $this->mobile_number ?? $this->mobile_number;
 
-            //  Send an SMS to the user
+            /***
+             *  Send an SMS to the user
+             *
+             *  Twilio requires that the number must have the "+" prefix
+             *  before the number e.g +26771234567
+             */
             //$response = Twilio::message('+'.$mobile_number, $message);
 
             //  Update the SMS record status

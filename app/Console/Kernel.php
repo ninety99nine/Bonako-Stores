@@ -37,12 +37,14 @@ class Kernel extends ConsoleKernel
                 Log::info('Check for abandoned carts');
 
                 //  Get the date and time an hour ago
-                $abandoned_an_hour_ago = Carbon::now()->subHours(1)->format('Y-m-d H:i:s');
+                $abandoned_an_hour_ago = Carbon::now()->subHours(24)->format('Y-m-d H:i:s');
 
-                //  Get user carts that were abandoned an hour or more ago (Oldest first)
+                //  Get user carts that were abandoned 24 hours or more ago (Oldest first)
                 $abandoned_carts = \App\Cart::where('owner_type', 'user')
                                             ->where('abandoned_status', '0')
                                             ->where('updated_at', '<', $abandoned_an_hour_ago)->oldest();
+
+                Log::info('Found: ' . $abandoned_carts->count());
 
 
                 //  Get user carts that were abandoned an hour or more ago (Oldest first)

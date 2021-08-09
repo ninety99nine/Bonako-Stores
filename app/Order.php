@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use App\Traits\OrderTraits;
 use App\Traits\CommonTraits;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Order extends Model
 {
@@ -72,7 +73,10 @@ class Order extends Model
      */
     public function scopeSearch($query, $searchTerm)
     {
-        return $query->where('number', $searchTerm);
+        return $query->where('number', $searchTerm)
+                     ->orWhereHas('customer', function (Builder $query) use ($searchTerm) {
+                        $query->search($searchTerm);
+                    });;
     }
 
     /*
@@ -122,22 +126,20 @@ class Order extends Model
 
     /*
      *  Scope:
-     *  Returns orders that are placed by the current user
+     *  Returns orders that are placed by the given customer id
      */
-    public function scopeUserIsCustomer($query, $user = null)
+    public function scopeUserIsCustomer($query, $customer_id = null)
     {
-        $user = $user ?? auth()->user();
-
-        return $query->where('customer_id', $user->id);
+        return $query->where('customer_id', $customer_id);
     }
 
     /*
      *  Scope:
      *  Returns orders that require a rating
      */
-    public function scopeRequireRating($query, $user = null)
+    public function scopeRequireRating($query, $customer_id = null)
     {
-        return $query->userIsCustomer($user)->where('request_customer_rating_at', '<=', \Carbon\Carbon::now());
+        return $query->userIsCustomer($customer_id)->where('request_customer_rating_at', '<=', \Carbon\Carbon::now());
     }
 
     /**
@@ -211,7 +213,7 @@ class Order extends Model
      */
     public function customer()
     {
-        return $this->belongsTo('App\User', 'customer_id');
+        return $this->belongsTo('App\Customer', 'customer_id');
     }
 
     /**
@@ -273,7 +275,10 @@ class Order extends Model
     {
         try {
 
-            return $this->paymentStatus->name === 'Paid' ? true : false;
+            if( $this->paymentStatus ){
+                return $this->paymentStatus->name === 'Paid' ? true : false;
+            }
+            return false;
 
         } catch (\Exception $e) {
 
@@ -289,7 +294,10 @@ class Order extends Model
     {
         try {
 
-            return $this->deliveryStatus->name === 'Delivered' ? true : false;
+            if( $this->deliveryStatus ){
+                return $this->deliveryStatus->name === 'Delivered' ? true : false;
+            }
+            return false;
 
         } catch (\Exception $e) {
 

@@ -68,6 +68,9 @@ trait CartTraits
             //  Verify permissions
             $this->createResourcePermission($user);
 
+            //  Check if we used an instant cart
+            $used_existing_cart = isset($data['instant_cart_id']) && !empty(isset($data['instant_cart_id']));
+
             //  If we have an owning model
             if( $model ){
 
@@ -80,14 +83,22 @@ trait CartTraits
                     if( isset($data['items']) && !empty($data['items']) ){
 
                         //  Update and return the existing cart
-                        return $this->cart->updateResource($data, $user);
+                        $this->cart = $this->cart->updateResource($data, $user);
 
                     }else{
 
                         //  Reset and return the existing cart
-                        return $this->cart->resetResource($user);
+                        $this->cart = $this->cart->resetResource($user);
 
                     }
+
+                    //  Generate the resource location product existence report
+                    $this->cart->generateLocationProductExistenceReport();
+
+                    //  Generate the resource location coupon existence report
+                    $this->cart->generateLocationCouponExistenceReport();
+
+                    return $this->cart;
 
                 }
 
@@ -121,8 +132,14 @@ trait CartTraits
                 //  Create the cart counpon line resources
                 $this->cart->createResourceCouponLines($cart_basket);
 
+                //  Generate the resource location product existence report
+                $this->cart->generateLocationProductExistenceReport();
+
+                //  Generate the resource location coupon existence report
+                $this->cart->generateLocationCouponExistenceReport();
+
                 //  Generate the resource creation report
-                $this->cart->generateResourceCreationReport();
+                $this->cart->generateResourceCreationReport($used_existing_cart);
 
                 //  Return a fresh instance
                 return $this->cart->fresh();
@@ -139,73 +156,138 @@ trait CartTraits
     /**
      *  This method generates a cart creation report
      */
-    public function generateResourceCreationReport()
+    public function generateResourceCreationReport($used_existing_cart = false)
     {
-        //  Get the store with locations holding this cart
-        $store = \App\Store::with('locations')->whereHas('locations', function (Builder $query) {
-            $query->whereHas('carts', function (Builder $query) {
-                $query->where('carts.id', $this->id);
-            });
-        })->first();
+        $store = $this->getResourceStoreWithLocations();
 
         //  Foreach store location
         foreach( $store->locations as $location ){
 
             //  Generate the resource creation report
-            ( new \App\Report() )->generateResourceCreationReport($this, [
-                'instant_cart_id' => $this->instant_cart_id,
-                'sub_total' => $this->sub_total['amount'],
-                'coupon_total' => $this->coupon_total['amount'],
-                'sale_discount_total' => $this->sale_discount_total['amount'],
-                'coupon_and_sale_discount_total' => $this->coupon_and_sale_discount_total['amount'],
-                'delivery_fee' => $this->delivery_fee['amount'],
-                'grand_total' => $this->grand_total['amount'],
-                'total_items' => $this->total_items,
-                'total_unique_items' => $this->total_unique_items,
-                'allow_free_delivery' => $this->allow_free_delivery['status'],
-                'owner_type' => $this->owner_type,
-            ], $store->id, $location->id);
+            ( new \App\Report() )->generateResourceCreationReport($this, $this->resourceReportMetadata([
+                'used_existing_cart' => $used_existing_cart
+            ]), $store->id, $location->id);
 
         }
     }
 
     /**
-     *  This method generates a cart conversion report
+     *  This method generates a cart recovered report
      */
-    public function generateResourceConversionReport()
+    public function generateResourceRecoveredReport($used_existing_cart = false)
     {
-        //  Get the store with locations holding this cart
-        $store = \App\Store::with('locations')->whereHas('locations', function (Builder $query) {
-            $query->whereHas('carts', function (Builder $query) {
-                $query->where('carts.id', $this->id);
-            });
-        })->first();
+        $store = $this->getResourceStoreWithLocations();
 
         //  Foreach store location
         foreach( $store->locations as $location ){
 
-            //  Generate the resource creation report
-            ( new \App\Report() )->generateResourceConversionReport($this, [
-                'instant_cart_id' => $this->instant_cart_id,
-                'sub_total' => $this->sub_total['amount'],
-                'coupon_total' => $this->coupon_total['amount'],
-                'sale_discount_total' => $this->sale_discount_total['amount'],
-                'coupon_and_sale_discount_total' => $this->coupon_and_sale_discount_total['amount'],
-                'delivery_fee' => $this->delivery_fee['amount'],
-                'grand_total' => $this->grand_total['amount'],
-                'total_items' => $this->total_items,
-                'total_unique_items' => $this->total_unique_items,
-                'allow_free_delivery' => $this->allow_free_delivery['status'],
-                'owner_type' => $this->owner_type,
-            ], $store->id, $location->id);
+            //  Generate the resource recovered report
+            ( new \App\Report() )->generateResourceRecoveredReport($this, $this->resourceReportMetadata([
+                'used_existing_cart' => $used_existing_cart
+            ]), $store->id, $location->id);
 
         }
     }
 
     /**
-     *  This method generates a cart conversion report
+     *  This method generates a cart converted report
      */
-    public function generateResourceAbandonedReport()
+    public function generateResourceConvertedReport()
+    {
+        $store = $this->getResourceStoreWithLocations();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource converted report
+            ( new \App\Report() )->generateResourceConvertedReport($this, $this->resourceReportMetadata(), $store->id, $location->id);
+
+        }
+    }
+
+    /**
+     *  This method generates a product existence report. This
+     *  basically checks if location contained any products
+     *  after we retrieved a cart.
+     */
+    public function generateLocationProductExistenceReport()
+    {
+        $store = $this->getResourceStoreWithLocations();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource product existence report
+            $location->generateResourceProductExistenceReport();
+
+        }
+    }
+
+    /**
+     *  This method generates a coupon existence report. This
+     *  basically checks if location contained any coupon
+     *  after we retrieved a cart.
+     */
+    public function generateLocationCouponExistenceReport()
+    {
+        $store = $this->getResourceStoreWithLocations();
+
+        //  Foreach store location
+        foreach( $store->locations as $location ){
+
+            //  Generate the resource coupon existence report
+            $location->generateResourceCouponExistenceReport();
+
+        }
+    }
+
+    /**
+     *  This method returns the cart store
+     */
+    public function getResourceStoreWithLocations()
+    {
+        try{
+
+            //  Get the store with locations holding this cart
+            return \App\Store::with('locations')->whereHas('locations', function (Builder $query) {
+                $query->whereHas('carts', function (Builder $query) {
+                    $query->where('carts.id', $this->id);
+                });
+            })->first();
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method generates a cart creation report
+     */
+    public function resourceReportMetadata($additionalMetadata = [])
+    {
+        $defaultMetadata = [
+            'instant_cart_id' => $this->instant_cart_id,
+            'sub_total' => $this->sub_total['amount'],
+            'coupon_total' => $this->coupon_total['amount'],
+            'sale_discount_total' => $this->sale_discount_total['amount'],
+            'coupon_and_sale_discount_total' => $this->coupon_and_sale_discount_total['amount'],
+            'delivery_fee' => $this->delivery_fee['amount'],
+            'grand_total' => $this->grand_total['amount'],
+            'total_items' => $this->total_items,
+            'total_unique_items' => $this->total_unique_items,
+            'allow_free_delivery' => $this->allow_free_delivery['status'],
+            'owner_type' => $this->owner_type,
+        ];
+
+        return array_merge($defaultMetadata, $additionalMetadata);
+    }
+
+    /**
+     *  This method generates a cart converted report
+     */
+    public function generateResourceAbandonedReport($abandoned_datetime)
     {
         /** The setEagerLoads([]) helps us to removed the default relationships that are
          *  eager loaded on the store. When trying to eager load "myActiveSubscription",
@@ -223,6 +305,7 @@ trait CartTraits
             });
         })->first();
 
+
         //  Foreach store location
         foreach( $store->locations as $location ){
 
@@ -239,7 +322,10 @@ trait CartTraits
                 'total_unique_items' => $this->total_unique_items,
                 'allow_free_delivery' => $this->allow_free_delivery['status'],
                 'owner_type' => $this->owner_type,
-            ], $store->id, $location->id);
+            ], $store->id, $location->id, [
+                'created_at' => $abandoned_datetime,
+                'updated_at' => $abandoned_datetime
+            ]);
 
         }
     }
@@ -249,13 +335,19 @@ trait CartTraits
      */
     public function markResourceAsAbandoned()
     {
+        /**
+         *  Calculate the time of abandonment
+         *  This should be 24 hours since the cart was last updated
+         */
+        $abandoned_datetime = Carbon::parse($this->updated_at)->addHours(24)->format('Y-m-d H:i:s');
+
         //  Set the abandoned status to true
         $this->update([
             'abandoned_status' => '1'
         ]);
 
         //  Generate the resource abandoned report
-        $this->generateResourceAbandonedReport();
+        $this->generateResourceAbandonedReport($abandoned_datetime);
     }
 
     /**
@@ -278,7 +370,10 @@ trait CartTraits
             $cart_basket = $this->buildCartBasket($data, $user);
 
             //  Merge the existing data with the new data
-            $template = array_merge($data, collect($cart_basket)->only($this->getFillable())->toArray());
+            $template = array_merge(
+                collect($data)->only($this->getFillable())->toArray(),
+                collect($cart_basket)->only($this->getFillable())->toArray()
+            );
 
             //  Set the original owner of this resource
             $template['owner_id'] = $this->owner_id;
@@ -286,6 +381,17 @@ trait CartTraits
 
             //  Make sure the cart is not abandoned
             $template['abandoned_status'] = '0';
+
+            //  If the cart was previously abandoned
+            if( $this->abandoned_status['status'] ){
+
+                //  Check if we used an instant cart
+                $used_existing_cart = isset($data['instant_cart_id']) && !empty(isset($data['instant_cart_id']));
+
+                //  Generate the resource recovered report
+                $this->generateResourceRecoveredReport($used_existing_cart);
+
+            }
 
             /**
              *  Update the resource details
@@ -350,6 +456,7 @@ trait CartTraits
                 'total_refreshes' => ++$this->total_refreshes,
                 'delivery_fee' => $this->delivery_fee['amount'],
                 'allow_free_delivery' => $this->allow_free_delivery['status'],
+                'instant_cart_id' => $this->instant_cart_id
             ];
 
             return $this->updateResource($data, $user);
@@ -375,7 +482,8 @@ trait CartTraits
                 'delivery_fee' => 0,
                 'allow_free_delivery' => false,
                 'location_id' => $this->location_id,
-                'total_resets' => ++$this->total_resets
+                'total_resets' => ++$this->total_resets,
+                'instant_cart_id' => null
             ];
 
             return $this->updateResource($data, $user);
@@ -733,6 +841,40 @@ trait CartTraits
 
         //  Return the cart instance
         return $this;
+    }
+
+    /**
+     *  This method updates the remaining instant cart stock quantity
+     *  in relation to the cart item line quantities
+     */
+    public function updateRemainingInstantCartStockQuantity()
+    {
+        /**
+         *  Retrieve the instant cart linked to the order cart. Note that
+         *  some orders do not have a linked instant cart.
+         */
+        $instant_cart = $this->instantCart;
+
+        //  If this order has a linked instant cart
+        if( $instant_cart ){
+
+            //  If we allow stock management
+            if( $instant_cart['allow_stock_management']['status'] ){
+
+                //  Extract the stock quantity value
+                $stock_quantity = $instant_cart['stock_quantity']['value'];
+
+                //  Reduce the stock quantity by 1
+                $stock_quantity = ($stock_quantity - 1) > 0 ? ($stock_quantity - 1) : 0;
+
+                //  Update the remaining stock quantity
+                $instant_cart->update([
+                    'stock_quantity' => $stock_quantity
+                ]);
+
+            }
+
+        }
     }
 
     /**

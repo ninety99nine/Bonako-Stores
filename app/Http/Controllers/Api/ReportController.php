@@ -30,4 +30,27 @@ class ReportController extends Controller
         }
     }
 
+    public function getReportStatistics(Request $request)
+    {
+        try {
+
+            $store_id = $request->input('store_id');
+
+            if( isset($store_id) && !empty($store_id) ){
+
+                //  Return Store report statistics
+                return (new \App\Store())->getResource($store_id)->getResourceStatistics($request);
+
+            }
+
+            //  Return Report statistics
+            return (new Report)->getResourceStatistics($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
 }

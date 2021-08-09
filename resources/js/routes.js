@@ -99,6 +99,21 @@ let routes = [
                 meta: { layout: 'Dashboard', middlewareAuth: true },
                 component: require('./views/stores/show/instant-carts/list/main.vue').default
             },
+            {
+                path: 'reports', name: 'show-store-reports',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/reports/list/main.vue').default
+            },
+            {
+                path: 'customers', name: 'show-store-customers',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/customers/list/main.vue').default
+            },
+            {
+                path: 'customers/:customer_url', name: 'show-store-customer',
+                meta: { layout: 'Dashboard', middlewareAuth: true },
+                component: require('./views/stores/show/customers/show/main.vue').default
+            },
         ]
     },
 
@@ -114,6 +129,13 @@ let routes = [
         path: '/adverts', name: 'show-adverts',
         meta: { layout: 'Dashboard', subHeader: 'defaultSubHeader', middlewareAuth: true },
         component: require('./views/adverts/list/main.vue').default
+    },
+
+    //  Reports
+    {
+        path: '/reports', name: 'show-reports',
+        meta: { layout: 'Dashboard', subHeader: 'defaultSubHeader', middlewareAuth: true },
+        component: require('./views/reports/main.vue').default
     },
 
 ];

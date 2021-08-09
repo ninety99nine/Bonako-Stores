@@ -54,6 +54,13 @@
 
                     </Row>
 
+                    <!-- Cart Items, Deliver Button, Edit Button -->
+                    <Tabs :value="selectedTab" :animated="false">
+                        <TabPane label="All" name="all"></TabPane>
+                        <TabPane label="Limited stock" name="limited stock"></TabPane>
+                        <TabPane label="Out of stock (3)" name="out of stock"></TabPane>
+                    </Tabs>
+
                     <!-- Search Bar, Filters, Arrange Products Switch, Save Changes Button & Refresh Button -->
                     <Row :gutter="12" class="mb-4">
 
@@ -261,6 +268,7 @@
         },
         data(){
             return {
+                selectedTab: 'all',
                 isOpenDeleteProductModal: false,
                 isOpenManageProductModal: false,
                 productsBeforeChanges: null,
@@ -276,29 +284,55 @@
                 ],
                 statuses: [
                     {
-                        name: 'Active',
-                        desc: 'Products that are available'
-                    },
-                    {
-                        name: 'Inactive',
-                        desc: 'Products that are not available'
-                    },
-                    {
                         name: 'Visible',
-                        desc: 'Products that are available and visible'
+                        desc: 'Products available and visible'
                     },
                     {
-                        name: 'Invisible',
-                        desc: 'Products that are available but not visible'
+                        name: 'Hidden',
+                        desc: 'Products available but not visible'
                     },
                     {
-                        name: 'Low Stock',
-                        desc: 'Products that are low or out of stock'
+                        name: 'On sale',
+                        desc: 'Products on sale'
+                    },
+                    {
+                        name: 'Not on sale',
+                        desc: 'Products not on sale'
+                    },
+                    {
+                        name: 'Out Of Stock',
+                        desc: 'Products out of stock'
+                    },
+                    {
+                        name: 'Limited stock',
+                        desc: 'Products with limited stock'
+                    },
+                    {
+                        name: 'Unlimited Stock',
+                        desc: 'Products with unlimited stock'
                     },
                     {
                         name: 'No Price',
-                        desc: 'Products that do not have a price'
-                    }
+                        desc: 'Products without a price'
+                    },
+                    {
+                        name: 'No Cost',
+                        desc: 'Products without a cost'
+                    },
+                    {
+                        name: 'Has Cost',
+                        desc: 'Products with a cost'
+                    },
+                    {
+                        name: 'Has variations',
+                        desc: 'Product with variations'
+                    },
+                    {
+                        name: 'Has no variations',
+                        desc: 'Products without variations'
+                    },
+
+
                 ],
                 selectedFilters: [],
                 searchTimeout: null,
@@ -552,36 +586,50 @@
             },
             fetchProducts() {
 
-                //  If we have the products url
-                if( this.productsUrl ){
+                /**
+                 *  Note that we need to use the $nextTick() method to get the latest data of the
+                 *  "selectedFilters". This is because everytime we trigger the select option
+                 *  "on-select" event, it always brings the "selectedFilters" before its
+                 *  updated with the latest selected/unselected option data. This is not
+                 *  desired, so the $nextTick() method helps us get the latest updates.
+                 */
+                this.$nextTick(() => {
 
-                    //  Hold constant reference to the current Vue instance
-                    const self = this;
+                    //  If we have the products url
+                    if( this.productsUrl ){
 
-                    //  Start loader
-                    self.isLoading = true;
+                        //  Hold constant reference to the current Vue instance
+                        const self = this;
 
-                    //  Use the api call() function, refer to api.js
-                    api.call('get', this.productsUrl)
-                        .then(({data}) => {
+                        //  Start loader
+                        self.isLoading = true;
 
-                            //  Get the products
-                            self.products = data['_embedded']['products'] || [];
+                        //  Set the filters
+                        var statuses = this.selectedFilters.join(',');
 
-                            //  Turn off any changes detected
-                            self.copyProductsBeforeUpdate();
+                        //  Use the api call() function, refer to api.js
+                        api.call('get', this.productsUrl+'?status='+statuses)
+                            .then(({data}) => {
 
-                            //  Stop loader
-                            self.isLoading = false;
+                                //  Get the products
+                                self.products = data['_embedded']['products'] || [];
 
-                        })
-                        .catch(response => {
+                                //  Turn off any changes detected
+                                self.copyProductsBeforeUpdate();
 
-                            //  Stop loader
-                            self.isLoading = false;
+                                //  Stop loader
+                                self.isLoading = false;
 
-                        });
-                }
+                            })
+                            .catch(response => {
+
+                                //  Stop loader
+                                self.isLoading = false;
+
+                            });
+                    }
+
+                });
 
             },
             updateProductArrangement() {

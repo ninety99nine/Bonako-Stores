@@ -1,5 +1,7 @@
 <?php
 
+use App\Subscription;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,6 +15,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 Route::get('/exception', function(){
+
+    return \App\Store::find(1);
+
+    //  return Illuminate\Support\Facades\DB::table('stores')->get();
+
     return [
         'auth(api)->user' => auth('api')->user()->id,
     ];
@@ -161,12 +168,15 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
             Route::get('/coupons', 'LocationController@getLocationCoupons')->name('coupons');
             Route::get('/products', 'LocationController@getLocationProducts')->name('products');
+            Route::get('/customers', 'LocationController@getLocationCustomers')->name('customers');
             Route::get('/instant-carts', 'LocationController@getLocationInstantCarts')->name('instant-carts');
 
             Route::get('/favourite-status', 'LocationController@getLocationFavouriteStatus')->name('favourite-status');
             Route::post('/toggle-favourite', 'LocationController@toggleLocationAsFavourite')->name('toggle-favourite');
 
             Route::post('/product-arrangement', 'LocationController@arrangeLocationProducts')->name('product-arrangement');
+
+            Route::get('/statistics', 'LocationController@getLocationReportStatistics')->name('report-statistics')->where('location_id', '[0-9]+');
 
         });
 
@@ -277,6 +287,25 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
     });
 
+    //  Customer Resource Routes
+    Route::prefix('customers')->group(function () {
+
+        Route::get('/', 'CustomerController@getCustomers')->name('customers');
+        Route::post('/', 'CustomerController@createCustomer')->name('customer-create');
+
+        //  Single Customer resources    /api/customers/{customer_id}   name => customer-*
+        Route::prefix('/{customer_id}')->name('customer-')->group(function () {
+
+            Route::get('/', 'CustomerController@getCustomer')->name('show')->where('customer_id', '[0-9]+');
+            Route::put('/', 'CustomerController@updateCustomer')->name('update')->where('customer_id', '[0-9]+');
+            Route::delete('/', 'CustomerController@deleteCustomer')->name('delete')->where('customer_id', '[0-9]+');
+
+            Route::get('/orders', 'CustomerController@getCustomerOrders')->name('orders');
+
+        });
+
+    });
+
     //  Shortcode Resource Routes
     Route::prefix('shortcodes')->group(function () {
 
@@ -307,6 +336,14 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::put('/reset', 'CartController@resetCart')->name('reset')->where('cart_id', '[0-9]+');
 
         });
+
+    });
+
+    //  Report Resource Routes
+    Route::prefix('reports')->group(function () {
+
+        Route::get('/', 'ReportController@getReports')->name('reports');
+        Route::get('/statistics', 'ReportController@getReportStatistics')->name('report-statistics');
 
     });
 

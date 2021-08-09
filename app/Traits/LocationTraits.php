@@ -123,6 +123,24 @@ trait LocationTraits
     }
 
     /**
+     *  This method generates a location creation report
+     */
+    public function generateResourceProductExistenceReport()
+    {
+        //  Generate the resource product existence report
+        ( new \App\Report() )->generateResourceProductExistenceReport($this, ['exists' => count($this->products) ? true : false], $this->store_id, $this->id);
+    }
+
+    /**
+     *  This method generates a location creation report
+     */
+    public function generateResourceCouponExistenceReport()
+    {
+        //  Generate the resource coupon existence report
+        ( new \App\Report() )->generateResourceCouponExistenceReport($this, ['exists' => count($this->coupons) ? true : false], $this->store_id, $this->id);
+    }
+
+    /**
      *  This method updates an existing location
      */
     public function updateResource($data = [], $user = null)
@@ -302,9 +320,11 @@ trait LocationTraits
                 'products' => $this->getResourceProductTotals($data),
                 'orders' => [
                     'sent' => $this->getResourceOrderTotals(array_merge($data, ['type' => 'sent']), $user),
+                    'shared' => $this->getResourceOrderTotals(array_merge($data, ['type' => 'shared']), $user),
                     'received' => $this->getResourceOrderTotals(array_merge($data, ['type' => 'received']), $user),
                 ],
                 'coupons' => $this->getResourceCouponTotals($data),
+                'customers' => $this->getResourceCustomerTotals($data),
                 'instant_carts' => $this->getResourceInstantCartTotals($data)
             ];
 
@@ -356,6 +376,26 @@ trait LocationTraits
     }
 
     /**
+     *  This method returns location product totals
+     */
+    public function getResourceProductTotals($data = [])
+    {
+        try {
+
+            //  Get location products
+            $products = $this->getResourceProducts($data, null);
+
+            //  Return location product totals
+            return (new \App\Product())->getResourceTotals($data, $products);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method returns location coupon totals
      */
     public function getResourceCouponTotals($data = [])
@@ -396,17 +436,17 @@ trait LocationTraits
     }
 
     /**
-     *  This method returns location product totals
+     *  This method returns location customer totals
      */
-    public function getResourceProductTotals($data = [])
+    public function getResourceCustomerTotals($data = [])
     {
         try {
 
-            //  Get location products
-            $products = $this->getResourceProducts($data, null);
+            //  Get location customers
+            $customers = $this->getResourceCustomers($data, null);
 
-            //  Return location product totals
-            return (new \App\Product())->getResourceTotals($data, $products);
+            //  Return location customer totals
+            return (new \App\Customer())->getResourceTotals($data, $customers);
 
         } catch (\Exception $e) {
 
@@ -481,8 +521,37 @@ trait LocationTraits
         //  If we want orders sent
         } elseif ($type === 'sent') {
 
-            //  Scope orders received sent by user
-            $orders = $this->receivedOrders()->userIsCustomer($user);
+            //  If we have the customer id provided
+            if( isset($data['customer_id']) && !empty($data['customer_id']) ){
+
+                //  Scope orders sent by customer
+                $orders = $this->receivedOrders()->userIsCustomer( $data['customer_id'] );
+
+            //  If we have the authenticated user
+            }elseif( !empty( auth()->user() ) ){
+
+                //  Get the customer profile linking the current authenticated user to the location
+                $customer = \App\Customer::where('user_id', auth()->user()->id)->where('location_id', $this->id)->first();
+
+                //  If we have a customer profile
+                if( $customer ){
+
+                    //  Scope orders sent by user
+                    $orders = $this->receivedOrders()->userIsCustomer( $customer->id );
+
+                }else{
+
+                    //  Manually set an empty collection of orders
+                    $orders = $this->orders()->where('id', '0');
+
+                }
+
+            }else{
+
+                //  Manually set an empty collection of orders
+                $orders = $this->orders()->where('id', '0');
+
+            }
 
         }else{
 
@@ -493,6 +562,27 @@ trait LocationTraits
 
         //  Return the orders
         return $orders;
+    }
+
+
+    /**
+     *  This method returns a list of location products
+     */
+    public function getResourceProducts($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the products
+            $products = $this->products();
+
+            //  Return a list of location products
+            return (new \App\Product())->getResources($data, $products, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -516,26 +606,6 @@ trait LocationTraits
     }
 
     /**
-     *  This method returns a list of location products
-     */
-    public function getResourceProducts($data = [], $paginate = true, $convert_to_api_format = true)
-    {
-        try {
-
-            //  Get the products
-            $products = $this->products();
-
-            //  Return a list of location products
-            return (new \App\Product())->getResources($data, $products, $paginate, $convert_to_api_format);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
      *  This method returns a list of location instant carts
      */
     public function getResourceInstantCarts($data = [], $paginate = true, $convert_to_api_format = true)
@@ -547,6 +617,26 @@ trait LocationTraits
 
             //  Return a list of location instant carts
             return (new \App\InstantCart())->getResources($data, $instant_carts, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a list of location customers
+     */
+    public function getResourceCustomers($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the customers
+            $customers = $this->customers();
+
+            //  Return a list of location customers
+            return (new \App\Customer())->getResources($data, $customers, $paginate, $convert_to_api_format);
 
         } catch (\Exception $e) {
 
@@ -714,6 +804,26 @@ trait LocationTraits
 
         }
 
+    }
+
+    /**
+     *  This method returns a list of location reports
+     */
+    public function getResourceStatistics($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the reports
+            $reports = $this->reports();
+
+            //  Return a list of location reports
+            return (new \App\Report())->getResourceStatistics($data, $reports, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**

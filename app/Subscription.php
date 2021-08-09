@@ -63,9 +63,17 @@ class Subscription extends Model
     /*
      *  Returns the user that owns this subscription
      */
-    public function owner()
+    public function user()
     {
         return $this->belongsTo('App\User');
+    }
+
+    /**
+     * Get the owning resource e.g Store, Instant cart
+     */
+    public function owner()
+    {
+        return $this->morphTo();
     }
 
     /*

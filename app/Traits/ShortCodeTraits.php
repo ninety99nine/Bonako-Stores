@@ -8,6 +8,8 @@ use App\Http\Resources\ShortCodes as ShortCodesResource;
 
 trait ShortCodeTraits
 {
+    public $store_id = null;
+    public $location_id = null;
 
     /**
      *  This method transforms a collection or single model instance
@@ -61,6 +63,9 @@ trait ShortCodeTraits
             //  Set the action
             $action = $data['action'];
 
+            //  Set the location id (if available)
+            $location_id = $data['location_id'] ?? null;
+
             //  Search for a current active short code
             $current_short_code = $this->getCurrentResource($action, $model);
 
@@ -70,7 +75,7 @@ trait ShortCodeTraits
                 //  Set expiry after 24 hours
                 $expires_at = Carbon::now()->addHours(24)->format('Y-m-d H:i:s');
 
-            //  If this is a visit store short code and we have the model e.g "Store" or "InstantCart"
+            //  If this is a visit short code and we have the model e.g "Store" or "InstantCart"
             }elseif( $action == 'visit' && $model ){
 
                 //  Get the subscription with the longest time till expiry for the given model
@@ -98,6 +103,9 @@ trait ShortCodeTraits
                 //  Get a fresh instance of the current short code
                 $short_code = $current_short_code->fresh();
 
+                //  Generate the resource recycle report
+                $short_code->generateResourceRecycledReport($model, ['previously_owned' => true]);
+
             }else{
 
                 //  Search for any other available inactive short codes
@@ -116,6 +124,9 @@ trait ShortCodeTraits
                     //  Get a fresh instance of the available short code
                     $short_code = $available_short_code->fresh();
 
+                    //  Generate the resource recycle report
+                    $short_code->generateResourceRecycledReport($model, ['previously_owned' => false]);
+
                 }else{
 
                     //  Generate a new code
@@ -127,13 +138,17 @@ trait ShortCodeTraits
                         'action' => $action,
                         'owner_id' => $model->id,
                         'owner_type' => $model->resource_type,
-                        'expires_at' => $expires_at
+                        'expires_at' => $expires_at,
+                        'user_id' => $user->id
                     ];
 
                     /**
                      *  Create a new resource
                      */
                     $short_code = $this->create($template);
+
+                    //  Generate the resource creation report
+                    $short_code->generateResourceCreationReport($model);
 
                 }
 
@@ -148,6 +163,67 @@ trait ShortCodeTraits
 
         }
 
+    }
+
+    /**
+     *  This method generates a short code creation report
+     */
+    public function generateResourceCreationReport($model = null)
+    {
+        //  Set the store and location id
+        $this->setStoreAndLocationID($model);
+
+        //  Generate the resource creation report
+        ( new \App\Report() )->generateResourceCreationReport($this, $this->resourceReportMetadata(), $this->store_id, $this->location_id);
+    }
+
+    /**
+     *  This method generates a short code recycle report
+     */
+    public function generateResourceRecycledReport($model = null, $additionalMetadata = [])
+    {
+        //  Set the store and location id
+        $this->setStoreAndLocationID($model);
+
+        //  Generate the resource creation report
+        ( new \App\Report() )->generateResourceRecycledReport($this, $this->resourceReportMetadata($additionalMetadata), $this->store_id, $this->location_id);
+    }
+
+    public function setStoreAndLocationID($model = null)
+    {
+        if( $model ){
+
+            //  If this is a store
+            if( $model->resource_type == 'store' ){
+
+                $this->store_id = $model->id;
+
+            }elseif( $model->resource_type == 'location' ){
+
+                $this->location_id = $model->id;
+                $this->store_id = $model->store->id;
+
+            }elseif( $model->resource_type == 'instant_cart' ){
+
+                $this->location_id = $model->location->id;
+                $this->store_id = $model->location->store->id;
+
+            }
+
+        }
+    }
+
+    /**
+     *  This method generates the report metadata
+     */
+    public function resourceReportMetadata($additionalMetadata = [])
+    {
+        $defaultMetadata = [
+            'action' => $this->action,
+            'owner_type' => $this->owner_type
+        ];
+
+        return array_merge($defaultMetadata, $additionalMetadata);
     }
 
     /**

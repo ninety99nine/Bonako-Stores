@@ -3,13 +3,12 @@
     <!-- Order Customer Poptip -->
     <Poptip trigger="hover" :placement="placement" width="300">
 
-        <List slot="content" size="small">
+        <span slot="content" :class="['text-center', 'd-block']">
+            <span>Customer </span>
+            <span :class="['text-success', 'd-block']" :style="{ fontSize: '20px' }">{{ customerName }}</span>
+        </span>
 
-            <ListItem>Name: {{ customerName }}</ListItem>
-
-        </List>
-
-        <span>{{ customerFirstName }}</span>
+        <a href="#" @click.prevent="viewCustomer()">{{ customerFirstName }}</a>
 
     </Poptip>
 
@@ -41,11 +40,24 @@
                 return (this.order._embedded.customer || {});
             },
             customerName(){
-                return this.customer._attributes.name || '...';
+                return ((((this.customer._embedded || {}).user || {})._attributes || {}).name || '...');
             },
             customerFirstName(){
-                return this.customer.first_name || '...';
-            },
+                return (((this.customer._embedded || {}).user || {}).first_name || '...');
+            }
+        },
+        methods: {
+            viewCustomer(){
+
+                let params = Object.assign({}, this.$route.params, { customer_url: encodeURIComponent(this.customer._links.self.href) });
+
+                this.$router.push({ name: 'show-store-customer', params: params }).catch(()=>{
+
+                    //  Handle redundant navigation by refreshing the page
+                    this.$router.go();
+
+                });
+            }
         }
     };
 

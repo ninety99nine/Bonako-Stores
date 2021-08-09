@@ -20,6 +20,8 @@ class CreateShortCodesTable extends Migration
             $table->string('action')->nullable();
             $table->timestamp('expires_at')->nullable();
 
+            $table->unsignedBigInteger('user_id');
+
             /*  Ownership Information  */
             $table->unsignedInteger('owner_id');
             $table->string('owner_type');

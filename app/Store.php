@@ -185,6 +185,14 @@ class Store extends Model
         return $this->hasMany('App\Location', 'store_id');
     }
 
+    /**
+     *  Get the location reports.
+     */
+    public function reports()
+    {
+        return $this->hasMany('App\Report');
+    }
+
     /** ATTRIBUTES
      *
      *  Note that the "resource_type" is defined within CommonTraits.

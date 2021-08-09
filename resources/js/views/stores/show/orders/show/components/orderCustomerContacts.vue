@@ -3,13 +3,12 @@
     <!-- Order Customer Contacts Poptip -->
     <Poptip trigger="hover" :placement="placement" width="300">
 
-        <List slot="content" size="small">
+        <span slot="content" :class="['text-center', 'd-block']">
+            <span>Contact </span>
+            <span :class="['text-success', 'd-block']" :style="{ fontSize: '20px' }">{{ mobileCallingNumber }}</span>
+        </span>
 
-            <ListItem>Mobile: {{ customerMobileNumber }}</ListItem>
-
-        </List>
-
-        <span>{{ customerMobileNumber }}</span>
+        <span>{{ mobileNumber }}</span>
 
     </Poptip>
 
@@ -40,9 +39,15 @@
             customer(){
                 return (this.order._embedded.customer || {});
             },
-            customerMobileNumber(){
-                return this.customer.mobile_number || '...';
+            customerName(){
+                return ((((this.customer._embedded || {}).user || {})._attributes || {}).name || '...');
             },
+            mobileNumber(){
+                return (((this.customer._embedded || {}).user || {}).mobile_number || [])['number'];
+            },
+            mobileCallingNumber(){
+                return (((this.customer._embedded || {}).user || {}).mobile_number || [])['calling_number'];
+            }
         }
     };
 

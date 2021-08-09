@@ -557,7 +557,7 @@ trait InstantCartTraits
                     'message' => $message,
 
                     //  Set the mobile_number on the data
-                    'mobile_number' => $user->mobile_number
+                    'mobile_number' => $user->mobile_number['number_with_code']
 
                 ];
 

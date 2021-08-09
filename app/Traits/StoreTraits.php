@@ -392,7 +392,7 @@ trait StoreTraits
                     'message' => $message,
 
                     //  Set the mobile_number on the data
-                    'mobile_number' => $user->mobile_number
+                    'mobile_number' => $user->mobile_number['number_with_code']
 
                 ];
 
@@ -791,6 +791,26 @@ trait StoreTraits
 
         } catch (\Exception $e) {
             throw($e);
+        }
+    }
+
+    /**
+     *  This method returns a list of location reports
+     */
+    public function getResourceStatistics($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the reports
+            $reports = $this->reports();
+
+            //  Return a list of location reports
+            return (new \App\Report())->getResourceStatistics($data, $reports, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
         }
     }
 

@@ -46,7 +46,16 @@ class Report extends Model
          *      { ... } object with addtional information e.g { Sub total, Coupon total, Grand total, e.t.c }
          */
 
-        'type', 'metadata', 'user_id', 'store_id', 'location_id', 'owner_id', 'owner_type'
+        'type', 'metadata', 'user_id', 'store_id', 'location_id', 'owner_id', 'owner_type',
+
+        /**
+         *  We need to allow the created_at and updated_at fields to be fillable so that in
+         *  special cases we can overide the timestamps when creating reports e.g when we
+         *  create a cart abandonment report we need to overide the timestamp to reflect
+         *  the time that the cart was actually abandoned instead of the current
+         *  datetime.
+         */
+        'created_at', 'updated_at'
 
     ];
 
@@ -59,6 +68,24 @@ class Report extends Model
         return $query
                 ->where('id', $searchTerm)
                 ->orWhere('type', 'like', '%'.$searchTerm.'%');
+    }
+
+    /*
+     *  Scope:
+     *  Returns reports by start date
+     */
+    public function scopeStartDate($query, $date)
+    {
+        return $query->whereDate('created_at', '>=', $date);
+    }
+
+    /*
+     *  Scope:
+     *  Returns reports by end date
+     */
+    public function scopeEndDate($query, $date)
+    {
+        return $query->whereDate('created_at', '<=', $date);
     }
 
     /**
