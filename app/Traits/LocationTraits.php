@@ -542,14 +542,14 @@ trait LocationTraits
                 }else{
 
                     //  Manually set an empty collection of orders
-                    $orders = $this->orders()->where('id', '0');
+                    $orders = $this->orders()->where('orders.id', '0');
 
                 }
 
             }else{
 
                 //  Manually set an empty collection of orders
-                $orders = $this->orders()->where('id', '0');
+                $orders = $this->orders()->where('orders.id', '0');
 
             }
 
