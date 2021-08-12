@@ -109,6 +109,75 @@ trait TransactionTraits
     }
 
     /**
+     *  This method returns a list of transactions
+     */
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data (CommanTraits)
+            $this->getResourcesValidation($data);
+
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
+
+                //  Set the transactions to this eloquent builder
+                $transactions = $builder;
+
+            }else{
+
+                //  Get the transactions
+                $transactions = \App\transaction::orderBy('arrangement');
+
+            }
+
+            //  Filter the transactions
+            $transactions = $this->filterResources($data, $transactions);
+
+            //  Return transactions
+            return $this->collectionResponse($data, $transactions, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a single transaction
+     */
+    public function getResource($id)
+    {
+        try {
+
+            //  Get the resource
+            $transaction = \App\transaction::where('id', $id)->first() ?? null;
+
+            //  If exists
+            if ($transaction) {
+
+                //  Return transaction
+                return $transaction;
+
+            } else {
+
+                //  Return "Not Found" Error
+                return help_resource_not_found();
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method generates a transaction creation report
      */
     public function generateResourceCreationReport($model)

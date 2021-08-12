@@ -183,6 +183,34 @@ class OrderController extends Controller
         }
     }
 
+    public function getOrderTransactions(Request $request, $order_id)
+    {
+        try {
+
+            //  Return the order transactions
+            return (new Order())->getResource($order_id)->getResourceTransactions($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function createOrderTransaction(Request $request, $order_id)
+    {
+        try {
+
+            //  Send the order payment request
+            return (new Order())->getResource($order_id)->createResourceTransaction($request, $this->user)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
 
 
 

@@ -253,11 +253,19 @@ class Order extends Model
     }
 
     /**
-     * Get the transaction
+     * Get the latest transaction
      */
     public function transaction()
     {
-        return $this->morphOne(Transaction::class, 'owner');
+        return $this->morphOne(Transaction::class, 'owner')->latest();
+    }
+
+    /**
+     * Get the transactions
+     */
+    public function transactions()
+    {
+        return $this->morphMay(Transaction::class, 'owner');
     }
 
     /** ATTRIBUTES

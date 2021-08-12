@@ -1204,6 +1204,26 @@ trait OrderTraits
     }
 
     /**
+     *  This method returns the order transactions
+     */
+    public function getResourceTransactions($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the order transactions
+            $transactions = $this->transactions();
+
+            //  Return a list of order transactions
+            return (new \App\Transaction())->getResources($data, $transactions, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method creates a new order transaction
      */
     public function createResourceTransaction($data = [])
@@ -1223,7 +1243,10 @@ trait OrderTraits
                 'amount' => $this->activeCart->grand_total,
 
                 //  Set the transaction description on the data
-                'description' => 'Payment for order #'.$this->number
+                'description' => 'Payment for order #'.$this->number,
+
+                //  Set the default transaction status
+                'status_id' => \App\Status::where(['name' => 'Pending', 'type' => 'transaction status'])->first()->id
 
             ]);
 

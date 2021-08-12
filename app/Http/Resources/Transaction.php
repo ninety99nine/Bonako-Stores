@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Status as StatusResource;
 use App\Http\Resources\PaymentMethod as PaymentMethodResource;
 
 class Transaction extends JsonResource
@@ -46,6 +47,7 @@ class Transaction extends JsonResource
 
             /*  Embedded  */
             '_embedded' => [
+                'status' => new StatusResource( $this->status ),
                 'payment_method' => new PaymentMethodResource( $this->paymentMethod )
             ]
 

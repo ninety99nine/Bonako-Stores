@@ -204,6 +204,9 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::post('/payment-request', 'OrderController@sendOrderPaymentRequest')->name('payment-request');
             Route::post('/pay', 'OrderController@payOrder')->name('pay');
 
+            Route::get('/transactions', 'OrderController@getOrderTransactions')->name('transactions');
+            Route::post('/transactions', 'OrderController@createOrderTransaction')->name('transactions-create');
+
             Route::get('/item-lines', 'OrderController@getOrderItemLines')->name('item-lines');
             Route::get('/coupon-lines', 'OrderController@getOrderCouponLines')->name('coupon-lines');
 

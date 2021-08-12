@@ -11,7 +11,7 @@ class Transaction extends Model
     use TransactionTraits;
     use CommonTraits;
 
-    protected $with = ['paymentMethod'];
+    protected $with = ['status', 'paymentMethod'];
 
     /**
      * The attributes that are mass assignable.
@@ -19,7 +19,7 @@ class Transaction extends Model
      * @var array
      */
     protected $fillable = [
-        'number', 'type', 'currency', 'amount', 'payment_method_id', 'description', 'user_id', 'owner_id', 'owner_type'
+        'number', 'status_id', 'type', 'currency', 'amount', 'payment_method_id', 'description', 'user_id', 'owner_id', 'owner_type'
     ];
 
     /*
@@ -28,6 +28,14 @@ class Transaction extends Model
     public function owner()
     {
         return $this->belongsTo('App\User');
+    }
+
+    /**
+     *  Returns the order status
+     */
+    public function status()
+    {
+        return $this->belongsTo('App\Status');
     }
 
     /*

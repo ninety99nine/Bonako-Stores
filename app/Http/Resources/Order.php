@@ -99,6 +99,12 @@ class Order extends JsonResource
                 'bos:store' => [
                     'href' => route('order-store', ['order_id' => $this->id]),
                     'title' => 'The order store',
+                ],
+
+                //  Link to create transaction
+                'bos:transactions' => [
+                    'href' => route('order-transactions-create', ['order_id' => $this->id]),
+                    'title' => 'The order transactions',
                 ]
 
             ],
