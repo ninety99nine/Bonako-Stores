@@ -103,6 +103,27 @@ trait OrderTraits
                     }
 
                     /****************************
+                     *  SET DELIVERY STATUS     *
+                     * *************************/
+
+                    //  Update the order status as "Undelivered"
+                    $this->order->setDeliveryStatusToUndelivered();
+
+                    //  Assign order to location
+                    $this->order->assignResourceToLocation($data);
+
+                    //  Refresh the instance to load the delivery line and active cart
+                    $this->order = $this->order->fresh();
+
+                    $this->order->createOrUpdateResourceCustomer($cart, $user);
+
+                    //  Create a new delivery line resource
+                    $this->order->createResourceDeliveryLine($data);
+
+                    //  Generate the resource creation report
+                    $this->order->generateResourceCreationReport();
+
+                    /****************************
                      *  SET PAYMENT STATUS      *
                      * *************************/
                     if( isset($data['is_paid']) && $data['is_paid'] === true ){
@@ -119,34 +140,13 @@ trait OrderTraits
                         $this->order->setPaymentStatusToUnpaid();
 
                     }
+
+                    //  Send the new order merchant sms
+                    $this->order->sendNewOrderMerchantSms($user);
+
+                    //  Return a fresh instance
+                    return $this->order->fresh();
                 }
-
-                /****************************
-                 *  SET DELIVERY STATUS     *
-                 * *************************/
-
-                //  Update the order status as "Undelivered"
-                $this->order->setDeliveryStatusToUndelivered();
-
-                //  Assign order to location
-                $this->order->assignResourceToLocation($data);
-
-                //  Refresh the instance to load the delivery line and active cart
-                $this->order = $this->order->fresh();
-
-                $this->order->createOrUpdateResourceCustomer($cart, $user);
-
-                //  Create a new delivery line resource
-                $this->order->createResourceDeliveryLine($data);
-
-                //  Generate the resource creation report
-                $this->order->generateResourceCreationReport();
-
-                //  Send the new order merchant sms
-                $this->order->sendNewOrderMerchantSms($user);
-
-                //  Return a fresh instance
-                return $this->order->fresh();
 
             }
 
@@ -854,7 +854,7 @@ trait OrderTraits
             $this->update(['delivery_confirmation_code' => $code]);
 
             //  Set the delivery reference name
-            $name = $this->deliveryLine->name ?? $this->customer->user->first_name;
+            $name = $this->customer->user->first_name;
 
             //  Craft the sms message
             $message =  trim('Hi '.$name).', your delivery confirmation code '.
