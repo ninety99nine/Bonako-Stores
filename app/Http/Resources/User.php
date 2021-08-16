@@ -46,6 +46,12 @@ class user extends JsonResource
                 'bos:addresses' => [
                     'href' => route('my-addresses'),
                     'title' => 'The user addresses'
+                ],
+
+                //  Link to user subscriptions
+                'bos:subscriptions' => [
+                    'href' => route('my-subscriptions'),
+                    'title' => 'The user subscriptions'
                 ]
             ],
 

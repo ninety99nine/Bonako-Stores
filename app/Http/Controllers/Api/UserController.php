@@ -180,6 +180,21 @@ class UserController extends Controller
         }
     }
 
+    public function getUserSubscriptions(Request $request)
+    {
+        try {
+
+            //  Return a list of subscriptions
+            return $this->user->getResourceSubscriptions($request);
+
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function updateUser(Request $request, $id)
     {
     }

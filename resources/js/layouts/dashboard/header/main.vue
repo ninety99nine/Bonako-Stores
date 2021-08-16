@@ -16,7 +16,8 @@
                 </span>
                 <DropdownMenu slot="list">
                     <DropdownItem name="stores">My Stores</DropdownItem>
-                    <DropdownItem name="logout">Sign Out</DropdownItem>
+                    <DropdownItem name="subscriptions">My Subscriptions</DropdownItem>
+                    <DropdownItem name="logout" divided>Sign Out</DropdownItem>
                 </DropdownMenu>
             </Dropdown>
 
@@ -50,6 +51,12 @@
 
                     //  Redirect to the stores page
                     this.$router.push({ name: 'show-stores' });
+
+                //  If we want to view subscriptions
+                }else if(selected == 'subscriptions'){
+
+                    //  Redirect to the subscriptions page
+                    this.$router.push({ name: 'show-subscriptions' });
 
                 //  If we want to logout
                 }else if(selected == 'logout'){

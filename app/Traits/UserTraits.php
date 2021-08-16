@@ -511,6 +511,26 @@ trait UserTraits
     }
 
     /**
+     *  This method returns a list of user subscriptions
+     */
+    public function getResourceSubscriptions($data = [], $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Get the user subscriptions
+            $subscriptions = $this->subscriptions();
+
+            //  Return a list of user subscriptions
+            return (new \App\Subscription())->getResources($data, $subscriptions, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method validates updating an existing resource default locatino
      */
     public function updateResourceDefaultLocationValidation($data = [])

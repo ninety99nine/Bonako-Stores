@@ -3,6 +3,8 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Transaction as TransactionResource;
+use App\Http\Resources\SubscriptionPlan as SubscriptionPlanResource;
 
 class Subscription extends JsonResource
 {
@@ -40,6 +42,13 @@ class Subscription extends JsonResource
                 'curies' => [
                     ['name' => 'oq', 'href' => 'https://oqcloud.co.bw/docs/rels/{rel}', 'templated' => true],
                 ]
+
+                ],
+
+            '_embedded' => [
+
+                'transaction' => new TransactionResource($this->transaction),
+                'subscription_plan' => new SubscriptionPlanResource($this->subscriptionPlan),
 
             ]
 

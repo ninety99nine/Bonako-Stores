@@ -34,6 +34,10 @@
                         linkName: 'show-stores'
                     },
                     {
+                        name: 'my subscriptions',
+                        linkName: 'show-subscriptions'
+                    },
+                    {
                         name: 'popular stores',
                         linkName: 'show-popular-stores'
                     },
@@ -53,6 +57,8 @@
                 //  Get the active menu link otherwise default to "My Stores" page
                 if( ['show-stores'].includes(this.$route.name) ){
                     return 'my stores';
+                }else if( ['show-subscriptions'].includes(this.$route.name) ){
+                    return 'my subscriptions';
                 }else if( ['show-popular-stores'].includes(this.$route.name) ){
                     return 'popular stores';
                 }else if( ['show-adverts'].includes(this.$route.name) ){

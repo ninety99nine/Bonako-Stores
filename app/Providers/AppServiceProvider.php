@@ -31,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
             'store' => 'App\Store',
             'location' => 'App\Location',
             'instant_cart' => 'App\InstantCart',
+            'subscription' => 'App\Subscription',
         ]);
 
         /*

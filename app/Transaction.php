@@ -22,10 +22,18 @@ class Transaction extends Model
         'number', 'status_id', 'type', 'currency', 'amount', 'payment_method_id', 'description', 'user_id', 'owner_id', 'owner_type'
     ];
 
+    /**
+     * Get the owning resource e.g Subscription, Order
+     */
+    public function owner()
+    {
+        return $this->morphTo();
+    }
+
     /*
      *  Returns the user that owns this transaction
      */
-    public function owner()
+    public function user()
     {
         return $this->belongsTo('App\User');
     }

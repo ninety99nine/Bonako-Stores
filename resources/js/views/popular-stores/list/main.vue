@@ -550,6 +550,9 @@
             //  Get the popular stores
             this.fetchPopularStores();
 
+            //  Change dashboard heading
+            this.$emit('changeHeading', 'Bonako Online');
+
         }
     }
 </script>

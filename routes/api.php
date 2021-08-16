@@ -83,6 +83,8 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::get('/addresses', 'UserController@getUserAddresses')->name('addresses');
         Route::post('/addresses', 'UserController@createUserAddress')->name('addresses-create');
 
+        Route::get('/subscriptions', 'UserController@getUserSubscriptions')->name('subscriptions');
+
     });
 
     //  Popular Stores Resource Routes
@@ -206,6 +208,7 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
             Route::get('/transactions', 'OrderController@getOrderTransactions')->name('transactions');
             Route::post('/transactions', 'OrderController@createOrderTransaction')->name('transactions-create');
+            Route::put('/transactions/{transaction_id}/status', 'OrderController@updateOrderTransactionStatus')->name('transaction-status-update');
 
             Route::get('/item-lines', 'OrderController@getOrderItemLines')->name('item-lines');
             Route::get('/coupon-lines', 'OrderController@getOrderCouponLines')->name('coupon-lines');
@@ -218,6 +221,19 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
             Route::put('/resend-delivery-confirmation-code', 'OrderController@resendOrderDeliveryConfirmationCode')
                       ->name('resend-delivery-confirmation-code');
+
+        });
+
+    });
+
+    //  Transaction Resource Routes
+    Route::prefix('transactions')->group(function () {
+
+        //  Single transaction resources    /api/transactions/{transaction_id}   name => transaction-*
+        Route::prefix('/{transaction_id}')->name('transaction-')->group(function () {
+
+            //  Update transation status after payment (Successful / Failed)
+            Route::put('/status', 'TransactionController@updateTransaction')->name('update')->where('transaction_id', '[0-9]+');
 
         });
 

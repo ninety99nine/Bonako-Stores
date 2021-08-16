@@ -113,8 +113,15 @@ let routes = [
                 path: 'customers/:customer_url', name: 'show-store-customer',
                 meta: { layout: 'Dashboard', middlewareAuth: true },
                 component: require('./views/stores/show/customers/show/main.vue').default
-            },
+            }
         ]
+    },
+
+    //  Subscriptions
+    {
+        path: '/subscriptions', name: 'show-subscriptions',
+        meta: { layout: 'Dashboard', subHeader: 'defaultSubHeader', middlewareAuth: true },
+        component: require('./views/subscriptions/list/main.vue').default
     },
 
     //  Popular Stores

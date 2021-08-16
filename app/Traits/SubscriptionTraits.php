@@ -155,6 +155,127 @@ trait SubscriptionTraits
     }
 
     /**
+     *  This method returns a list of subscriptions
+     */
+    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data (CommanTraits)
+            $this->getResourcesValidation($data);
+
+            //  If we already have an eloquent builder defined
+            if( is_object($builder) ){
+
+                //  Set the subscriptions to this eloquent builder
+                $subscriptions = $builder;
+
+            }else{
+
+                //  Get the subscriptions
+                $subscriptions = \App\Subscription::with(['subscriptionPlan', 'transaction'])->latest();
+
+            }
+
+            //  Filter the subscriptions
+            $subscriptions = $this->filterResources($data, $subscriptions);
+
+            //  Return subscriptions
+            return $this->collectionResponse($data, $subscriptions, $paginate, $convert_to_api_format);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method filters the subscriptions by search or status
+     */
+    public function filterResources($data = [], $subscriptions)
+    {
+        //  If we need to search for specific subscriptions
+        if ( isset($data['search']) && !empty($data['search']) ) {
+
+            $subscriptions = $this->filterResourcesBySearch($data, $subscriptions);
+
+        }elseif ( isset($data['status']) && !empty($data['status']) ) {
+
+            $subscriptions = $this->filterResourcesByStatus($data, $subscriptions);
+
+        }
+
+        //  Return the subscriptions
+        return $subscriptions;
+    }
+
+    /**
+     *  This method filters the subscriptions by search
+     */
+    public function filterResourcesBySearch($data = [], $subscriptions)
+    {
+        //  Set the search term e.g "Subscription 1"
+        $search_term = $data['search'] ?? null;
+
+        //  Return searched subscriptions otherwise original subscriptions
+        return empty($search_term) ? $subscriptions : $subscriptions->search($search_term);
+
+    }
+
+    /**
+     *  This method filters the subscriptions by status
+     */
+    public function filterResourcesByStatus($data = [], $subscriptions)
+    {
+        //  Set the statuses to an empty array
+        $statuses = [];
+
+        //  Set the status filters e.g ["active", "inactive", ...] or "active,inactive, ..."
+        $status_filters = $data['status'] ?? $data;
+
+        //  If the filters are provided as String format e.g "active,inactive"
+        if( is_string($status_filters) ){
+
+            //  Set the statuses to the exploded Array ["active", "inactive"]
+            $statuses = explode(',', $status_filters);
+
+        }elseif( is_array($status_filters) ){
+
+            //  Set the statuses to the given Array ["active", "inactive"]
+            $statuses = $status_filters;
+
+        }
+
+        //  Clean-up each status filter
+        foreach ($statuses as $key => $status) {
+
+            //  Convert " active " to "Active"
+            $statuses[$key] = ucfirst(strtolower(trim($status)));
+        }
+
+        if ( $subscriptions && count($statuses) ) {
+
+            if( in_array('Active', $statuses) ){
+
+                $subscriptions = $subscriptions->active();
+
+            }elseif( in_array('Inactive', $statuses) ){
+
+                $subscriptions = $subscriptions->inActive();
+
+            }
+
+        }
+
+        //  Return the subscriptions
+        return $subscriptions;
+    }
+
+    /**
      *  This method generates a subscription creation report
      */
     public function generateResourceCreationReport($model)

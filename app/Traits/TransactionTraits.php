@@ -109,6 +109,56 @@ trait TransactionTraits
     }
 
     /**
+     *  This method updates an existing transaction
+     */
+    public function updateResource($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Verify permissions
+            $this->updateResourcePermission($user);
+
+            //  Validate the data
+            $this->updateResourceValidation($data);
+
+            //  Extract the current transaction data
+            $template = collect($this)->only($this->getFillable())->toArray();
+
+            //  Set the status id otherwise default to original value
+            $template['status_id'] = $data['status_id'] ?? $template['status_id'];
+
+            /**
+             *  Update the resource details
+             */
+            $updated = $this->update($template);
+
+            //  If updated successfully
+            if ($updated) {
+
+                //  Re-arrange location transactions
+                $this->assignResourceToLocations($data);
+
+                //  Return a fresh instance
+                return $this->fresh();
+
+            }else{
+
+                //  Return original instance
+                return $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method returns a list of transactions
      */
     public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
@@ -219,6 +269,33 @@ trait TransactionTraits
     }
 
     /**
+     *  This method checks permissions for updating an existing resource
+     */
+    public function updateResourcePermission($user = null)
+    {
+        try {
+
+            //  If the user is provided
+            if( $user ){
+
+                //  Check if the user is authourized to update the resource
+                if ($user->can('update', $this)) {
+
+                    //  Return "Not Authourized" Error
+                    return help_not_authorized();
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method validates creating a new resource
      */
     public function createResourceValidation($data = [])
@@ -254,6 +331,24 @@ trait TransactionTraits
             throw($e);
 
         }
+    }
+
+    /**
+     *  This method validates updating an existing resource
+     */
+    public function updateResourceValidation($data = [])
+    {
+        try {
+
+            //  Run the resource creation validation
+            $this->createResourceValidation($data);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
     }
 
 }

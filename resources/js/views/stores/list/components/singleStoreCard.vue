@@ -12,13 +12,22 @@
                 <!-- Subscription Countdown timer -->
                 <transition name="slide-right-fade">
 
-                    <countdown v-if="hasSubscribed" :datetime="subscriptionExpiryTime"
-                               :title="'Subscription #'+subscriptionId+':' " position="right"
-                               :humanize="true" @expired="handleSubscriptionExpiryStatus()">
-                    </countdown>
+                    <div :style="{ position: 'absolute', right: '0' }">
 
-                    <small v-else :style="{ position: 'absolute', right: '0' }"
-                            :class="['font-weight-bold', 'text-danger', 'border-bottom-dashed']">No subscription</small>
+                        <countdown v-if="hasSubscribed" :datetime="subscriptionExpiryTime"
+                                :title="'Subscription #'+subscriptionId+':' " position="right"
+                                :humanize="true" @expired="handleSubscriptionExpiryStatus()">
+                        </countdown>
+
+                        <div v-else>
+                            <!-- If we don't have a subscription -->
+                            <Poptip trigger="hover" content="This store does not have an active subscription plan. Dial to pay for a subscription plan to allow customers to visit your store"
+                                            word-wrap width="300">
+                                <small :class="['font-weight-bold', 'text-danger', 'border-bottom-dashed']">No subscription</small>
+                            </Poptip>
+                        </div>
+
+                    </div>
 
                 </transition>
 
@@ -61,13 +70,14 @@
 
                             </span>
 
+                            <!-- Store short code -->
                             <span class="d-inline-block">
-
-                                <!-- Locations Button -->
-                                <Button type="dashed" size="small" class="text-primary" @click.native.stop="navigateToViewStoreLocations()">
-                                    {{ numberOfLocations }} {{ numberOfLocations == 1 ? ' Location' : ' Locations' }}
-                                </Button>
-
+                                <span>Dial</span>
+                                <span :class="['font-weight-bold', 'text-primary', 'border-bottom-dashed']"
+                                    :style="{ fontSize: '1.5em' }">
+                                    {{ visitShortCodeDialingCode }}
+                                </span>
+                                <span>to visit store</span>
                             </span>
 
                         </template>
@@ -88,10 +98,13 @@
                             <template v-if="hasSubscribed">
 
                                 <!-- Clone store -->
+                                <Button type="dashed" size="small" icon="ios-pin-outline" @click.native.stop="navigateToViewStoreLocations()">Locations</Button>
+
+                                <!-- Clone store -->
                                 <Button type="dashed" size="small" icon="ios-copy-outline" @click.native.stop="navigateToCloneStore()">Clone</Button>
 
                                 <!-- View store -->
-                                <Button type="dashed" size="small" class="text-primary" @click.native.stop="navigateToViewStore()">View</Button>
+                                <Button type="dashed" size="small" class="text-primary ml-4" @click.native.stop="navigateToViewStore()">View</Button>
 
                             </template>
 
@@ -177,8 +190,18 @@
             hasPaymentShortCode(){
                 return this.store['_attributes']['payment_short_code'] ? true : false;
             },
-            numberOfLocations(){
-                return this.store['_links']['bos:locations'].total;
+            hasVisitShortCode(){
+                return this.store['_attributes']['visit_short_code'] ? true : false;
+            },
+            visitShortCode(){
+                if(this.hasVisitShortCode){
+                    return (this.store['_attributes']['visit_short_code'] || {});
+                }
+            },
+            visitShortCodeDialingCode(){
+                if(this.visitShortCode){
+                    return this.visitShortCode.dialing_code;
+                }
             },
             contentClasses(){
 

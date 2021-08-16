@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Order;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Transaction;
 
 class OrderController extends Controller
 {
@@ -34,21 +35,8 @@ class OrderController extends Controller
     {
         try {
 
-            //  Get the order
-            $order = Order::where('id', $order_id)->first() ?? null;
-
-            //  Check if the order exists
-            if ($order) {
-
-                //  Return the updated order
-                return $order->updateResource($request, $this->user)->convertToApiFormat();
-
-            } else {
-
-                //  Not Found
-                return help_resource_not_found();
-
-            }
+            //  Return the updated location
+            return (new Order())->getResource($order_id)->updateResource($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 
@@ -201,7 +189,7 @@ class OrderController extends Controller
     {
         try {
 
-            //  Send the order payment request
+            //  Create the order transaction
             return (new Order())->getResource($order_id)->createResourceTransaction($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {

@@ -89,7 +89,7 @@ class Subscription extends Model
      */
     public function transaction()
     {
-        return $this->belongsTo('App\Transaction');
+        return $this->morphOne(Transaction::class, 'owner')->latest();
     }
 
     /*
@@ -115,6 +115,19 @@ class Subscription extends Model
     protected $appends = [
         'resource_type',
     ];
+
+    /**
+     *  Returns the subscription active status and description
+     */
+    public function getActiveAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Active' : 'Inactive',
+            'description' => $value ? 'This subscription is active'
+                                    : 'This subscription is not active'
+        ];
+    }
 
     //  ON DELETE EVENT
     public static function boot()

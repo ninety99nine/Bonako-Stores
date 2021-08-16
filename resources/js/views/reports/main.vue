@@ -510,6 +510,9 @@
         },
         created(){
 
+            //  Change dashboard heading
+            this.$emit('changeHeading', 'Bonako Online');
+
         }
     }
 </script>
