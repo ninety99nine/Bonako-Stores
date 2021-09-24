@@ -77,7 +77,7 @@ class ShortCode extends Model
      */
     public function getDialingCodeAttribute()
     {
-        $main_short_code = env('MAIN_SHORT_CODE');
+        $main_short_code = config('app.MAIN_SHORT_CODE');
 
         $code = $this->code;
 

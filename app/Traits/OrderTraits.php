@@ -918,7 +918,7 @@ trait OrderTraits
                 $customer_mobile_number = $this->customer->user->mobile_number['number'];
 
                 //  Set the main short code
-                $main_short_code = '*'.env('MAIN_SHORT_CODE').'#';
+                $main_short_code = '*'.config('app.MAIN_SHORT_CODE').'#';
 
                 //  Set the main short code
                 $website_domain = env('MAIN_WEBSITE_DOMAIN');

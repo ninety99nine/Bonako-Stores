@@ -2,6 +2,12 @@
 
 return [
     /*
+     * CUSTOM VARIABLES FOR BONAKO
+     */
+    'MAIN_SHORT_CODE' => env('MAIN_SHORT_CODE'),
+    'MAIN_WEBSITE_DOMAIN' => env('MAIN_WEBSITE_DOMAIN'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Name
     |--------------------------------------------------------------------------
