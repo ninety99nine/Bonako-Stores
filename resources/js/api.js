@@ -96,8 +96,7 @@ class Api {
              *  returned a 401 the user is clearly not logged in on the server side, so
              *  all we need to do is log the user out only from the client side. To do
              *  this we use the logoutClientSide() method which will clear the local
-             *  storage and redirect the user to the login page
-             *
+             *  storage and redirect the user to the login page.
              */
             auth.logoutClientSide();
         }

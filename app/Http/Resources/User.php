@@ -83,7 +83,25 @@ class user extends JsonResource
                 'bos:stores' => [
                     'href' => route('my-stores'),
                     'title' => 'The stores that are created, shared or favourited by this user',
-                ]
+                ],
+
+                //  Link to the user's favourite stores
+                'bos:favourite-stores' => [
+                    'href' => route('my-favourite-stores'),
+                    'title' => 'The stores favourited by this user',
+                ],
+
+                //  Link to the user's shared stores
+                'bos:shared-stores' => [
+                    'href' => route('my-shared-stores'),
+                    'title' => 'The stores shared by this user',
+                ],
+
+                //  Link to the user's created stores
+                'bos:created-stores' => [
+                    'href' => route('my-created-stores'),
+                    'title' => 'The stores created by this user',
+                ],
 
             ]);
 

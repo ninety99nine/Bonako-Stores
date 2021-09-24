@@ -120,12 +120,18 @@ class Auth {
 
             }else{
 
+                /** If we do not have a token, then it makes no sense to fire the logoutClientSide() nethod
+                 *  since this will fire the logoutServerSide() which actually requires the token
+                 *  otherwise this will return a 401 Not Authorized response. It also is a useless
+                 *  request since we will never be able to logout the user without the token. We
+                 *  can however simply logout the user on the client side which just clears the
+                 *  user and token data and simply redirects the user to the login page.
+                 */
+
                 console.log('We don\'t have a locally stored token');
 
-                /** Logout to return to the login screen. We need to use the "async" and "await" to
-                 *  perform the api call and wait for a response.
-                 */
-                await this.logout();
+                //  Logout the client side
+                this.logoutClientSide();
 
             }
 
@@ -150,8 +156,8 @@ class Auth {
         console.log(this.token);
 
         /** Make an Api call to get the API Home Resource. It is important to note that the api.call() method
-         *  defined in the app.js file will automatically invoke the auth.logout() method if the api call
-         *  returns a status 401 "Unauthenticated".
+         *  defined in the app.js file will automatically invoke the auth.logoutClientSide() method if the
+         *  api call returns a status 401 "Unauthenticated".
          */
         return api.call('get', '/api/me')
             .then(({data}) => {

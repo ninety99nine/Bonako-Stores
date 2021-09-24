@@ -64,6 +64,9 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::get('/', 'UserController@getUser')->name('profile');
 
         Route::get('/stores', 'UserController@getUserStores')->name('stores');
+        Route::get('/stores?type=favourite', 'UserController@getUserStores')->name('favourite-stores');
+        Route::get('/stores?type=created', 'UserController@getUserStores')->name('created-stores');
+        Route::get('/stores?type=shared', 'UserController@getUserStores')->name('shared-stores');
 
         //  Single store    /api/me/store/{store_id}   name => my-store
         Route::get('/stores/{store_id}', 'UserController@getUserStore')->name('store');
