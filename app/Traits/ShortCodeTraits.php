@@ -118,7 +118,8 @@ trait ShortCodeTraits
                     $available_short_code->update([
                         'owner_id' => $model->id,
                         'owner_type' => $model->resource_type,
-                        'expires_at' => $expires_at
+                        'expires_at' => $expires_at,
+                        'user_id' => $user->id
                     ]);
 
                     //  Get a fresh instance of the available short code
