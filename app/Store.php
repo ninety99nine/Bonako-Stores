@@ -162,19 +162,19 @@ class Store extends Model
     }
 
     /*
-     *  Returns the visit short codes owned by this store
-     */
-    public function visitShortCode()
-    {
-        return $this->shortCode()->where('action', 'visit')->where('user_id', auth()->user()->id);
-    }
-
-    /*
      *  Returns the payment short codes owned by this store
      */
     public function paymentShortCode()
     {
         return $this->shortCode()->where('action', 'payment')->where('user_id', auth()->user()->id);
+    }
+
+    /*
+     *  Returns the visit short codes owned by this store
+     */
+    public function visitShortCode()
+    {
+        return $this->shortCode()->where('action', 'visit');
     }
 
     /*
