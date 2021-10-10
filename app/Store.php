@@ -166,7 +166,7 @@ class Store extends Model
      */
     public function visitShortCode()
     {
-        return $this->shortCode()->where('action', 'visit');
+        return $this->shortCode()->where('action', 'visit')->where('user_id', auth()->user()->id);
     }
 
     /*
@@ -174,7 +174,7 @@ class Store extends Model
      */
     public function paymentShortCode()
     {
-        return $this->shortCode()->where('action', 'payment');
+        return $this->shortCode()->where('action', 'payment')->where('user_id', auth()->user()->id);
     }
 
     /*

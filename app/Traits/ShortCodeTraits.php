@@ -67,7 +67,7 @@ trait ShortCodeTraits
             $location_id = $data['location_id'] ?? null;
 
             //  Search for a current active short code
-            $current_short_code = $this->getCurrentResource($action, $model);
+            $current_short_code = $this->getCurrentResource($action, $model, $user);
 
             //  If this is a payment short code
             if( $action == 'payment' ){
@@ -284,12 +284,13 @@ trait ShortCodeTraits
      *  This method will search and return a short code
      *  that matches the given action and owning model
      */
-    public function getCurrentResource($action, $model)
+    public function getCurrentResource($action, $model, $user)
     {
         $search = [
             'action' => $action,
             'owner_id' => $model->id,
-            'owner_type' => $model->resource_type
+            'owner_type' => $model->resource_type,
+            'user_id' => $user->id,
         ];
 
         return \App\ShortCode::where($search)->latest()->first();
@@ -306,7 +307,7 @@ trait ShortCodeTraits
             'action' => $action
         ];
 
-        return \App\ShortCode::where($search)->where('expires_at', '<', Carbon::now())->latest()->first();
+        return \App\ShortCode::where($search)->where('expires_at', '<', Carbon::now())->oldest()->first();
     }
 
     /**
