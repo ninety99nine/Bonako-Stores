@@ -230,14 +230,17 @@ trait StoreTraits
      */
     public function filterResources($data = [], $stores, $user)
     {
+        //  If we need to filter for specific stores
+        if ( isset($data['type']) && !empty($data['type']) ) {
+
+            $stores = $this->filterResourceStoresByType($data, $stores, $user);
+
+        }
+
         //  If we need to search for specific stores
         if ( isset($data['search']) && !empty($data['search']) ) {
 
             $stores = $this->filterResourcesBySearch($data, $stores);
-
-        }elseif ( isset($data['type']) && !empty($data['type']) ) {
-
-            $stores = $this->filterResourceStoresByType($data, $stores, $user);
 
         }
 
