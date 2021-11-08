@@ -41,7 +41,7 @@ class Store extends Model
      */
     public function scopeSearch($query, $searchTerm)
     {
-        return $query->where('id', $searchTerm)->orWhere('name', 'like', '%'.$searchTerm.'%');
+        return $query->where('stores.id', $searchTerm)->orWhere('stores.name', 'like', '%'.$searchTerm.'%');
     }
 
     /*
