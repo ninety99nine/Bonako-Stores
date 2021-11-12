@@ -52,4 +52,9 @@ trait MobileVerificationTraits
         }
 
     }
+
+    public function convertMobileToMsisdn($mobile){
+        return '267'.preg_replace("/^267/", "$1", $mobile);
+    }
+
 }

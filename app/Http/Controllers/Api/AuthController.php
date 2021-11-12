@@ -535,6 +535,7 @@ class AuthController extends Controller
 
             //  Get the mobile number
             $mobile_number = $request->input('mobile_number');
+            $mobile_number = (new MobileVerification)->convertMobileToMsisdn($mobile_number);
 
             //  Get the mobile verification type
             $type = $request->input('type');
@@ -592,6 +593,7 @@ class AuthController extends Controller
 
             //  Get the mobile number
             $mobile_number = $request->input('mobile_number');
+            $mobile_number = (new MobileVerification)->convertMobileToMsisdn($mobile_number);
 
             //  Get the mobile verification type
             $type = $request->input('type');
@@ -621,12 +623,7 @@ class AuthController extends Controller
 
             //  Get the mobile number
             $mobile_number = $request->input('mobile_number');
-
-            //  Get the mobile verification type
-            $type = $request->input('type');
-
-            //  Get the mobile verification code
-            $code = $request->input('code');
+            $mobile_number = (new MobileVerification)->convertMobileToMsisdn($mobile_number);
 
             //  Find matching mobile verification
             $mobileVerification = MobileVerification::where([
@@ -676,6 +673,9 @@ class AuthController extends Controller
 
             // Retrieve the validated input data
             $registration_data = $request->all();
+
+            //  Convert the mobile number to MSISDN format
+            $registration_data['mobile_number'] = (new MobileVerification)->convertMobileToMsisdn($registration_data['mobile_number']);
 
             //  If the password was provided
             if (isset($registration_data['password'])) {
