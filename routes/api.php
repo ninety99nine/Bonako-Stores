@@ -44,7 +44,7 @@ Route::namespace('Api')->prefix('auth')->group(function () {
     Route::post('account-exists', 'AuthController@accountExists')->name('account-exists');
     Route::post('generate-mobile-verification-code', 'AuthController@generateMobileVerificationCode')->name('generate-mobile-verification-code');
     Route::post('verify-mobile-verification-code', 'AuthController@verifyMobileVerificationCode')->name('verify-mobile-verification-code');
-    Route::post('show-mobile-verification-code', 'AuthController@showMobileVerificationCode')->name('show-mobile-verification-code');
+    Route::get('show-mobile-verification-code', 'AuthController@showMobileVerificationCode')->name('show-mobile-verification-code');
 
     Route::post('send-mobile-account-verification-code', 'AuthController@sendMobileAccountVerificationCode')->name('send-mobile-account-verification-code');
     Route::post('verify-mobile-account-verification-code', 'AuthController@verifyMobileAccountVerificationCode')->name('verify-mobile-account-verification-code');
