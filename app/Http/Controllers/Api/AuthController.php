@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use DB;
 use Twilio;
 use App\User;
+use App\MobileVerification;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Mail\SendPasswordResetLink;
@@ -224,17 +225,25 @@ class AuthController extends Controller
     {
         try {
 
+            //  Get the Email (If provided)
+            $email = $request->input('email');
+
+            //  Get the Mobile Number (If provided)
+            $mobile_number = $request->input('mobile_number');
+
+            //  Set the validation rules
+            $validation_rules = [];
+
+            if(!empty($email)){
+                $validation_rules['email'] = 'required|email|unique:users,email';
+            }
+
+            if(!empty($mobile_number)){
+                $validation_rules['mobile_number'] = 'required|regex:/^[0-9]+$/i|unique:users,mobile_number';
+            }
+
             //  Validate
-            $validator = Validator::make($request->all(), [
-
-                /* Validation Rules
-                 *
-                 *  # Make sure that the user provided a valid mobile number or email
-                 */
-                'email' => 'required_without:mobile_number|email',
-                'mobile_number' => 'sometimes|required|regex:/^[0-9]+$/i'
-
-            ], [
+            $validator = Validator::make($request->all(), $validation_rules, [
 
                 //  Email Validation Error Messages
                 'email.required' => 'Enter a valid email address e.g email@example.com',
@@ -243,6 +252,7 @@ class AuthController extends Controller
                 //  Mobile Number Validation Error Messages
                 'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567',
                 'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567'
+
             ]);
 
             //  If the validation failed
@@ -253,34 +263,47 @@ class AuthController extends Controller
 
             }
 
-            //  Get the Email (If provided)
-            $email = $request->input('email');
-
-            //  Get the Mobile Number (If provided)
-            $mobile_number = $request->input('mobile_number');
-
             //  If we must check if an account exists using the email
             if( !empty( $email ) ){
 
                 //  Get the first user that matches the given email
-                $user = DB::table('users')->where('email', $email)->first();
-
-            //  Otherwise if we must check if an account exists using the mobile number
-            }elseif( !empty( $mobile_number ) ){
-
-                //  Get the first user that matches the given mobile number
-                $user = \App\User::searchMobile($mobile_number)->first();
+                $user = $user_via_email_account = DB::table('users')->where('email', $email)->first();
 
             }
 
-            return response()->json([
+            //  Otherwise if we must check if an account exists using the mobile number
+            if( !empty( $mobile_number ) ){
+
+                //  Get the first user that matches the given mobile number
+                $user = $user_via_mobile_account = \App\User::searchMobile($mobile_number)->first();
+
+            }
+
+            $response = [
                 'user' => !empty($user) ? [
                     'first_name' => $user->first_name,
                     'last_name' => $user->last_name,
                     'requires_password' => is_null($user->password),
-                ] : null,
-                'exists' => !empty($user) ? true : false
-            ], 200);
+                    'requires_mobile_number_verification' => !is_null($user->mobile_number_verification_code),
+                ] : null
+            ];
+
+            if(!empty($email) && !empty($mobile_number)){
+
+                $response['email_account_exists'] = (isset($user_via_email_account) && !empty($user_via_email_account)) ? true : false;
+                $response['mobile_account_exists'] = (isset($user_via_mobile_account) && !empty($user_via_mobile_account)) ? true : false;
+
+            }elseif(!empty($mobile_number)){
+
+                $response['mobile_account_exists'] = (isset($user_via_mobile_account) && !empty($user_via_mobile_account)) ? true : false;
+
+            }elseif(!empty($email)){
+
+                $response['email_account_exists'] = (isset($user_via_email_account) && !empty($user_via_email_account)) ? true : false;
+
+            }
+
+            return response()->json($response, 200);
 
         } catch (\Exception $e) {
             return help_handle_exception($e);
@@ -478,9 +501,151 @@ class AuthController extends Controller
         }
     }
 
-    public function register(Request $request)
+    public function generateMobileVerificationCode(Request $request)
     {
         try {
+
+            //  Validate
+            $validator = Validator::make($request->all(), [
+
+                /* Validation Rules
+                 *
+                 *  # Make sure that the user provided a valid mobile number
+                 */
+                'type' => 'required',
+                'mobile_number' => 'required|regex:/^[0-9]+$/i',
+
+            ], [
+                //  Mobile Number Validation Error Messages
+                'type.required' => 'Enter the mobile verification type e.g account_registration, password_reset, order_delivery_confirmation',
+                'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567',
+                'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567'
+            ]);
+
+            //  If the validation failed
+            if ($validator->fails()) {
+
+                //  Throw a validation errors
+                throw ValidationException::withMessages(collect($validator->errors())->toArray());
+
+            }
+
+            //  Generate 6 digit mobile number verification code
+            $six_digit_random_number = mt_rand(100000, 999999);
+
+            //  Get the mobile number
+            $mobile_number = $request->input('mobile_number');
+
+            //  Get the mobile verification type
+            $type = $request->input('type');
+
+            //  Create new user
+            $mobileVerification = MobileVerification::create([
+                'type' => (new MobileVerification)->getMobileVerificationType($type),
+                'code' => $six_digit_random_number,
+                'mobile_number' => $mobile_number
+            ]);
+
+            if( $mobileVerification ){
+
+                return response([
+                    'message' => 'Mobile verification created successfully'
+                ], 200);
+
+            }
+
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    public function verifyMobileVerificationCode(Request $request)
+    {
+        try {
+
+            //  Validate
+            $validator = Validator::make($request->all(), [
+
+                /* Validation Rules
+                 *
+                 *  # Make sure that the user provided a valid mobile number
+                 */
+                'type' => 'required',
+                'code' => 'required',
+                'mobile_number' => 'required|regex:/^[0-9]+$/i',
+
+            ], [
+                //  Mobile Number Validation Error Messages
+                'type.required' => 'Enter the mobile verification code e.g 123456',
+                'type.required' => 'Enter the mobile verification type e.g account_registration, password_reset, order_delivery_confirmation',
+                'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567',
+                'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567'
+            ]);
+
+            //  If the validation failed
+            if ($validator->fails()) {
+
+                //  Throw a validation errors
+                throw ValidationException::withMessages(collect($validator->errors())->toArray());
+
+            }
+
+            //  Get the mobile number
+            $mobile_number = $request->input('mobile_number');
+
+            //  Get the mobile verification type
+            $type = $request->input('type');
+
+            //  Get the mobile verification code
+            $code = $request->input('code');
+
+            //  Find matching mobile verification
+            $mobileVerification = MobileVerification::where([
+                'code' => $code,
+                'type' => $type,
+                'mobile_number' => $mobile_number
+            ]);
+
+            return response([
+                'is_valid' => $mobileVerification->exists()
+            ], 200);
+
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    public function showMobileVerificationCode(Request $request)
+    {
+        try {
+
+            //  Get the mobile number
+            $mobile_number = $request->input('mobile_number');
+
+            //  Get the mobile verification type
+            $type = $request->input('type');
+
+            //  Get the mobile verification code
+            $code = $request->input('code');
+
+            //  Find matching mobile verification
+            $mobileVerification = MobileVerification::where([
+                'mobile_number' => $mobile_number
+            ])->latest()->first();
+
+            return response([
+                'mobile_verification' => $mobileVerification ? $mobileVerification : null
+            ], 200);
+
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    public function validateRegistration(Request $request)
+    {
+        try {
+
             $validator = Validator::make($request->all(), [
                 'first_name' => 'required|max:25',
                 'last_name' => 'required|max:25',
@@ -491,12 +656,26 @@ class AuthController extends Controller
 
             //  If the validation failed
             if ($validator->fails()) {
+
                 //  Throw a validation errors
                 throw ValidationException::withMessages(collect($validator->errors())->toArray());
-            } else {
-                // Retrieve the validated input data
-                $registration_data = $request->all();
+
             }
+
+        } catch (\Exception $e) {
+            return help_handle_exception($e);
+        }
+    }
+
+    public function register(Request $request)
+    {
+        try {
+
+            //  Validate the registration data
+            $this->validateRegistration($request);
+
+            // Retrieve the validated input data
+            $registration_data = $request->all();
 
             //  If the password was provided
             if (isset($registration_data['password'])) {
@@ -515,6 +694,7 @@ class AuthController extends Controller
                 'user' => $user,
                 'access_token' => $accessToken,
             ]);
+
         } catch (\Exception $e) {
             return help_handle_exception($e);
         }

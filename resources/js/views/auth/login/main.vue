@@ -241,8 +241,20 @@
 
                                 this.isLoading = false;
 
+                                var accountExists = false;
+
+                                if(this.activeTab == 'emailTab'){
+
+                                    accountExists = (data || {}).email_account_exists;
+
+                                }else if(this.activeTab == 'mobileTab'){
+
+                                    accountExists = (data || {}).mobile_account_exists;
+
+                                }
+
                                 //  If we have a matching account
-                                if( (data || {}).exists ){
+                                if( accountExists ){
 
                                     //  If the user account requires a password
                                     if( ((data || {}).user || {}).requires_password ){

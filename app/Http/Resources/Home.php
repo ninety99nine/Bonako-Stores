@@ -41,6 +41,24 @@ class Home extends JsonResource
                     'title' => 'Register new user',
                 ],
 
+                //  Link to validate registration
+                'bos:register_validation' => [
+                    'href' => route('register-validation'),
+                    'title' => 'Validate new user registration',
+                ],
+
+                //  Link to generate mobile verification code
+                'bos:generate_mobile_verification_code' => [
+                    'href' => route('generate-mobile-verification-code'),
+                    'title' => 'Generate mobile verification',
+                ],
+
+                //  Link to validate mobile verification code
+                'bos:verify_mobile_verification_code' => [
+                    'href' => route('verify-mobile-verification-code'),
+                    'title' => 'Generate mobile verification',
+                ],
+
                 //  Link to check if account exists
                 'bos:account_exists' => [
                     'href' => route('account-exists'),
@@ -60,13 +78,13 @@ class Home extends JsonResource
                 ],
 
                 //  Link to send password reset link
-                'bos:send-password-reset-link' => [
+                'bos:send_password_reset_link' => [
                     'href' => route('send-password-reset-link'),
                     'title' => 'Send the password reset link',
                 ],
 
                 //  Link to reset password
-                'bos:reset-password' => [
+                'bos:reset_password' => [
                     'href' => route('reset-password'),
                     'title' => 'Reset the user\'s password',
                 ],
@@ -78,7 +96,7 @@ class Home extends JsonResource
                 ],
 
                 //  Link to logout from all devices
-                'bos:logout-everyone' => [
+                'bos:logout_everyone' => [
                     'href' => route('logout', ['everyone' => 'true']),
                     'title' => 'Logout all devices',
                 ],
@@ -194,6 +212,12 @@ class Home extends JsonResource
 
                 //  Set if authentication status
                 'authenticated' => (auth('api')->user()) ? true : false,
+
+                //  Main USSD shortcode
+                'main_shortcode' => '*'.config('app.MAIN_SHORT_CODE').'#',
+
+                //  Shortcode to verify user account after registration
+                'verify_user_account_shortcode' => '*'.config('app.MAIN_SHORT_CODE').'*0000#'
             ],
         ];
     }

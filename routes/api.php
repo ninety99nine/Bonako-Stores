@@ -40,7 +40,12 @@ Route::get('/subscription-plans', 'Api\HomeController@getSubscriptionPlans')->na
 Route::namespace('Api')->prefix('auth')->group(function () {
     Route::post('login', 'AuthController@login')->name('login');
     Route::post('register', 'AuthController@register')->name('register');
+    Route::post('register-validation', 'AuthController@validateRegistration')->name('register-validation');
     Route::post('account-exists', 'AuthController@accountExists')->name('account-exists');
+    Route::post('generate-mobile-verification-code', 'AuthController@generateMobileVerificationCode')->name('generate-mobile-verification-code');
+    Route::post('verify-mobile-verification-code', 'AuthController@verifyMobileVerificationCode')->name('verify-mobile-verification-code');
+    Route::post('show-mobile-verification-code', 'AuthController@showMobileVerificationCode')->name('show-mobile-verification-code');
+
     Route::post('send-mobile-account-verification-code', 'AuthController@sendMobileAccountVerificationCode')->name('send-mobile-account-verification-code');
     Route::post('verify-mobile-account-verification-code', 'AuthController@verifyMobileAccountVerificationCode')->name('verify-mobile-account-verification-code');
     Route::post('send-password-reset-link', 'AuthController@sendPasswordResetLink')->name('send-password-reset-link');
