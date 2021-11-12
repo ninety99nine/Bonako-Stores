@@ -12,13 +12,6 @@ class MobileVerification extends Model
     use MobileVerificationTraits, CommonTraits;
 
     /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
-    protected $with = ['user'];
-
-    /**
      * The attributes that are mass assignable.
      *
      * @var array
