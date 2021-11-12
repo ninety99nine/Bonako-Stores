@@ -702,11 +702,11 @@ class AuthController extends Controller
                 //  Create new access token
                 $accessToken = $user->createToken('authToken');
 
-                //  Return response
-                return response([
-                    'user' => $user,
-                    'access_token' => $accessToken,
-                ]);
+                //  Login using the given user
+                auth()->loginUsingId($user->id);
+
+                //  Create new access token
+                return $this->createNewAccessToken();
 
             }else{
 
