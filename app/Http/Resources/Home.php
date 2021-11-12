@@ -59,6 +59,12 @@ class Home extends JsonResource
                     'title' => 'Generate mobile verification',
                 ],
 
+                //  Link to validate mobile verification code
+                'bos:show_mobile_verification_code' => [
+                    'href' => route('show-mobile-verification-code'),
+                    'title' => 'Show mobile verification',
+                ],
+
                 //  Link to check if account exists
                 'bos:account_exists' => [
                     'href' => route('account-exists'),
