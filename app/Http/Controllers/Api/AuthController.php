@@ -644,11 +644,12 @@ class AuthController extends Controller
         try {
 
             $validator = Validator::make($request->all(), [
-                'first_name' => 'required|max:25',
                 'last_name' => 'required|max:25',
+                'first_name' => 'required|max:25',
+                'verification_code' => 'required|max:6',
+                'password' => 'sometimes|required|confirmed',
                 'email' => 'sometimes|required|email|unique:users,email',
                 'mobile_number' => 'sometimes|required|unique:users,mobile_number',
-                'password' => 'sometimes|required|confirmed',
             ]);
 
             //  If the validation failed
@@ -677,23 +678,42 @@ class AuthController extends Controller
             //  Convert the mobile number to MSISDN format
             $registration_data['mobile_number'] = (new MobileVerification)->convertMobileToMsisdn($registration_data['mobile_number']);
 
-            //  If the password was provided
-            if (isset($registration_data['password'])) {
-                //  Hash the password using bcrypt
-                $registration_data['password'] = bcrypt($registration_data['password']);
+            $verification_code = MobileVerification::where([
+                'code' => $registration_data['verification_code'],
+                'mobile_number' => $registration_data['mobile_number']
+            ])->first();
+
+            if( $verification_code ){
+
+                //  Delete every account registration verification code
+                MobileVerification::where(['mobile_number' => $registration_data['mobile_number'], 'type' => 'account_registration'])->delete();
+
+                //  If the password was provided
+                if (isset($registration_data['password'])) {
+
+                    //  Hash the password using bcrypt
+                    $registration_data['password'] = bcrypt($registration_data['password']);
+
+                }
+
+                //  Create new user
+                $user = User::create($registration_data);
+
+                //  Create new access token
+                $accessToken = $user->createToken('authToken');
+
+                //  Return response
+                return response([
+                    'user' => $user,
+                    'access_token' => $accessToken,
+                ]);
+
+            }else{
+
+                //  Invalid verification code. Throw a validation error
+                throw ValidationException::withMessages(['verification_code' => 'The given mobile verification code is not valid']);
+
             }
-
-            //  Create new user
-            $user = User::create($registration_data);
-
-            //  Create new access token
-            $accessToken = $user->createToken('authToken');
-
-            //  Return response
-            return response([
-                'user' => $user,
-                'access_token' => $accessToken,
-            ]);
 
         } catch (\Exception $e) {
             return help_handle_exception($e);
