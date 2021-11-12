@@ -688,6 +688,9 @@ class AuthController extends Controller
                 //  Delete every account registration verification code
                 MobileVerification::where(['mobile_number' => $registration_data['mobile_number'], 'type' => 'account_registration'])->delete();
 
+                //  Set the mobile_number_verified_at
+                $registration_data['mobile_number_verified_at'] = \Carbon\Carbon::now();
+
                 //  If the password was provided
                 if (isset($registration_data['password'])) {
 
@@ -698,9 +701,6 @@ class AuthController extends Controller
 
                 //  Create new user
                 $user = User::create($registration_data);
-
-                //  Create new access token
-                $accessToken = $user->createToken('authToken');
 
                 //  Login using the given user
                 auth()->loginUsingId($user->id);

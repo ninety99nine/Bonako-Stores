@@ -19,7 +19,7 @@ class CreateUsersTable extends Migration
             $table->string('last_name')->nullable();
             $table->string('email')->unique()->nullable();
             $table->string('mobile_number')->unique()->nullable();
-            $table->string('mobile_number_verification_code')->nullable();
+            $table->timestamp('mobile_number_verified_at')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->string('account_type')->default('basic');
@@ -27,6 +27,7 @@ class CreateUsersTable extends Migration
             $table->timestamps();
 
             /*  Indexes  */
+            $table->index(['email']);
             $table->index(['mobile_number']);
         });
     }
