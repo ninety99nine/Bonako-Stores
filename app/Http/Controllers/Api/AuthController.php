@@ -546,7 +546,7 @@ class AuthController extends Controller
             }
 
             //  Generate 6 digit mobile number verification code
-            $six_digit_random_number = '123456'; //   mt_rand(100000, 999999);
+            $six_digit_random_number = mt_rand(100000, 999999);
 
             //  Get the mobile number
             $mobile_number = $request->input('mobile_number');
