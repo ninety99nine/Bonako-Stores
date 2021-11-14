@@ -37,7 +37,6 @@ class MobileVerification extends Model
      */
     public function scopeSearchByMobileAndCode($query, $mobile_number, $code)
     {
-
         //  Remove spaces from the search term
         $code = str_replace(' ', '', $code);
         $mobile_number = str_replace(' ', '', $mobile_number);
@@ -48,6 +47,25 @@ class MobileVerification extends Model
             ])->where([
                 ['mobile_number', 'like', "%267".$mobile_number."%"],
                 ['code', $code],
+            ]);
+    }
+
+    /**
+     *  Scope:
+     *  Returns mobile verifications that are being searched
+     */
+    public function scopeSearchByMobileAndType($query, $mobile_number, $type)
+    {
+        //  Remove spaces from the search term
+        $type = str_replace(' ', '', $type);
+        $mobile_number = str_replace(' ', '', $mobile_number);
+
+        return $query->where([
+                ['mobile_number', 'like', "%".$mobile_number."%"],
+                ['type', $type],
+            ])->where([
+                ['mobile_number', 'like', "%267".$mobile_number."%"],
+                ['type', $type],
             ]);
     }
 

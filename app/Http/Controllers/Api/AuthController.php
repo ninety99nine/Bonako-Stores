@@ -149,7 +149,7 @@ class AuthController extends Controller
             } else {
 
                 //  Handle the account verification process (If required)
-                $handle_account_verification = $this->handleAccountVerification($request);
+                $handle_account_verification = $this->handleAccountVerification($request, true);
 
                 $login_requires_update = $handle_account_verification['requires_update'];
 
@@ -546,7 +546,7 @@ class AuthController extends Controller
             }
 
             //  Generate 6 digit mobile number verification code
-            $six_digit_random_number = mt_rand(100000, 999999);
+            $six_digit_random_number = '123456'; //   mt_rand(100000, 999999);
 
             //  Get the mobile number
             $mobile_number = $request->input('mobile_number');
@@ -658,44 +658,21 @@ class AuthController extends Controller
     {
         try {
 
-            //  Set the verification code (If exists)
-            $verification_code = trim( $request->input('verification_code') );
-
-            $custom_validation_messages = [
+            /**
+             *  The verification code is required to verify that the mobile number
+             *  does indeed belong to the given user.
+             */
+            $validator = Validator::make($request->all(), [
+                'password' => 'required|confirmed',
+                'last_name' => 'required|min:3|max:20',
+                'first_name' => 'required|min:3|max:20',
+                'verification_code' => 'required|max:6',
+                'email' => 'sometimes|required|email|unique:users,email',
+                'mobile_number' => 'sometimes|required|unique:users,mobile_number',
+            ], [
                 'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567',
                 'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567'
-            ];
-
-            //  If the verificaiton code was not provided
-            if( empty( $verification_code ) ){
-                /**
-                 *  Then we are simply attempting to validate an account that should not exists.
-                 *  In this case we should validate the creation of a non-existent account.
-                 */
-                $validator = Validator::make($request->all(), [
-                    'password' => 'required|confirmed',
-                    'last_name' => 'required|min:3|max:20',
-                    'first_name' => 'required|min:3|max:20',
-                    'email' => 'sometimes|required|email|unique:users,email',
-                    'mobile_number' => 'sometimes|required|unique:users,mobile_number',
-                ], $custom_validation_messages);
-
-            //  If the verificaiton code was provided
-            }else{
-                /**
-                 *  Then we are attempting to validate an account that should be existing.
-                 *  In this case we should validate the creation of an existing account.
-                 */
-                $validator = Validator::make($request->all(), [
-                    'password' => 'required|confirmed',
-                    'last_name' => 'required|min:3|max:20',
-                    'first_name' => 'required|min:3|max:20',
-                    'verification_code' => 'required|max:6',
-                    'email' => 'sometimes|required|email|unique:users,email',
-                    'mobile_number' => 'sometimes|required|unique:users,mobile_number',
-                ]);
-
-            }
+            ]);
 
             //  If the validation failed
             if ($validator->fails()) {
@@ -729,7 +706,7 @@ class AuthController extends Controller
             $this->validateRegistration($request);
 
             //  Handle the account verification process (If required)
-            $handle_account_verification = $this->handleAccountVerification($request);
+            $handle_account_verification = $this->handleAccountVerification($request, false);
 
             $registration_requires_update = $handle_account_verification['requires_update'];
 
@@ -766,7 +743,7 @@ class AuthController extends Controller
         }
     }
 
-    public function handleAccountVerification($request){
+    public function handleAccountVerification($request, $must_have_account = false){
 
         $request_data = $request->all();
 
@@ -786,7 +763,8 @@ class AuthController extends Controller
             $account_exists = $accountExistsInfo['account_exists'];
             $user = $accountExistsInfo['user'];
 
-            if( $account_exists ){
+            //  If the user account exists
+            if( $account_exists == true ){
 
                 $requires_mobile_number_verification = $user['requires_mobile_number_verification'];
                 $requires_password = $user['requires_password'];
@@ -794,24 +772,7 @@ class AuthController extends Controller
                 //  If this account required mobile verification
                 if( $requires_mobile_number_verification ){
 
-                    //  Search for matching verification codes
-                    $verification_code = MobileVerification::searchByMobileAndCode($mobile_number, $verification_code)->first();
-
-                    //  If we have a matching verification code
-                    if( $verification_code ){
-
-                        //  Delete account registration verification codes
-                        MobileVerification::where(['mobile_number' => $mobile_number, 'type' => 'account_registration'])->delete();
-
-                        //  Set the mobile_number_verified_at
-                        $request_data['mobile_number_verified_at'] = \Carbon\Carbon::now();
-
-                    }else{
-
-                        //  Invalid verification code. Throw a validation error
-                        throw ValidationException::withMessages(['verification_code' => 'The given mobile verification code is not valid']);
-
-                    }
+                    $request_data['mobile_number_verified_at'] = $this->verifyVerificationCode($mobile_number, $verification_code);
 
                 }
 
@@ -844,7 +805,17 @@ class AuthController extends Controller
                     'request_data' => $request_data
                 ];
 
-            }else{
+            //  If the user account does not exist and we do not need it
+            }elseif( $must_have_account == false ){
+
+                $request_data['mobile_number_verified_at'] = $this->verifyVerificationCode($mobile_number, $verification_code);
+
+                $request_data['password'] = bcrypt($request_data['password']);
+
+            }
+
+            //  If we must have a user account but we don't have one
+            if($must_have_account == true && $account_exists == false){
 
                 if( !empty($email) ){
 
@@ -869,6 +840,28 @@ class AuthController extends Controller
             'requires_update' => false,
             'request_data' => $request_data
         ];
+    }
+
+    public function verifyVerificationCode($mobile_number, $verification_code){
+
+        //  Search for matching verification codes
+        $verification_code = MobileVerification::searchByMobileAndCode($mobile_number, $verification_code)->first();
+
+        //  If we have a matching verification code
+        if( $verification_code ){
+
+            //  Delete account registration verification codes
+            MobileVerification::searchByMobileAndType($mobile_number, 'account_registration')->delete();
+
+            //  Return the verified datetime
+            return \Carbon\Carbon::now();
+
+        }else{
+
+            //  Invalid verification code. Throw a validation error
+            throw ValidationException::withMessages(['verification_code' => 'The given mobile verification code is not valid']);
+
+        }
     }
 
     public function sendPasswordResetLink(Request $request)
