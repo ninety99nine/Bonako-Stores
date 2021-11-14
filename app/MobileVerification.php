@@ -24,11 +24,31 @@ class MobileVerification extends Model
      *  Scope:
      *  Returns mobile verifications that are being searched
      */
-    public function scopeSearch($query, $searchTerm)
+    public function scopeSearchByCode($query, $code)
     {
-        return $query->whereHas('code', function (Builder $query) use ($searchTerm) {
-            $query->search($searchTerm);
-        });
+        $code = str_replace(' ', '', $code);
+
+        return $query->where('code', $code);
+    }
+
+    /**
+     *  Scope:
+     *  Returns mobile verifications that are being searched
+     */
+    public function scopeSearchByMobileAndCode($query, $mobile_number, $code)
+    {
+
+        //  Remove spaces from the search term
+        $code = str_replace(' ', '', $code);
+        $mobile_number = str_replace(' ', '', $mobile_number);
+
+        return $query->where([
+                ['mobile_number', 'like', "%".$mobile_number."%"],
+                ['code', $code],
+            ])->where([
+                ['mobile_number', 'like', "%267".$mobile_number."%"],
+                ['code', $code],
+            ]);
     }
 
     /**

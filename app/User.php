@@ -194,12 +194,22 @@ class User extends Authenticatable
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'name'
+        'resource_type', 'name', 'requires_password', 'requires_mobile_number_verification'
     ];
 
     public function getNameAttribute($value)
     {
         return trim($this->first_name.' '.$this->last_name);
+    }
+
+    public function getRequiresPasswordAttribute($value)
+    {
+        return empty($this->password);
+    }
+
+    public function getRequiresMobileNumberVerificationAttribute($value)
+    {
+        return empty($this->mobile_number_verified_at);
     }
 
     public function getMobileNumberAttribute($value)
