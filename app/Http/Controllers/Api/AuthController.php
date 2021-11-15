@@ -42,6 +42,8 @@ class AuthController extends Controller
             */
             $login_via_ussd = $request->input('login_via_ussd');
 
+            throw ValidationException::withMessages(['look login_via_ussd' => $login_via_ussd]);
+
             //  Validate "Login Details"
             $validator = Validator::make($request->all(), [
                 /* Validation Rules
