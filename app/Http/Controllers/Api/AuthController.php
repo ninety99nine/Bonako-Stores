@@ -76,8 +76,8 @@ class AuthController extends Controller
                 'email.required_without' => 'Enter your email to login e.g email@example.com',
 
                 //  Password Validation Error Messages
-                'password.required_without' => 'Enter your password to login',
-                'password.required_if' => 'Enter your password to login',
+                'password.required_without' => 'Enter your password to login !1!',
+                'password.required_if' => 'Enter your password to login !2!',
             ]);
 
             //  If the validation failed
