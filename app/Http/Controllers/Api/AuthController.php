@@ -666,7 +666,7 @@ class AuthController extends Controller
                 'password' => 'required|confirmed',
                 'last_name' => 'required|min:3|max:20',
                 'first_name' => 'required|min:3|max:20',
-                'verification_code' => 'required|max:6',
+                'verification_code' => 'required|size:6',
                 'email' => 'sometimes|required|email|unique:users,email',
                 'mobile_number' => 'sometimes|required|unique:users,mobile_number',
             ], [
@@ -817,17 +817,10 @@ class AuthController extends Controller
             //  If we must have a user account but we don't have one
             if($must_have_account == true && $account_exists == false){
 
-                if( !empty($email) ){
-
-                    //  The account with the given mobile number does not exist. Throw a validation error
-                    throw ValidationException::withMessages(['email' => 'The account using the email address "'.$email.'" does not exist !!!']);
-
-                }
-
                 if( !empty($mobile_number) ){
 
                     //  The account with the given mobile number does not exist. Throw a validation error
-                    throw ValidationException::withMessages(['mobile_number' => 'The account using the mobile number "'.$mobile_number.'" does not exist. ***']);
+                    throw ValidationException::withMessages(['mobile_number' => 'The account using the mobile number "'.$mobile_number.'" does not exist']);
 
                 }
 
@@ -934,59 +927,65 @@ class AuthController extends Controller
     public function resetPassword(Request $request)
     {
         try {
-            //  Validate the user's inputs
-            $userData = $request->validate([
-                'email' => 'email|required',
+
+            $validator = Validator::make($request->all(), [
                 'password' => 'required|confirmed',
+                'verification_code' => 'required|size:6',
+                'mobile_number' => 'required|regex:/^[0-9]+$/i',
+            ], [
+                'verification_code.size' => 'Enter a valid verification 6 digit verification code',
+                'verification_code.required' => 'Enter a valid verification 6 digit verification code',
+                'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567',
+                'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567',
             ]);
 
-            //  Get the user's token
-            $token = $request->input('token');
+            //  If the validation failed
+            if ($validator->fails()) {
 
-            //  Get the user's email
-            $email = $request->input('email');
+                //  Throw a validation errors
+                throw ValidationException::withMessages(collect($validator->errors())->toArray());
 
-            //  Get the user's password
-            $password = $request->input('password');
-
-            //  If the token was not provided
-            if (!$token) {
-                //  The token was not provided
-                return response()->json(['message' => 'You need a token to reset your password'], 404);
             }
 
-            //  Check if a user with the given email address exists
-            if (User::where('email', $email)->exists()) {
-                //  Check if a user has a valid token
-                if (DB::table('password_resets')->where('email', $email)->where('token', $token)->exists()) {
-                    //  Get the user
-                    $user = User::where('email', $email)->first();
+            $mobile_number = trim($request->input('mobile_number'));
+            $verification_code = trim($request->input('verification_code'));
 
-                    //  Hash and update the new password
-                    $user->password = bcrypt($password);
-                    $user->save();
+            $accountExistsInfo = $this->accountExists($request, true, false);
+            $account_exists = $accountExistsInfo['account_exists'];
+            $user = $accountExistsInfo['user'];
 
-                    //  Delete all password reset tokens
-                    DB::table('password_resets')->where('email', $email)->delete();
+            //  If the user account exists
+            if( $account_exists == true ){
+
+                $request_data = $request->all();
+
+                $request_data['mobile_number_verified_at'] = $this->verifyVerificationCode($mobile_number, $verification_code);
+
+                $request_data['password'] = bcrypt($request_data['password']);
+
+                $updated = $user->update($request_data);
+
+                if( $updated ){
+
+                    //  Login using the given user
+                    auth()->loginUsingId($user->id);
 
                     //  Create new access token
-                    $accessToken = $user->createToken('authToken');
+                    return $this->createNewAccessToken();
 
-                    //  Return response
-                    return response([
-                        'user' => $user,
-                        'access_token' => $accessToken,
-                    ]);
-                } else {
-                    //  The provided token is not valid
-                    return response()->json(['message' => 'The token provided is not valid or has expired'], 404);
                 }
-            } else {
-                //  The provided token is not valid
-                return response()->json(['message' => 'The account using the email "'.$email.'" does not exist.'], 404);
+
+            }else{
+
+                //  The account with the given mobile number does not exist. Throw a validation error
+                throw ValidationException::withMessages(['mobile_number' => 'The account using the mobile number "'.$mobile_number.'" does not exist']);
+
             }
+
         } catch (\Exception $e) {
+
             return help_handle_exception($e);
+
         }
     }
 }
