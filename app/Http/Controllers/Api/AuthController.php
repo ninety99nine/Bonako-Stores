@@ -62,7 +62,7 @@ class AuthController extends Controller
                 'email' => 'exclude_if:login_via_ussd,true|required_without:mobile_number|email',
 
                 //  If we must login using the mobile number or email then the password is required except on login via USSD
-                'password' => 'required_without:login_via_ussd,|required_if:login_via_ussd,false',
+                'password' => 'required_without:login_via_ussd|required_if:login_via_ussd,false',
 
             ], [
                 //  Login Via USSD Validation Error Messages
