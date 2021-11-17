@@ -16,13 +16,21 @@ class User extends Authenticatable
     use HasRelationships, HasApiTokens, Notifiable, UserTraits, CommonTraits;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $casts = [
+        'accepted_terms_and_conditions' => 'boolean',   //  Return the following 1/0 as true/false
+    ];
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
         'first_name', 'last_name', 'email', 'mobile_number', 'mobile_number_verified_at',
-        'email_verified_at', 'account_type', 'password',
+        'account_type', 'password', 'accepted_terms_and_conditions'
     ];
 
     /**
@@ -32,15 +40,6 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password', 'remember_token',
-    ];
-
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
     ];
 
     /*
@@ -210,6 +209,19 @@ class User extends Authenticatable
     public function getRequiresMobileNumberVerificationAttribute($value)
     {
         return empty($this->mobile_number_verified_at);
+    }
+
+    /**
+     *  Returns the coupon allow_free_delivery status and description
+     */
+    public function getAcceptedTermsAndConditionsAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'Terms and conditions have been accepted'
+                                    : 'Terms and conditions have not been accepted'
+        ];
     }
 
     public function getMobileNumberAttribute($value)

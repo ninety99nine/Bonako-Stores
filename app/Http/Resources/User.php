@@ -19,8 +19,9 @@ class user extends JsonResource
             'id' => $this->id,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
-            'email' => $this->email,
             'mobile_number' => $this->mobile_number,
+            'mobile_number_verified_at' => $this->mobile_number_verified_at,
+            'accepted_terms_and_conditions' => $this->accepted_terms_and_conditions,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,
@@ -52,7 +53,8 @@ class user extends JsonResource
                 'bos:subscriptions' => [
                     'href' => route('my-subscriptions'),
                     'title' => 'The user subscriptions'
-                ]
+                ],
+
             ],
 
             /*  Embedded Resources */
@@ -101,6 +103,12 @@ class user extends JsonResource
                 'bos:created-stores' => [
                     'href' => route('my-created-stores'),
                     'title' => 'The stores created by this user',
+                ],
+
+                //  Link to accept the terms and conditions
+                'bos:accept-terms-and-conditions' => [
+                    'href' => route('my-accept-terms-and-conditions'),
+                    'title' => 'Accept terms and conditions',
                 ],
 
             ]);

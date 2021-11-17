@@ -27,7 +27,7 @@ class Auth {
         //  Initialize the verify mobile account verification code url to nothing
         this.verifyMobileAccountVerificationCodeUrl = null;
 
-        //  Initialize the send password reset link url to nothing
+        //  NOTE: I DELETED THIS SINCE WE USE MOBILE VERIFICATION APPROACH USED BY MOBILE APP
         this.sendPasswordResetLinkUrl = null;
 
         //  Initialize the reset password url to nothing

@@ -41,12 +41,6 @@ class Home extends JsonResource
                     'title' => 'Register new user',
                 ],
 
-                //  Link to validate registration
-                'bos:register_validation' => [
-                    'href' => route('register-validation'),
-                    'title' => 'Validate new user registration',
-                ],
-
                 //  Link to generate mobile verification code
                 'bos:generate_mobile_verification_code' => [
                     'href' => route('generate-mobile-verification-code'),
@@ -69,24 +63,6 @@ class Home extends JsonResource
                 'bos:account_exists' => [
                     'href' => route('account-exists'),
                     'title' => 'Check if user account exists',
-                ],
-
-                //  Link to send mobile account verification code
-                'bos:send_mobile_account_verification_code' => [
-                    'href' => route('send-mobile-account-verification-code'),
-                    'title' => 'Send mobile account verification code via SMS to verify mobile number ownership',
-                ],
-
-                //  Link to check if account exists
-                'bos:verify_mobile_account_verification_code' => [
-                    'href' => route('verify-mobile-account-verification-code'),
-                    'title' => 'Verify mobile account verification code to confirm mobile number ownership',
-                ],
-
-                //  Link to send password reset link
-                'bos:send_password_reset_link' => [
-                    'href' => route('send-password-reset-link'),
-                    'title' => 'Send the password reset link',
                 ],
 
                 //  Link to reset password

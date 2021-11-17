@@ -33,26 +33,17 @@ Route::get('/address-types', 'Api\HomeController@getAddressTypes')->name('addres
 Route::get('/payment-methods', 'Api\HomeController@getPaymentMethods')->name('payment-methods');
 Route::get('/subscription-plans', 'Api\HomeController@getSubscriptionPlans')->name('subscription-plans');
 
-
-
-
 //  Auth Routes
 Route::namespace('Api')->prefix('auth')->group(function () {
     Route::post('login', 'AuthController@login')->name('login');
     Route::post('register', 'AuthController@register')->name('register');
-    Route::post('register-validation', 'AuthController@validateRegistration')->name('register-validation');
     Route::post('account-exists', 'AuthController@accountExists')->name('account-exists');
-    Route::post('generate-mobile-verification-code', 'AuthController@generateMobileVerificationCode')->name('generate-mobile-verification-code');
-    Route::post('verify-mobile-verification-code', 'AuthController@verifyMobileVerificationCode')->name('verify-mobile-verification-code');
-    Route::get('show-mobile-verification-code', 'AuthController@showMobileVerificationCode')->name('show-mobile-verification-code');
-
-    Route::post('send-mobile-account-verification-code', 'AuthController@sendMobileAccountVerificationCode')->name('send-mobile-account-verification-code');
-    Route::post('verify-mobile-account-verification-code', 'AuthController@verifyMobileAccountVerificationCode')->name('verify-mobile-account-verification-code');
-    Route::post('send-password-reset-link', 'AuthController@sendPasswordResetLink')->name('send-password-reset-link');
     Route::post('reset-password', 'AuthController@resetPassword')->name('reset-password');
     Route::post('logout', 'AuthController@logout')->middleware('auth:api')->name('logout');
+    Route::get('show-mobile-verification-code', 'AuthController@showMobileVerificationCode')->name('show-mobile-verification-code');
+    Route::post('generate-mobile-verification-code', 'AuthController@generateMobileVerificationCode')->name('generate-mobile-verification-code');
+    Route::post('verify-mobile-verification-code', 'AuthController@checkMobileVerificationCodeValidity')->name('verify-mobile-verification-code');
 });
-
 
 /** NOTE THAT THIS IS REPLACED BY THE "/account-exists" ROUTE ABOVE, BUT BEFORE WE CAN REMOVE THIS ROUTE BELOW
  *  WE NEED TO UPDATE THE BONAKO USSD BUILDER TO USE THE NEW ROUTE ABOVE TO CHECK IF AN ACCOUNT EXISTS
@@ -67,6 +58,7 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
     //  Me Resource Routes
     Route::prefix('me')->name('my-')->group(function () {
         Route::get('/', 'UserController@getUser')->name('profile');
+        Route::post('/accept-terms-and-conditions', 'AuthController@acceptTermsAndConditions')->name('accept-terms-and-conditions');
 
         Route::get('/stores', 'UserController@getUserStores')->name('stores');
         Route::get('/stores?type=favourite', 'UserController@getUserStores')->name('favourite-stores');
