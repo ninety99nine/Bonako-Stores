@@ -129,7 +129,7 @@ class OrderController extends Controller
         }
     }
 
-    public function checkOrderDeliveryConfirmationCodeValidity(Request $request, $order_id)
+    public function checkOrderDeliveryConfirmationCodeValidity(Request $request)
     {
         try {
 
