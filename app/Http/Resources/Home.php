@@ -103,7 +103,7 @@ class Home extends JsonResource
 
                 //  Link to verify delivery confirmation code
                 'bos:order_verify_delivery_confirmation_code' => [
-                    'href' => route('orders-verify-delivery-confirmation-code'),
+                    'href' => route('order-verify-delivery-confirmation-code'),
                     'title' => 'Verify order delivery confirmation code',
                 ],
 
