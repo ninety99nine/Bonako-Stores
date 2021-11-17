@@ -101,6 +101,12 @@ class Home extends JsonResource
                     'title' => 'Create orders',
                 ],
 
+                //  Link to verify delivery confirmation code
+                'bos:order_verify_delivery_confirmation_code' => [
+                    'href' => route('order-verify-delivery-confirmation-code'),
+                    'title' => 'Verify order delivery confirmation code',
+                ],
+
                 //  Link to products resources (Used to create new product resource)
                 'bos:products' => [
                     'href' => route('products'),

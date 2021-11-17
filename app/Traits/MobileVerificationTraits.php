@@ -57,4 +57,8 @@ trait MobileVerificationTraits
         return '267'.preg_replace("/^267/", "$1", $mobile);
     }
 
+    public function removeMobileExt($mobile){
+        return preg_replace("/^267/", "$1", $mobile);
+    }
+
 }

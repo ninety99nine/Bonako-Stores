@@ -129,6 +129,20 @@ class OrderController extends Controller
         }
     }
 
+    public function checkOrderDeliveryConfirmationCodeValidity(Request $request, $order_id)
+    {
+        try {
+
+            //  Deliver the order
+            return (new Order())->checkDeliveryConfirmationCodeValidity($request, $this->user);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function deliverOrder(Request $request, $order_id)
     {
         try {

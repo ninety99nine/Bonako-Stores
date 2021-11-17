@@ -844,21 +844,30 @@ trait OrderTraits
              * GENERATE THE DELIVERY CONFIRMATION CODE *
              *******************************************/
 
+            //  Set the delivery reference name
+            $customer_name = $this->customer->user->first_name;
+
+            //  Set the delivery reference mobile number
+            $customer_mobile_number = $this->customer->user->mobile_number;
+
             //  Generate 6 digit mobile delivery confirmation code
             $six_digit_random_number = mt_rand(100000, 999999);
 
+            $first_3_characters = substr($six_digit_random_number, 0, 3);
+
+            $last_3_characters = substr($six_digit_random_number, -3);
+
             //  Encrypt the delivery confirmation code
-            $code = bcrypt($six_digit_random_number);
+            $delivery_confirmation_code = $first_3_characters . (new \App\MobileVerification())->removeMobileExt($customer_mobile_number) . $last_3_characters;
+
+            //  $hashed_delivery_confirmation_code = bcrypt($delivery_confirmation_code);
 
             //  Set the delivery confirmation code
-            $this->update(['delivery_confirmation_code' => $code]);
-
-            //  Set the delivery reference name
-            $name = $this->customer->user->first_name;
+            $this->update(['delivery_confirmation_code' => $delivery_confirmation_code]);
 
             //  Craft the sms message
-            $message =  trim('Hi '.$name).', your delivery confirmation code '.
-                       'for order #'.$this->number.' is ' .$six_digit_random_number.'. '.
+            $message =  trim('Hi '.$customer_name).', your delivery confirmation code '.
+                       'for order #'.$this->number.' is ' .$delivery_confirmation_code.'. '.
                        'Share this code with your merchant only after you receive your order.';
 
             $type = 'Order delivery confirmation code';
@@ -1072,6 +1081,37 @@ trait OrderTraits
         }
     }
 
+    public function checkDeliveryConfirmationCodeValidity($data = [], $user)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Validate the data
+            $this->deliverResourceValidation($data);
+
+            //  Verify permissions
+            $this->deliverResourcePermission($user);
+
+            //  Get the delivery confirmation code
+            $delivery_confirmation_code = $data('delivery_confirmation_code');
+
+            //  Find matching order
+            $order = $this->searchDeliveryConfirmationCode($delivery_confirmation_code)->first();
+
+            return response([
+                'is_valid' => !empty($order),
+                'order' => $order
+            ], 200);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
     /**
      *  This method generates a new order number
      */
@@ -1106,7 +1146,6 @@ trait OrderTraits
 
                     //  Update the order status as "Delivered"
                     $this->setDeliveryStatusToDelivered();
-
 
                     //  If the order is not paid
                     if( !$this->is_paid ){

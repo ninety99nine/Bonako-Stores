@@ -116,12 +116,12 @@ trait SmsTraits
              *  Twilio requires that the number must have the "+" prefix
              *  before the number e.g +26771234567
              */
-            //$response = Twilio::message('+'.$mobile_number, $message);
+            $response = Twilio::message('+'.$mobile_number, $message);
 
             //  Update the SMS record status
             $this->update(['status' => 'success']);
 
-            //return $response;
+            return $response;
 
 
         } catch (\Exception $e) {

@@ -81,6 +81,15 @@ class Order extends Model
 
     /*
      *  Scope:
+     *  Returns orders that are being searched
+     */
+    public function scopeSearchDeliveryConfirmationCode($query, $delivery_confirmation_code)
+    {
+        return $query->where('delivery_confirmation_code', $delivery_confirmation_code);
+    }
+
+    /*
+     *  Scope:
      *  Returns orders that are delivered
      */
     public function scopeDelivered($query)
