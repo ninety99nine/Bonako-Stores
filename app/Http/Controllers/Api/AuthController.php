@@ -22,23 +22,31 @@ class AuthController extends Controller
     {
         try {
 
+            $user = auth()->user();
+
             //  If we are logged in
-            if (auth()->user()) {
+            if ($user) {
 
                 //  Accept the terms and conditions
-                $accepted = auth()->user()->update([
+                $accepted = $user->update([
                     'accepted_terms_and_conditions' => 1
                 ]);
 
                 if( $accepted ){
 
-                    return response()->json(['accepted' => true], 200);
+                    return response()->json([
+                        'accepted' => true,
+                        'user' => (new UserResource($user))
+                    ], 200);
 
                 }
 
             }
 
-            return response()->json(['accepted' => false], 200);
+            return response()->json([
+                'accepted' => false,
+                'user' => (new UserResource($user))
+            ], 200);
 
         } catch (\Exception $e) {
 
