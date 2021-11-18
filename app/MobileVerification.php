@@ -17,7 +17,7 @@ class MobileVerification extends Model
      * @var array
      */
     protected $fillable = [
-        'type', 'code', 'mobile_number', 'meta_data'
+        'type', 'code', 'mobile_number', 'metadata'
     ];
 
     /**

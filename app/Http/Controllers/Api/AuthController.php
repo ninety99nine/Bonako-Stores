@@ -479,7 +479,7 @@ class AuthController extends Controller
             $mobile_number = $request->input('mobile_number');
 
             //  Get the metadata
-            $metadata = $request->input('metadata') ?? null;
+            $metadata = $request->input('metadata');
 
             //  Get the mobile verification type
             $type = $request->input('type');
