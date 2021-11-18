@@ -131,15 +131,19 @@ trait OrderTraits
                         //  Update the order status as "Paid"
                         $this->order->setPaymentStatusToPaid();
 
-                        //  Send the order delivery confirmation code sms
-                        $this->order->sendDeliveryConfirmationCodeSms($user);
-
                     }else{
 
                         //  Update the order status as "Unpaid"
                         $this->order->setPaymentStatusToUnpaid();
 
                     }
+
+                    /*************************************
+                     *  SEND DELIVERY CONFIRMATION CODE  *
+                     * **********************************/
+
+                    //  Send the order delivery confirmation code sms
+                    $this->order->sendDeliveryConfirmationCodeSms($user);
 
                     //  Send the new order merchant sms
                     $this->order->sendNewOrderMerchantSms($user);
