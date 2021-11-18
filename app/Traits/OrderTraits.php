@@ -1133,13 +1133,13 @@ trait OrderTraits
             $this->deliverResourcePermission($user);
 
             //  Set the delivery confirmation code
-            $delivery_confirmation_code = $data['delivery_confirmation_code'];
+            $delivery_confirmation_code = isset($data['delivery_confirmation_code']) ? $data['delivery_confirmation_code'] : null;
 
             //  Set the delivery confirmation code
-            $verification_code = $data['verification_code'];
+            $verification_code = isset($data['verification_code']) ? $data['verification_code'] : null;
 
             //  Set the mobile number
-            $mobile_number = $data['mobile_number'];
+            $mobile_number = isset($data['mobile_number']) ? $data['mobile_number'] : null;
 
             if( empty($delivery_confirmation_code) && empty($verification_code) ){
 
