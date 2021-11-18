@@ -478,6 +478,9 @@ class AuthController extends Controller
             //  Get the mobile number
             $mobile_number = $request->input('mobile_number');
 
+            //  Get the metadata
+            $metadata = $request->input('metadata') ?? null;
+
             //  Get the mobile verification type
             $type = $request->input('type');
 
@@ -486,6 +489,7 @@ class AuthController extends Controller
                 'mobile_number' => (new MobileVerification)->convertMobileToMsisdn($mobile_number),
                 'type' => (new MobileVerification)->getMobileVerificationType($type),
                 'code' => $six_digit_random_number,
+                'metadata' => $metadata
             ]);
 
             if( $mobileVerification ){
@@ -654,7 +658,7 @@ class AuthController extends Controller
                 //  If this account required mobile verification
                 if( $requires_mobile_number_verification ){
 
-                    $request_data['mobile_number_verified_at'] = $this->verifyMobileVerificationCode($mobile_number, $verification_code);
+                    $request_data['mobile_number_verified_at'] = $this->verifyMobileVerificationCode($mobile_number, $verification_code)['mobile_number_verified_at'];
 
                 }
 
@@ -690,7 +694,7 @@ class AuthController extends Controller
             //  If the user account does not exist and we do not need it
             }elseif( $must_have_account == false ){
 
-                $request_data['mobile_number_verified_at'] = $this->verifyMobileVerificationCode($mobile_number, $verification_code);
+                $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'account_registration');
 
                 $request_data['password'] = bcrypt($request_data['password']);
 
@@ -715,28 +719,6 @@ class AuthController extends Controller
             'requires_update' => false,
             'request_data' => $request_data
         ];
-    }
-
-    public function verifyMobileVerificationCode($mobile_number, $verification_code){
-
-        //  Search for matching verification codes
-        $verification_code = MobileVerification::searchByMobileAndCode($mobile_number, $verification_code)->first();
-
-        //  If we have a matching verification code
-        if( $verification_code ){
-
-            //  Delete account registration verification codes
-            MobileVerification::searchByMobileAndType($mobile_number, 'account_registration')->delete();
-
-            //  Return the verified datetime
-            return \Carbon\Carbon::now();
-
-        }else{
-
-            //  Invalid verification code. Throw a validation error
-            throw ValidationException::withMessages(['verification_code' => 'Invalid verification code']);
-
-        }
     }
 
 }

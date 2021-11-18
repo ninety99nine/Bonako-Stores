@@ -44,8 +44,29 @@ class MobileVerification extends Model
         return $query->where([
                 ['mobile_number', 'like', "%".$mobile_number."%"],
                 ['code', $code],
+            ])->orWhere([
+                ['mobile_number', 'like', "%267".$mobile_number."%"],
+                ['code', $code],
+            ]);
+    }
+
+    /**
+     *  Scope:
+     *  Returns mobile verifications that are being searched
+     */
+    public function scopeSearchByMobileAndCodeAndType($query, $mobile_number, $code, $type)
+    {
+        //  Remove spaces from the search term
+        $code = str_replace(' ', '', $code);
+        $mobile_number = str_replace(' ', '', $mobile_number);
+
+        return $query->where([
+                ['mobile_number', 'like', "%".$mobile_number."%"],
+                ['type', $type],
+                ['code', $code],
             ])->where([
                 ['mobile_number', 'like', "%267".$mobile_number."%"],
+                ['type', $type],
                 ['code', $code],
             ]);
     }

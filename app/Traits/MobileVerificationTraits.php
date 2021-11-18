@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Traits;
+use Illuminate\Validation\ValidationException;
 use App\Http\Resources\MobileVerification as MobileVerificationResource;
 use App\Http\Resources\MobileVerifications as MobileVerificationsResource;
 
@@ -37,6 +38,31 @@ trait MobileVerificationTraits
         } catch (\Exception $e) {
 
             throw($e);
+
+        }
+    }
+
+    public function verifyMobileVerificationCode($mobile_number, $verification_code, $type){
+
+        //  Search for matching verification codes
+        $mobile_verification_record = $this->searchByMobileAndCodeAndType($mobile_number, $verification_code, $type)->first();
+
+        //  If we have a matching verification code
+        if( $mobile_verification_record ){
+
+            //  Delete account registration verification codes
+            $this->searchByMobileAndType($mobile_number, $type)->delete();
+
+            //  Return the verified datetime
+            return [
+                'mobile_verification_record' => $mobile_verification_record,
+                'mobile_number_verified_at' => \Carbon\Carbon::now()
+            ];
+
+        }else{
+
+            //  Invalid verification code. Throw a validation error
+            throw ValidationException::withMessages(['verification_code' => 'Invalid verification code']);
 
         }
     }

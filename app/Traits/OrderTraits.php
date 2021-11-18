@@ -1135,11 +1135,56 @@ trait OrderTraits
             //  Set the delivery confirmation code
             $delivery_confirmation_code = $data['delivery_confirmation_code'];
 
+            //  Set the delivery confirmation code
+            $verification_code = $data['verification_code'];
+
+            //  Set the mobile number
+            $mobile_number = $data['mobile_number'];
+
+            if( empty($delivery_confirmation_code) && empty($verification_code) ){
+
+                throw ValidationException::withMessages([
+                    'delivery_confirmation_code' => 'The delivery confirmation code is required if verification code is not provided',
+                    'verification_code' => 'The mobile verification code is required if the delivery confirmation code is not provided'
+                ]);
+
+            }
+
+            if( !empty($verification_code) && empty($mobile_number) ){
+
+                throw ValidationException::withMessages([
+                    'mobile_number' => 'The customer mobile number is required to verify delivery using the verification code',
+                ]);
+
+            }
+
             //  If the order is not delivered
             if( !$this->is_delivered ){
 
-                //  Find matching order
-                $order = $this->searchDeliveryConfirmationCode($delivery_confirmation_code)->first();
+                $order = null;
+
+                if( !empty($delivery_confirmation_code) ){
+
+                    //  Find matching order
+                    $order = $this->searchDeliveryConfirmationCode($delivery_confirmation_code)->first();
+
+                }elseif( !empty($verification_code) ){
+
+                    $response = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'order_delivery_confirmation');
+                    $verification_code = $response['mobile_verification_record'];
+
+                    if( isset($verification_code['metadata']['order_id']) ){
+
+                        $order = $this->where('id', $verification_code['metadata']['order_id'])->first();
+
+                    }else{
+
+                        //  Throw a validation error
+                        throw ValidationException::withMessages(['verification_code' => 'The mobile verification record is not related to any order']);
+
+                    }
+
+                }
 
                 //  Check if we have a matching delivery confirmation code
                 if( $order ){
@@ -1167,8 +1212,19 @@ trait OrderTraits
 
                 }else{
 
-                    //  The delivery confirmation code is invalid. Throw a validation error
-                    throw ValidationException::withMessages(['delivery_confirmation_code' => 'The delivery confirmation code "'.$delivery_confirmation_code.'" is not valid.']);
+                    if( !empty($delivery_confirmation_code) ){
+
+                        //  The delivery confirmation code is invalid. Throw a validation error
+                        throw ValidationException::withMessages(['delivery_confirmation_code' => 'The delivery confirmation code "'.$delivery_confirmation_code.'" is not valid.']);
+
+                    }
+
+                    if( !empty($verification_code) ){
+
+                        //  The delivery confirmation code is invalid. Throw a validation error
+                        throw ValidationException::withMessages(['verification_code' => 'The verification code "'.$verification_code.'" is not valid.']);
+
+                    }
 
                 }
 
@@ -1663,12 +1719,14 @@ trait OrderTraits
 
             //  Set validation rules
             $rules = [
-                'delivery_confirmation_code' => 'required',
+                'verification_code' => 'sometimes|required',
+                'delivery_confirmation_code' => 'sometimes|required',
             ];
 
             //  Set validation messages
             $messages = [
-                'limit.required' => 'The delivery_confirmation_code attribute is required'
+                'verification_code.required' => 'The verification code is required',
+                'delivery_confirmation_code.required' => 'The delivery confirmation code is required'
             ];
 
             //  Method executed within CommonTraits
