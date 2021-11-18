@@ -18,6 +18,8 @@ Route::get('/send-sms', function(){
 
     $order = \App\Order::latest()->first();
 
+    return $order->customer->user->mobile_number;
+
     return $order->sendDeliveryConfirmationCodeSms(auth()->user());
 });
 

@@ -862,8 +862,7 @@ trait OrderTraits
             $last_3_characters = substr($six_digit_random_number, -3);
 
             //  Encrypt the delivery confirmation code
-            $delivery_confirmation_code = $first_3_characters . $customer_mobile_number['number_with_code'] . $last_3_characters;
-
+            $delivery_confirmation_code = $first_3_characters . $customer_mobile_number['number'] . $last_3_characters;
 
             //  $hashed_delivery_confirmation_code = bcrypt($delivery_confirmation_code);
 
@@ -943,7 +942,7 @@ trait OrderTraits
                 //  Craft the sms message
                 $message = 'Hi '.$merchant_name.', order #'.$this->number.' received for '.$store->name.' '.
                            'amount '.$grand_total.' from '. $customer_name. ' ('.$customer_mobile_number.'). '.
-                           'Dial '.$main_short_code.' or visit '.$website_domain.' to view order.';
+                           'Dial '.$main_short_code.' or download Bonako Dial2buy App.';
 
                 $type = 'New order alert';
 
