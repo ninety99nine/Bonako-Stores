@@ -1095,14 +1095,14 @@ trait OrderTraits
             $this->deliverResourcePermission($user);
 
             //  Get the delivery confirmation code
-            $delivery_confirmation_code = $data('delivery_confirmation_code');
+            $delivery_confirmation_code = $data['delivery_confirmation_code'];
 
             //  Find matching order
             $order = $this->searchDeliveryConfirmationCode($delivery_confirmation_code)->first();
 
             return response([
                 'is_valid' => !empty($order),
-                'order' => $order
+                'order' => !empty($order) ? $order->convertToApiFormat() : null
             ], 200);
 
         } catch (\Exception $e) {
@@ -1134,8 +1134,11 @@ trait OrderTraits
             //  If the order is not delivered
             if( !$this->is_delivered ){
 
+                //  Find matching order
+                $order = $this->searchDeliveryConfirmationCode($delivery_confirmation_code)->first();
+
                 //  Check if we have a matching delivery confirmation code
-                if( Hash::check($delivery_confirmation_code, $this->delivery_confirmation_code) ){
+                if( $order ){
 
                     //  Update the order
                     $this->update([
