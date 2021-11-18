@@ -143,7 +143,7 @@ trait OrderTraits
                      * **********************************/
 
                     //  Send the order delivery confirmation code sms
-                    //$this->order->sendDeliveryConfirmationCodeSms($user);
+                    $this->order->sendDeliveryConfirmationCodeSms($user);
 
                     //  Send the new order merchant sms
                     $this->order->sendNewOrderMerchantSms($user);
@@ -862,7 +862,8 @@ trait OrderTraits
             $last_3_characters = substr($six_digit_random_number, -3);
 
             //  Encrypt the delivery confirmation code
-            $delivery_confirmation_code = $first_3_characters . (new \App\MobileVerification())->removeMobileExt($customer_mobile_number) . $last_3_characters;
+            $delivery_confirmation_code = $first_3_characters . $customer_mobile_number['number_with_code'] . $last_3_characters;
+
 
             //  $hashed_delivery_confirmation_code = bcrypt($delivery_confirmation_code);
 

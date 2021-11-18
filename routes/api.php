@@ -16,40 +16,9 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/send-sms', function(){
 
-    //  Set the delivery reference name
-    $order_number = '00054';
+    $order = \App\Order::latest()->first();
 
-    //  Set the delivery reference name
-    $customer_name = 'Julian';
-
-    //  Set the delivery reference mobile number
-    $customer_mobile_number = '26772882239';
-
-    //  Generate 6 digit mobile delivery confirmation code
-    $six_digit_random_number = mt_rand(100000, 999999);
-
-    $first_3_characters = substr($six_digit_random_number, 0, 3);
-
-    $last_3_characters = substr($six_digit_random_number, -3);
-
-    //  Encrypt the delivery confirmation code
-    $delivery_confirmation_code = $first_3_characters . (new \App\MobileVerification())->removeMobileExt($customer_mobile_number) . $last_3_characters;
-
-    //  Craft the sms message
-    $message =  trim('Hi '.$customer_name).', your delivery confirmation code '.
-               'for order #'.$order_number.' is ' .$delivery_confirmation_code.'. '.
-               'Share this code with your merchant only after you receive your order.';
-
-
-    return Twilio::message('+'.$customer_mobile_number, $message);
-
-    return \App\Store::find(1);
-
-    //  return Illuminate\Support\Facades\DB::table('stores')->get();
-
-    return [
-        'auth(api)->user' => auth('api')->user()->id,
-    ];
+    return $order->sendDeliveryConfirmationCodeSms(auth()->user());
 });
 
 //  API Home
