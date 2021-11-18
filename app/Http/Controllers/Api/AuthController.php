@@ -459,7 +459,7 @@ class AuthController extends Controller
 
             ], [
                 //  Mobile Number Validation Error Messages
-                'type.required' => 'Enter the mobile verification type e.g account_registration, password_reset, order_delivery_confirmation',
+                'type.required' => 'Enter the mobile verification type e.g account_ownership, account_ownership, order_delivery_confirmation',
                 'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567',
                 'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567'
             ]);
@@ -525,7 +525,7 @@ class AuthController extends Controller
             ], [
                 //  Mobile Number Validation Error Messages
                 'code.required' => 'Enter the mobile verification code e.g 123456',
-                'type.required' => 'Enter the mobile verification type e.g account_registration, password_reset, order_delivery_confirmation',
+                'type.required' => 'Enter the mobile verification type e.g account_ownership, account_ownership, order_delivery_confirmation',
                 'mobile_number.required' => 'Enter a valid mobile number containing only digits e.g 26771234567',
                 'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567'
             ]);
@@ -655,15 +655,32 @@ class AuthController extends Controller
                 $requires_mobile_number_verification = $user['requires_mobile_number_verification'];
                 $requires_password = $user['requires_password'];
 
-                //  If this account required mobile verification
-                if( $requires_mobile_number_verification ){
+                //  If this account has not been verified before
+                if( $requires_mobile_number_verification == true ){
 
-                    $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'account_registration')['mobile_number_verified_at'];
+                    /**
+                     *  If the user account exists and the user did not verify this account, then
+                     *  we need to ensure that the provided verification code matches that of an
+                     *  account ownership check.
+                     */
+                    $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'account_ownership')['mobile_number_verified_at'];
 
                 }
 
                 //  If this account required a new password
                 if( $requires_password == true ){
+
+                    //  If this account has been verified before
+                    if( $requires_mobile_number_verification == false ){
+
+                        /**
+                         *  If the user account exists and the user did verify this account but does
+                         *  require a password reset, then we need to ensure that the provided
+                         *  verification code matches that of a password reset check.
+                         */
+                        $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'password_reset')['mobile_number_verified_at'];
+
+                    }
 
                     //  If the password was provided
                     if (isset($request_data['password']) && !empty($request_data['password'])) {
@@ -691,10 +708,16 @@ class AuthController extends Controller
                     'request_data' => $request_data
                 ];
 
-            //  If the user account does not exist and we do not need it
+            /**
+             *  If the user account does not exist and its not required, then proceed to
+             *  verify the account mobile number of the user. This is step is usually
+             *  necessacy for moments when the user is creating a user account for
+             *  the first time and would like to register and verify the account
+             *  ownership at the same time.
+             */
             }elseif( $must_have_account == false ){
 
-                $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'account_registration')['mobile_number_verified_at'];
+                $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'account_ownership')['mobile_number_verified_at'];
 
                 $request_data['password'] = bcrypt($request_data['password']);
 

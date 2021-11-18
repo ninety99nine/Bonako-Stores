@@ -69,7 +69,7 @@ trait MobileVerificationTraits
 
     public function getMobileVerificationType($type){
 
-        $types = ['account_registration', 'password_reset', 'order_delivery_confirmation'];
+        $types = ['account_ownership', 'password_reset', 'order_delivery_confirmation'];
 
         if(collect($types)->contains($type)){
             return $type;
