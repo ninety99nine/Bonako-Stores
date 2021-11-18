@@ -143,7 +143,7 @@ trait OrderTraits
                      * **********************************/
 
                     //  Send the order delivery confirmation code sms
-                    $this->order->sendDeliveryConfirmationCodeSms($user);
+                    //$this->order->sendDeliveryConfirmationCodeSms($user);
 
                     //  Send the new order merchant sms
                     $this->order->sendNewOrderMerchantSms($user);
