@@ -142,6 +142,8 @@ class AuthController extends Controller
     {
         try {
 
+            throw ValidationException::withMessages(['mobile_number' => 'Error stage 1']);
+
             /*  We first need to understand if the user is logging in
              *  using the Mobile App, Web or the USSD application.
              *
