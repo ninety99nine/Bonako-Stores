@@ -245,11 +245,11 @@
 
                                 if(this.activeTab == 'emailTab'){
 
-                                    accountExists = (data || {}).email_account_exists;
+                                    accountExists = (data || {}).account_exists;
 
                                 }else if(this.activeTab == 'mobileTab'){
 
-                                    accountExists = (data || {}).mobile_account_exists;
+                                    accountExists = (data || {}).account_exists;
 
                                 }
 
