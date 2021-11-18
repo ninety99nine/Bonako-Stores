@@ -372,7 +372,7 @@ class AuthController extends Controller
 
                 $request_data = $request->all();
 
-                $request_data['mobile_number_verified_at'] = $this->verifyMobileVerificationCode($mobile_number, $verification_code);
+                $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'password_reset')['mobile_number_verified_at'];
 
                 $request_data['password'] = bcrypt($request_data['password']);
 
@@ -658,7 +658,7 @@ class AuthController extends Controller
                 //  If this account required mobile verification
                 if( $requires_mobile_number_verification ){
 
-                    $request_data['mobile_number_verified_at'] = $this->verifyMobileVerificationCode($mobile_number, $verification_code)['mobile_number_verified_at'];
+                    $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'account_registration')['mobile_number_verified_at'];
 
                 }
 
@@ -694,7 +694,7 @@ class AuthController extends Controller
             //  If the user account does not exist and we do not need it
             }elseif( $must_have_account == false ){
 
-                $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'account_registration');
+                $request_data['mobile_number_verified_at'] = (new \App\MobileVerification())->verifyMobileVerificationCode($mobile_number, $verification_code, 'account_registration')['mobile_number_verified_at'];
 
                 $request_data['password'] = bcrypt($request_data['password']);
 
