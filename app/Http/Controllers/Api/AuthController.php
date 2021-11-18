@@ -65,10 +65,10 @@ class AuthController extends Controller
              *  code, the account cannot be created.
              */
             $validator = Validator::make($request->all(), [
-                'password' => 'required|confirmed',
+                'password' => 'sometimes|required|confirmed',
                 'last_name' => 'required|min:3|max:20',
                 'first_name' => 'required|min:3|max:20',
-                'verification_code' => 'required|size:6',
+                'verification_code' => 'sometimes|required|size:6',
                 'mobile_number' => 'required|regex:/^[0-9]+$/i',
             ], [
                 'mobile_number.regex' => 'Enter a valid mobile number containing only digits e.g 26771234567',
@@ -141,8 +141,6 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
-
-            throw ValidationException::withMessages(['mobile_number' => 'Error stage 1']);
 
             /*  We first need to understand if the user is logging in
              *  using the Mobile App, Web or the USSD application.
