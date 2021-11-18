@@ -12,6 +12,15 @@ class MobileVerification extends Model
     use MobileVerificationTraits, CommonTraits;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $casts = [
+        'metadata' => 'array'
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
@@ -107,5 +116,10 @@ class MobileVerification extends Model
     protected $appends = [
         'resource_type'
     ];
+
+    public function getMetadataAttribute($value)
+    {
+        return json_decode($value, true);
+    }
 
 }
