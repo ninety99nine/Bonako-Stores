@@ -24,6 +24,9 @@ class InstantCart extends JsonResource
             'description' => $this->description,
             'location_id' => $this->location_id,
 
+            /*  Free Delivery  */
+            'allow_free_delivery' => $this->allow_free_delivery,
+
             /*  Stock Management  */
             'allow_stock_management' => $this->allow_stock_management,
             'stock_quantity' => $this->stock_quantity,
