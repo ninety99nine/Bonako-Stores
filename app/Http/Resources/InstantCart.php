@@ -38,8 +38,13 @@ class InstantCart extends JsonResource
             /*  Attributes  */
             '_attributes' => [
                 'resource_type' => $this->resource_type,
+
                 'visit_short_code' => !empty($this->visitShortCode) ? collect($this->visitShortCode)->only(['dialing_code', 'expires_at']) : null,
+                'has_visit_short_code' => !empty($this->visitShortCode) ? true : false,
+
                 'payment_short_code' => !empty($this->paymentShortCode) ? collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']) : null,
+                'has_payment_short_code' => !empty($this->paymentShortCode) ? true : false,
+
                 'has_stock' => $this->has_stock,
             ],
 
