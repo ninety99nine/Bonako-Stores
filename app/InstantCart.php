@@ -13,7 +13,7 @@ class InstantCart extends Model
 {
     use CommonTraits, InstantCartTraits;
 
-    protected $with = ['visitShortCode', 'paymentShortCode', 'cart'];
+    protected $with = ['visitShortCode', 'paymentShortCode', 'myActiveSubscription', 'cart'];
 
     /**
      * The attributes that are mass assignable.
@@ -122,6 +122,16 @@ class InstantCart extends Model
     public function subscription()
     {
         return $this->morphOne(Subscription::class, 'owner')->latest();
+    }
+
+    /*
+     *  Returns the current user's active subscriptions of this instant cart
+     */
+    public function myActiveSubscription()
+    {
+        $user_id = auth()->user()->id;
+
+        return $this->subscription()->active()->asOwner($user_id);
     }
 
     /**
