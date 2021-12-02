@@ -28,6 +28,9 @@ class InstantCart extends Model
         /*  Basic Info  */
         'name', 'description',
 
+        /*  Free Delivery Info  */
+        'allow_free_delivery',
+
         /*  Stock Management  */
         'allow_stock_management', 'stock_quantity',
 
@@ -84,7 +87,7 @@ class InstantCart extends Model
      */
     public function scopeOffersFreeDelivery($query)
     {
-        return $query->whereHas('cart', function (Builder $query) {
+        return $query->where('allow_free_delivery', 1)->orWhereHas('cart', function (Builder $query) {
             $query->offersFreeDelivery();
         });
     }
@@ -178,6 +181,19 @@ class InstantCart extends Model
     }
 
     /**
+     *  Returns the instant cart allow_free_delivery status and description
+     */
+    public function getAllowFreeDeliveryAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'This instant cart directly supports free delivery of orders'
+                                    : 'This instant cart does not directly support free delivery of orders'
+        ];
+    }
+
+    /**
      *  Returns the instant cart allow stock management status and description
      */
     public function getAllowStockManagementAttribute($value)
@@ -242,6 +258,15 @@ class InstantCart extends Model
             $this->attributes['active'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
         }else{
             $this->attributes['active'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
+        }
+    }
+
+    public function setAllowFreeDeliveryAttribute($value)
+    {
+        if( is_array($value) ){
+            $this->attributes['allow_free_delivery'] = (in_array($value['status'], ['true', true, '1', 1]) ? 1 : 0);
+        }else{
+            $this->attributes['allow_free_delivery'] = (in_array($value, ['true', true, '1', 1]) ? 1 : 0);
         }
     }
 
