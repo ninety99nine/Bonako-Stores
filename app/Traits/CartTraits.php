@@ -13,6 +13,7 @@ trait CartTraits
     public $cart = null;
     public $_coupons = [];
     public $_total_items = 0;
+    public $_total_coupons = 0;
     public $_total_unique_items = 0;
     public $_item_detected_changes = [];
     public $is_existing_customer = false;
@@ -277,6 +278,7 @@ trait CartTraits
             'grand_total' => $this->grand_total['amount'],
             'total_items' => $this->total_items,
             'total_unique_items' => $this->total_unique_items,
+            'total_coupons' => $this->total_coupons,
             'allow_free_delivery' => $this->allow_free_delivery['status'],
             'owner_type' => $this->owner_type,
         ];
@@ -320,6 +322,7 @@ trait CartTraits
                 'grand_total' => $this->grand_total['amount'],
                 'total_items' => $this->total_items,
                 'total_unique_items' => $this->total_unique_items,
+                'total_coupons' => $this->total_coupons,
                 'allow_free_delivery' => $this->allow_free_delivery['status'],
                 'owner_type' => $this->owner_type,
             ], $store->id, $location->id, [
@@ -1030,6 +1033,7 @@ trait CartTraits
                 'coupons' => $this->_coupons,
                 'total_items' => $this->_total_items,
                 'total_unique_items' => $this->_total_unique_items,
+                'total_coupons' => $this->_total_coupons,
                 'items_summarized_array' => $this->getItemsSummarizedInArray($cart_items),
                 'items_summarized_inline' => $this->getItemsSummarizedInline($cart_items),
                 'sub_total' => $this->convertToMoney($currency, $sub_total),
@@ -1460,6 +1464,9 @@ trait CartTraits
 
                     //  Set the "Is valid" variable
                     $is_valid = true;
+
+                    //  Increment the total coupons applied
+                    $this->_total_coupons += 1;
 
                     //	Check if we have a matching coupon provided
                     $is_valid = collect($customer_coupons)->contains(function ($coupon) use ($location_coupon, $grand_total){

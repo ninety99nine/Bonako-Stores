@@ -187,6 +187,7 @@ trait OrderTraits
                 'checkout_delivery_fee' => $cart->delivery_fee['amount'],
                 'total_free_delivery_on_checkout' => $cart->allow_free_delivery['status'] ? 1 : 0,
                 'checkout_total_items' => $cart->total_items,
+                'checkout_total_coupons' => $cart->total_coupons,
                 'checkout_total_unique_items' => $cart->total_unique_items
             ];
 

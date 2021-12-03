@@ -33,8 +33,8 @@ class Cart extends Model
         /*  Cart Info  */
         'active', 'sub_total', 'coupon_total', 'sale_discount_total', 'coupon_and_sale_discount_total',
         'allow_free_delivery', 'delivery_fee', 'grand_total', 'total_items', 'total_unique_items',
-        'total_refreshes', 'total_resets', 'products_arrangement', 'detected_changes',
-        'abandoned_status',
+        'total_coupons', 'total_refreshes', 'total_resets', 'products_arrangement',
+        'detected_changes', 'abandoned_status',
 
         /*  Instant Cart Info  */
         'instant_cart_id',

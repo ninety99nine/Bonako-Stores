@@ -36,6 +36,7 @@ class Cart extends JsonResource
             'delivery_fee' => $this->delivery_fee,
             'grand_total' => $this->grand_total,
             'total_items' => $this->total_items,
+            'total_coupons' => $this->total_coupons,
             'total_unique_items' => $this->total_unique_items,
             'products_arrangement' => $this->products_arrangement,
             'detected_changes' => $this->detected_changes,

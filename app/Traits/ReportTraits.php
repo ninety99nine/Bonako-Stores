@@ -512,6 +512,7 @@ trait ReportTraits
                             "owner_type": "order",
                             "grand_total": 60,
                             "total_items": 3,
+                            "total_coupons": 1,
                             "coupon_total": 15,
                             "delivery_fee": 0,
                             "instant_cart_id": null,
