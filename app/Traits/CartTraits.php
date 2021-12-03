@@ -930,13 +930,11 @@ trait CartTraits
             //  If the location id is provided
             if( $location_id != null ){
 
-                //  Set the check for existing customer
-                $this->is_existing_customer = \App\Order::where('customer_id', $user->id)->whereHas('locations', function (Builder $query) use ($location_id){
-                    $query->where('location_id', $location_id);
-                })->exists();
-
                 //  Get the location matching the location id
                 $location = \App\Location::where('id', $location_id)->with('coupons')->first();
+
+                //  Set the check for existing customer
+                $this->is_existing_customer = $location->findCustomerByUserId($user->id)->exists();
 
                 //  If we have a location
                 if( $location ){

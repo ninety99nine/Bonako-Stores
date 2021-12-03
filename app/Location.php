@@ -69,6 +69,17 @@ class Location extends Model
     }
 
     /**
+     *  Scope:
+     *  Returns locations marked as the user's favourite locations
+     */
+    public function scopeFindCustomerByUserId($query, $user_id)
+    {
+        return $query->whereHas('customers', function (Builder $query) use ($user_id){
+            $query->where('user_id', $user_id);
+        });
+    }
+
+    /**
      *  Returns the favourites of this location
      */
     public function favourites()
