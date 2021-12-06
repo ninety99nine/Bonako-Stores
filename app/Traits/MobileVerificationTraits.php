@@ -79,8 +79,13 @@ trait MobileVerificationTraits
 
     }
 
-    public function convertMobileToMsisdn($mobile){
-        return '267'.preg_replace("/^267/", "$1", $mobile);
+    public function convertMobileToMsisdn($mobileNumber){
+
+        //  Remove spaces
+        $mobileNumber =  str_replace(' ', '', $mobileNumber);
+
+        //  Remove extensions and add 267 as default extension
+        return '267'.preg_replace("/^267/", "$1", $mobileNumber);
     }
 
     public function removeMobileExt($mobile){

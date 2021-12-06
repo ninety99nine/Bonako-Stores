@@ -850,6 +850,75 @@ trait LocationTraits
     }
 
     /**
+     *  This method assigns a user as a team member to the location
+     */
+    public function assignUserAsTeamMember($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Mobile numbers
+            $mobile_numbers = $data['mobile_numbers'];
+
+            //  Permissions
+            $permissions = $data['permissions'];
+
+            //  Get the existing users
+            $existingUsers = $this->users()->get();
+
+            //  Search users matching mobile numbers
+            $users = (new \App\User())->searchMultipleMobiles($mobile_numbers)->get();
+
+            //  Reject existing users from the new users
+            $users = collect($users)->reject(function ($user) use ($existingUsers) {
+                return collect($existingUsers)->contains(function ($existingUser) use ($user){
+                    return $user->id == $existingUser->id;
+                });
+            })->all();
+
+            //  If we have users
+            if ( count($users) ) {
+
+                $records = collect($users)->map(function($user){
+
+                    return [
+                        'type' => 'member',
+                        'user_id' => $user->id,
+                        'default_location' => 1,
+                        'location_id' => $this->id,
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
+                    ];
+
+                })->all();
+
+                //  Add the user as an Admin to the current location
+                DB::table('location_user')->insert($records);
+
+                return [
+                    'has_invited_users' => true,
+                    'total_users_invited' => count($users),
+                    'users_invited' => collect($users)->map(function($user){ return $user->name; }),
+                ];
+
+           }
+
+           return [
+            'has_invited_users' => false,
+            'total_users_invited' => 0,
+            'users_invited' => null,
+           ];
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
      *  This method assigns a user as an admin to the location
      */
     public function assignUserAsAdmin($user = null)

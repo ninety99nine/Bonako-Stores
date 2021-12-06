@@ -28,7 +28,11 @@ class user extends JsonResource
             'updated_at' => $this->updated_at,
 
             '_attributes' => [
-                'name' => $this->name
+                'name' => $this->name,
+                'user_location' => is_null($this->pivot) ? null : [
+                    'type' => $this->pivot->type,
+                    'location_id' => $this->pivot->location_id,
+                ]
             ],
 
             /*  Resource Links */

@@ -240,6 +240,20 @@ class LocationController extends Controller
         }
     }
 
+    public function assignLocationUserAsTeamMember(Request $request, $location_id)
+    {
+        try {
+
+            //  Arrange location products
+            return (new Location())->getResource($location_id)->assignUserAsTeamMember($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function getLocationReportStatistics(Request $request, $location_id)
     {
         try {

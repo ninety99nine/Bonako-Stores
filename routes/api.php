@@ -163,6 +163,7 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::get('/totals', 'LocationController@getLocationTotals')->name('totals');
 
             Route::get('/users', 'LocationController@getLocationUsers')->name('users');
+            Route::post('/users', 'LocationController@assignLocationUserAsTeamMember')->name('assign-users');
 
             Route::get('/orders', 'LocationController@getLocationOrders')->name('orders');
 

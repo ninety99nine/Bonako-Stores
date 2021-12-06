@@ -58,11 +58,46 @@ class User extends Authenticatable
 
     /*
      *  Scope:
-     *  Returns users that are being searched
+     *  Returns users that are being searched by mobile number
      */
-    public function scopeSearchMobile($query, $searchTerm)
+    public function scopeSearchMobile($query, $mobileNumber, $exact = true)
     {
-        return $query->where('mobile_number', $searchTerm)->orWhere('mobile_number', "267".$searchTerm);
+        //  Remove spaces from the search term
+        $mobileNumber = (new MobileVerification)->convertMobileToMsisdn($mobileNumber);
+
+        //  If we need an exact match
+        if($exact){
+
+            return $query->where('mobile_number', $mobileNumber);
+
+        }else{
+
+            return $query->where('mobile_number', 'like', "%".$mobileNumber."%");
+
+        }
+    }
+
+    /*
+     *  Scope:
+     *  Returns multiple users that are being searched by mobile number
+     */
+    public function scopeSearchMultipleMobiles($query, $mobileNumbers, $exact = true)
+    {
+        //  Remove spaces from the search term
+        $mobileNumbers = collect($mobileNumbers)->map(function($mobileNumber){
+            return (new MobileVerification)->convertMobileToMsisdn($mobileNumber);
+        });
+
+        //  If we need an exact match
+        if($exact){
+
+            return $query->whereIn('mobile_number', $mobileNumbers);
+
+        }else{
+
+            return $query->whereIn('mobile_number', 'like', "%".$mobileNumbers."%");
+
+        }
     }
 
     /**
