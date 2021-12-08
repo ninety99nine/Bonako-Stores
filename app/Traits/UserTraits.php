@@ -4,6 +4,7 @@ namespace App\Traits;
 
 //  Resources
 use DB;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Database\Eloquent\Builder;
 use App\Http\Resources\User as UserResource;
 use App\Http\Resources\Users as UsersResource;
@@ -368,6 +369,22 @@ trait UserTraits
                 return help_resource_not_found();
 
             }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns a single user store location
+     */
+    public function getResourceStoreLocationPermissions($store_id, $location_id)
+    {
+        try {
+
+            return $this->getResourceStoreLocation($store_id, $location_id)->getResourceUserPermissions(['user_id' => $this->id]);
 
         } catch (\Exception $e) {
 

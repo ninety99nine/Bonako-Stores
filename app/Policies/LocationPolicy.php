@@ -44,7 +44,7 @@ class LocationPolicy
         try {
 
             //  Only the Owner or Admin with a store subscription can update this location
-            return ($location->isOwner($user) || $location->isAdmin($user)) && $location->store->isSubscribed($user);
+            return ($location->isOwner($user) || $location->isMember($user)) && $location->store->isSubscribed($user);
 
         } catch (\Exception $e) {
 
@@ -65,7 +65,7 @@ class LocationPolicy
         try {
 
             //  Only the Owner or Admin with a store subscription can delete this location
-            return ($location->isOwner($user) || $location->isAdmin($user)) && $location->store->isSubscribed($user);
+            return ($location->isOwner($user) || $location->isMember($user)) && $location->store->isSubscribed($user);
 
         } catch (\Exception $e) {
 
@@ -86,7 +86,7 @@ class LocationPolicy
         try {
 
             //  Only the Owner or Admin can restore this location
-            return $location->isOwner($user) || $location->isAdmin($user);
+            return $location->isOwner($user) || $location->isMember($user);
 
         } catch (\Exception $e) {
 
@@ -107,7 +107,7 @@ class LocationPolicy
         try {
 
             //  Only the Owner or Admin with a store subscription can delete this store
-            return ($location->isOwner($user) || $location->isAdmin($user)) && $location->store->isSubscribed($user);
+            return ($location->isOwner($user) || $location->isMember($user)) && $location->store->isSubscribed($user);
 
         } catch (\Exception $e) {
 

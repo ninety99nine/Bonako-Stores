@@ -150,15 +150,29 @@ class Location extends JsonResource
                         'title' => 'The location statistics',
                     ],
 
+                    //  Link to user permissions on this location
+                    'bos:my_permissions' => [
+                        'href' => route('my-store-location-permissions', ['store_id' => $this->store_id, 'location_id' => $this->id]),
+                        'title' => 'The Get route to the current user\'s permissions on this location',
+                    ],
 
+                    //  Link to user permissions on this location
+                    'bos:user_permissions' => [
+                        'href' => route('location-user-permissions', ['location_id' => $this->id, 'store_id' => $this->store_id]),
+                        'title' => 'The POST route to a user\'s permissions on this location.',
+                    ],
 
+                    //  Link to user permissions on this location
+                    'bos:update_user_permissions' => [
+                        'href' => route('location-update-user-permissions', ['location_id' => $this->id]),
+                        'title' => 'The POST route to update a user\'s permissions on this location.',
+                    ],
 
-
-
-
-
-
-
+                    //  Link to user permissions on this location
+                    'bos:available_permissions' => [
+                        'href' => route('location-available-permissions', ['location_id' => $this->id]),
+                        'title' => 'The location available permissions',
+                    ],
 
                     /*
 

@@ -6,6 +6,7 @@ use DB;
 use App\Traits\CommonTraits;
 use App\Traits\LocationTraits;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Database\Eloquent\Builder;
 
 class Location extends Model
@@ -452,6 +453,15 @@ class Location extends Model
 
                 //  Delete all favourites
                 $location->favourites()->delete();
+
+                //  Find permissions that begin with "locations.[this location id].[anything else]"
+                $permission_ids = Permission::where('name', 'like', 'locations.'.$location->id.'.%')->pluck('id');
+
+                //  Remove the permissions
+                Permission::where('name', 'like', 'locations.'.$location->id.'.%')->delete();
+
+                //  Remove the assigned user permissions
+                DB::table('model_has_permissions')->whereIn('permission_id', $permission_ids)->delete();
 
                 //  Delete all records of users being assigned to this location
                 DB::table('location_user')->where(['location_id' => $location->id])->delete();

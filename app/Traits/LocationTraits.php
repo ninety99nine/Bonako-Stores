@@ -5,12 +5,47 @@ namespace App\Traits;
 use DB;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Spatie\Permission\Models\Permission;
 use App\Http\Resources\Location as LocationResource;
 use App\Http\Resources\Locations as LocationsResource;
 
 trait LocationTraits
 {
     public $location = null;
+    public $available_permissions = [
+        [
+            'name' => 'Manage orders',
+            'type' => 'manage-orders',
+        ],
+        [
+            'name' => 'Manage coupons',
+            'type' => 'manage-coupons',
+        ],
+        [
+            'name' => 'Manage products',
+            'type' => 'manage-products',
+        ],
+        [
+            'name' => 'Manage customers',
+            'type' => 'manage-customers',
+        ],
+        [
+            'name' => 'Manage instant carts',
+            'type' => 'manage-instant-carts',
+        ],
+        [
+            'name' => 'Manage team',
+            'type' => 'manage-users',
+        ],
+        [
+            'name' => 'Manage reports',
+            'type' => 'manage-reports',
+        ],
+        [
+            'name' => 'Manage settings',
+            'type' => 'manage-settings',
+        ],
+    ];
 
     /**
      *  This method transforms a collection or single model instance
@@ -73,7 +108,7 @@ trait LocationTraits
                 //  Set the "user_id" provided as the user responsible for owning this resource
                 $template['user_id'] = $data['user_id'];
 
-                //  Overide the default user to insert this user for assignUserAsAdmin()
+                //  Overide the default user to insert this user for assignUserAsOwner()
                 $user = \App\User::find($data['user_id']);
 
             }else{
@@ -98,7 +133,14 @@ trait LocationTraits
                 $this->location->updateSupportedPaymentMethods($data);
 
                 //  Assign user as an Admin to this location
-                $this->location->assignUserAsAdmin($user);
+                $this->location->assignUserAsOwner($user);
+
+                //  Assign all available permissions to this user
+                $this->location->assignUserPermissions(
+                    [$user],
+                    //  Extract only the permission type
+                    collect($this->available_permissions)->pluck('type')
+                );
 
                 //  Return the location
                 return $this->location;
@@ -848,6 +890,16 @@ trait LocationTraits
 
         }
     }
+    /**
+     *  This method returns the available permissions assignable to users on the location
+     */
+    public function getResourceAvailablePermissions(){
+
+        return [
+            'available_permissions' => $this->available_permissions
+        ];
+
+    }
 
     /**
      *  This method assigns a user as a team member to the location
@@ -865,21 +917,18 @@ trait LocationTraits
             //  Permissions
             $permissions = $data['permissions'];
 
-            //  Get the existing users
-            $existingUsers = $this->users()->get();
+            //  Get the existing user ids
+            $existingUserIds = $this->users()->pluck('users.id');
 
             //  Search users matching mobile numbers
-            $users = (new \App\User())->searchMultipleMobiles($mobile_numbers)->get();
-
-            //  Reject existing users from the new users
-            $users = collect($users)->reject(function ($user) use ($existingUsers) {
-                return collect($existingUsers)->contains(function ($existingUser) use ($user){
-                    return $user->id == $existingUser->id;
-                });
-            })->all();
+            $users = (new \App\User())->whereNotIn('users.id', $existingUserIds)->searchMultipleMobiles($mobile_numbers)->get();
 
             //  If we have users
             if ( count($users) ) {
+
+                /*********************************
+                 * ASSIGN USERS TO THE LOCATION  *
+                 ********************************/
 
                 $records = collect($users)->map(function($user){
 
@@ -894,7 +943,10 @@ trait LocationTraits
 
                 })->all();
 
-                //  Add the user as an Admin to the current location
+                //  Assign permissions
+                $this->assignUserPermissions($users, $permissions);
+
+                //  Add the user as a member to the current location
                 DB::table('location_user')->insert($records);
 
                 return [
@@ -918,15 +970,217 @@ trait LocationTraits
         }
     }
 
+    public function assignUserPermissions($users = [], $permissions = []){
+
+        if( !empty($users) && !empty($permissions) ){
+
+            /*********************************
+             * ASSIGN PERMISSIONS TO USERS   *
+             ********************************/
+
+            /**
+             *  Set the permission name as the following format
+             *
+             *  locations.[location id].[permissions separated by commas] e.g
+             *
+             *  locations.100.manage-orders,manage-coupons,manage-products,manage-customers,manage-instant-carts
+             */
+            $permission_name = 'locations.'.$this->id.'.'.collect($permissions)->map(function($permission){
+                /**
+                 *  Trim the permission name e.g
+                 *
+                 *  " manage-orders " to "manage-orders"
+                 *  ...
+                 */
+                return trim($permission);
+            /**
+             *  Join the permissions into a single string
+             *
+             *  manage-orders,manage-coupons,manage-products,manage-customers,manage-instant-carts
+             */
+            })->join(',');
+
+            //  Create or find the permission
+            Permission::findOrCreate($permission_name);
+
+            //  Foreach user
+            collect($users)->each(function ($user) use($permission_name) {
+
+                //  Assign permissions to the user on this location
+                $user->givePermissionTo($permission_name);
+
+            });
+
+        }
+    }
+
     /**
-     *  This method assigns a user as an admin to the location
+     *  This method unassigns a user as a team member to the location
      */
-    public function assignUserAsAdmin($user = null)
+    public function removeUserAsTeamMember($data = [])
     {
         try {
 
-            //  Add the user as an Admin to the current location
-            return $this->assignUserRole('admin', $user);
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Get user ids to remove from the location
+            $userIds = $data['user_ids'];
+
+            //  Remove the users from the location (except the owner)
+            $success = DB::table('location_user')->whereIn('user_id', $userIds)->where('location_id', $this->id)->where('type', '!=' , 'owner')->delete();
+
+            if( $success ){
+
+                //  Delete the users permissions
+                $success = $this->deleteUserPermissions($userIds);
+
+            }
+
+            return [
+                'success_status' => $success ? true : false
+            ];
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method unassigns a user as a team member to the location
+     */
+    public function deleteUserPermissions($userIds = [])
+    {
+        try {
+
+            $success = false;
+
+            if( count($userIds) ){
+
+                //  Find permissions that begin with "locations.[this location id].[anything else]"
+                $permission_ids = Permission::where('name', 'like', 'locations.'.$this->id.'.%')->pluck('id');
+
+                //  Remove the users from the location (except the owner)
+                $success = DB::table('model_has_permissions')->whereIn('model_id', $userIds)->where('model_type', 'user')->whereIn('permission_id', $permission_ids)->delete();
+
+            }
+
+            return [
+                'success_status' => $success ? true : false
+            ];
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    public function getResourceUserPermissions($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the user id
+            $user_id = $data['user_id'];
+
+            //  Get the permissions created for this location
+            $permission_records = Permission::where('name', 'like', 'locations.'.$this->id.'.%')->get();
+
+            //  Get the permission ids
+            $permission_ids = collect($permission_records)->pluck('id');
+
+            //  Find the user assigned permissions (if any)
+            $assigned_permission = DB::table('model_has_permissions')->where('model_id', $user_id)->where('model_type', 'user')->whereIn('permission_id', $permission_ids)->first();
+
+            //  Set permissions
+            $permissions = [];
+
+            //  If we have a record
+            if( $assigned_permission ){
+
+                //  $user_permissions_name = "locations.1.manage-orders,manage-products,manage-customers";
+                $user_permission_name = collect($permission_records)->firstWhere('id', $assigned_permission->permission_id)->name;
+
+                /**
+                 *  Remove the initial location details e.g
+                 *
+                 *  From: locations.1.manage-orders,manage-products,manage-customers
+                 *    To: manage-orders,manage-products,manage-customers
+                 */
+                $user_permission_name = str_replace('locations.'.$this->id.'.', '', $user_permission_name);
+
+                /**
+                 *  Extract the permissions assigned e.g
+                 *
+                 *  From: manage-orders,manage-products,manage-customers
+                 *
+                 *  To: ['manage-orders', 'manage-products, 'manage-customers']
+                 */
+                $permissions = explode(',', $user_permission_name);
+
+            }
+
+            return [
+                'is_member' => $this->isMember($user_id),
+                'is_owner' => $this->isOwner($user_id),
+                'permissions' => $permissions
+            ];
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    public function updateResourceUserPermissions($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the user id
+            $user_id = $data['user_id'];
+
+            //  Set the user id
+            $permissions = $data['permissions'];
+
+            //  Get the user matching the given user id
+            $user = \App\User::find($user_id);
+
+            //  Delete the user's current permissions
+            $this->deleteUserPermissions([$user_id]);
+
+            //  Assign the new permissions
+            $this->assignUserPermissions([ $user ], $permissions);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+
+
+
+
+
+    /**
+     *  This method assigns a user as an admin to the location
+     */
+    public function assignUserAsOwner($user = null)
+    {
+        try {
+
+            //  Add the user as an Owner to the current location
+            return $this->assignUserRole('owner', $user);
 
         } catch (\Exception $e) {
 
@@ -1231,33 +1485,13 @@ trait LocationTraits
      */
    public function isOwner($resource = null)
    {
-       try {
-
-            //  Retrieve the User ID
-            $user_id = ($resource instanceof \App\User) ? $resource->id : $resource;
-
-            //  Check if this is the owner
-            return ( !empty($user_id) ) ? $this->whereUserId($user_id)->exists() : false;
-
-       } catch (\Exception $e) {
-
-           throw($e);
-
-       }
-   }
-
-    /**
-     *  This method verifies if the user is the admin of the location
-     */
-   public function isAdmin($resource = null)
-   {
        try{
 
             //  Retrieve the User ID
             $user_id = ($resource instanceof \App\User) ? $resource->id : $resource;
 
-            //  Check if the user is an admin
-            return ( !empty($user_id) ) ? $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'admin')->exists() : false;
+            //  Check if the user is an owner
+            return ( !empty($user_id) ) ? $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'owner')->exists() : false;
 
        } catch (\Exception $e) {
 
@@ -1265,5 +1499,25 @@ trait LocationTraits
 
        }
    }
+
+   /**
+    *  This method verifies if the user is a member of the location
+    */
+  public function isMember($resource = null)
+  {
+      try{
+
+           //  Retrieve the User ID
+           $user_id = ($resource instanceof \App\User) ? $resource->id : $resource;
+
+           //  Check if the user is an member
+           return ( !empty($user_id) ) ? $this->users()->wherePivot('user_id', $user_id)->wherePivot('type', 'member')->exists() : false;
+
+      } catch (\Exception $e) {
+
+          throw($e);
+
+      }
+  }
 
 }

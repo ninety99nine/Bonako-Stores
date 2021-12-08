@@ -122,6 +122,20 @@ class UserController extends Controller
         }
     }
 
+    public function getUserStoreLocationPermissions($store_id, $location_id)
+    {
+        try {
+
+            //  Return a single location
+            return $this->user->getResourceStoreLocationPermissions($store_id, $location_id);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function getUserStoreDefaultLocation($store_id)
     {
         try {

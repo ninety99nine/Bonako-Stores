@@ -14,6 +14,18 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+Route::get('/permissions', function(){
+
+    //  Login using the given user
+    auth()->loginUsingId(8);
+
+    $location = \App\Location::find(1);
+
+    return $location->getResourceUsers();
+
+});
+
+
 Route::get('/send-sms', function(){
 
     $order = \App\Order::latest()->first();
@@ -75,6 +87,9 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
             //  Single Location    /api/me/store/{store_id}/locations   name => my-store-locations
             Route::get('/locations/{location_id}', 'UserController@getUserStoreLocation')->name('location');
+
+            //  Single Location    /api/me/store/{store_id}/locations   name => my-store-locations
+            Route::get('/locations/{location_id}/user-permissions', 'UserController@getUserStoreLocationPermissions')->name('location-permissions');
 
         });
 
@@ -164,6 +179,7 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
 
             Route::get('/users', 'LocationController@getLocationUsers')->name('users');
             Route::post('/users', 'LocationController@assignLocationUserAsTeamMember')->name('assign-users');
+            Route::delete('/users', 'LocationController@removeLocationUserAsTeamMember')->name('remove-users');
 
             Route::get('/orders', 'LocationController@getLocationOrders')->name('orders');
 
@@ -178,6 +194,10 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::post('/product-arrangement', 'LocationController@arrangeLocationProducts')->name('product-arrangement');
 
             Route::get('/statistics', 'LocationController@getLocationReportStatistics')->name('report-statistics')->where('location_id', '[0-9]+');
+
+            Route::post('/user-permissions', 'LocationController@getLocationUserPermissions')->name('user-permissions');
+            Route::post('/update-user-permissions', 'LocationController@updateLocationUserPermissions')->name('update-user-permissions');
+            Route::get('/available-permissions', 'LocationController@getLocationAvailablePermissions')->name('available-permissions');
 
         });
 

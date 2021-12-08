@@ -6,6 +6,7 @@ use DB;
 use App\Traits\UserTraits;
 use App\Traits\CommonTraits;
 use Laravel\Passport\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Builder;
 use \Staudenmeir\EloquentHasManyDeep\HasRelationships;
@@ -13,7 +14,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable
 {
-    use HasRelationships, HasApiTokens, Notifiable, UserTraits, CommonTraits;
+    use HasRoles, HasRelationships, HasApiTokens, Notifiable, UserTraits, CommonTraits;
 
     /**
      * The table associated with the model.

@@ -254,12 +254,68 @@ class LocationController extends Controller
         }
     }
 
+    public function removeLocationUserAsTeamMember(Request $request, $location_id)
+    {
+        try {
+
+            //  Arrange location products
+            return (new Location())->getResource($location_id)->removeUserAsTeamMember($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function getLocationReportStatistics(Request $request, $location_id)
     {
         try {
 
             //  Return Location report statistics
             return (new Location())->getResource($location_id)->getResourceStatistics($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocationUserPermissions(Request $request, $location_id)
+    {
+        try {
+
+            //  Return user permissions
+            return (new Location())->getResource($location_id)->getResourceUserPermissions($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function updateLocationUserPermissions(Request $request, $location_id)
+    {
+        try {
+
+            //  Return user permissions
+            return (new Location())->getResource($location_id)->updateResourceUserPermissions($request);
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
+    public function getLocationAvailablePermissions(Request $request, $location_id)
+    {
+        try {
+
+            //  Return available permissions
+            return (new Location())->getResource($location_id)->getResourceAvailablePermissions($request);
 
         } catch (\Exception $e) {
 

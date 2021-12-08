@@ -30,8 +30,9 @@ class user extends JsonResource
             '_attributes' => [
                 'name' => $this->name,
                 'user_location' => is_null($this->pivot) ? null : [
-                    'type' => $this->pivot->type,
+                    'type' => ucfirst($this->pivot->type),
                     'location_id' => $this->pivot->location_id,
+                    'permissions' => $this->permissions
                 ]
             ],
 
