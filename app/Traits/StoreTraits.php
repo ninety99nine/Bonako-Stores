@@ -333,9 +333,6 @@ trait StoreTraits
     {
         try {
 
-            //  Extract the Request Object data (CommanTraits)
-            $data = $this->extractRequestData($data);
-
             //  Set the sms owning model
             $model = $this;
 

@@ -14,14 +14,16 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::get('/permissions', function(){
+Route::get('/subscription', function(){
 
     //  Login using the given user
-    auth()->loginUsingId(8);
+    $user = auth()->loginUsingId(8);
 
-    $location = \App\Location::find(1);
+    auth('api')->setUser($user);
 
-    return $location->getResourceUsers();
+    $store = \App\Store::find(1);
+
+    return $store->generateResourceVisitShortCode($user);
 
 });
 
