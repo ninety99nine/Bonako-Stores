@@ -38,9 +38,11 @@ class AddressType extends JsonResource
 
             ],
 
+            /*
             '_embedded' => [
 
             ]
+            */
 
         ];
     }

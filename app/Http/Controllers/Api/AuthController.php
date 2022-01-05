@@ -106,7 +106,7 @@ class AuthController extends Controller
                 $user->update($registration_request_data);
 
                 //  Log in the user
-                return $this->loginUser($user);
+                return $this->loginUser($request, $user);
 
             }else{
 
@@ -125,7 +125,7 @@ class AuthController extends Controller
                     $user = User::create($registration_request_data);
 
                     //  Log in the user
-                    return $this->loginUser($user);
+                    return $this->loginUser($request, $user);
 
                 }
 
@@ -243,7 +243,7 @@ class AuthController extends Controller
                  *  otherwise we must return a failed login indicating that the
                  *  GRANT TOKEN provided is invalid.
                  */
-                return $this->loginUser($user);
+                return $this->loginUser($request, $user);
 
             //  If we want to login via Mobile App / WEB
             } else {
@@ -278,7 +278,7 @@ class AuthController extends Controller
                 //  Verify if the provided password matches the user's password
                 if( Hash::check($password, $user->password) ){
 
-                    return $this->loginUser($user);
+                    return $this->loginUser($request, $user);
 
                 }else{
 
@@ -384,7 +384,7 @@ class AuthController extends Controller
                     auth()->loginUsingId($user->id);
 
                     //  Create new access token
-                    return $this->createNewAccessToken();
+                    return $this->createNewAccessToken($request);
 
                 }
 
@@ -412,6 +412,35 @@ class AuthController extends Controller
             //  If we have a user
             if ($user) {
 
+                //  Get the current firebase device token (If provided e.g During Mobile App logout)
+                $firebase_device_token = $request->input('firebase_device_token') ?? null;
+
+                /**
+                 *  Check if the Firebase Device Token is provided (Used to uniquely identify the mobile device used to login, register or reset password).
+                 *  We can then use the device token to send Firebase Cloud Messaging notifications to the correct user devices.
+                 */
+                if( !empty($firebase_device_token) ){
+
+                    //  Get the existing firebase device tokens
+                    $firebase_device_tokens = $user->firebase_device_tokens;
+
+                    //  If the user has the current firebase device token registered
+                    if( collect($firebase_device_tokens)->contains($firebase_device_token) == true){
+
+                        //  Remove the firebase device token
+                        $firebase_device_tokens = collect($firebase_device_tokens)->reject(function ($curr_firebase_device_token) use ($firebase_device_token) {
+                            return $curr_firebase_device_token == $firebase_device_token;
+                        })->values()->toArray();
+
+                        //  Update the user's remaining firebase device tokens
+                        $user->update([
+                            'firebase_device_tokens' => $firebase_device_tokens
+                        ]);
+
+                    }
+
+                }
+
                 //  Logout all devices
                 if ($request->input('everyone') == 'true' || $request->input('everyone') == '1') {
 
@@ -426,8 +455,12 @@ class AuthController extends Controller
                     //  Get the user's token
                     $token = $user->token();
 
-                    //  Revoke the token
-                    $token->revoke();
+                    if( $token ){
+
+                        //  Revoke the token
+                        $token->revoke();
+
+                    }
 
                 }
 
@@ -588,7 +621,7 @@ class AuthController extends Controller
         }
     }
 
-    public function loginUser($user){
+    public function loginUser($request, $user){
 
         //  Login using the given user
         auth()->loginUsingId($user->id);
@@ -597,7 +630,7 @@ class AuthController extends Controller
         if (auth()->user()) {
 
             //  Create new access token
-            return $this->createNewAccessToken();
+            return $this->createNewAccessToken($request);
 
         } else {
 
@@ -608,12 +641,39 @@ class AuthController extends Controller
 
     }
 
-    public function createNewAccessToken()
+    public function createNewAccessToken($request)
     {
         try {
 
             //  Get the logged in user
             $user = auth()->user();
+
+            //  Get the current firebase device token (If provided e.g During Mobile App login, registration or password reset)
+            $firebase_device_token = $request->input('firebase_device_token') ?? null;
+
+            /**
+             *  Check if the Firebase Device Token is provided (Used to uniquely identify the mobile device used to login, register or reset password).
+             *  We can then use the device token to send Firebase Cloud Messaging notifications to the correct user devices.
+             */
+            if( !empty($firebase_device_token) ){
+
+                //  Get the existing firebase device tokens
+                $firebase_device_tokens = $user->firebase_device_tokens;
+
+                //  If the user does not have the current firebase device token registered
+                if( collect($firebase_device_tokens)->contains($firebase_device_token) == false){
+
+                    //  Add the current firebase device token
+                    array_push($firebase_device_tokens, $firebase_device_token);
+
+                    //  Update the user firebase device tokens
+                    $user->update([
+                        'firebase_device_tokens' => $firebase_device_tokens
+                    ]);
+
+                }
+
+            }
 
             //  Create new access token
             $accessToken = $user->createToken('authToken');

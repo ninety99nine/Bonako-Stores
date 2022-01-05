@@ -13,7 +13,7 @@ class Statuses extends ResourceCollection
      *
      * @var string
      */
-    public $collects = 'App\Http\Resources\Coupon';
+    public $collects = 'App\Http\Resources\Status';
 
     /**
      * Transform the resource collection into an array.

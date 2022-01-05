@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Http\Request;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
+
 use App\Subscription;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -14,16 +18,264 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::get('/subscription', function(){
+Route::get('/subscription', function(Request $request){
 
-    //  Login using the given user
-    $user = auth()->loginUsingId(8);
+    //  Login using the given user account
+    $user = auth()->loginUsingId(\App\User::first()->id);
 
+    //  Set the user auth instance
     auth('api')->setUser($user);
 
-    $store = \App\Store::find(1);
+    /******************************
+     *  FAKE LOGOUT               *
+     *****************************/
+    $request->request->add([
+        'firebase_device_token' => '456'
+    ]);
 
-    return $store->generateResourceVisitShortCode($user);
+    return (new App\Http\Controllers\Api\AuthController)->logout($request);
+
+    /******************************
+     *  FAKE LOGIN               *
+     *****************************/
+    $request->request->add([
+        'password' => 'QWEasd',
+        'mobile_number' => '26772882239',
+        'firebase_device_token' => '456'
+    ]);
+
+    return (new App\Http\Controllers\Api\AuthController)->login($request);
+
+
+
+
+    /******************************
+     *  CLEAR CACHE               *
+     *****************************/
+
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+
+    /******************************
+     *  TRUNCATE TABLES           *
+     *****************************/
+
+    Schema::disableForeignKeyConstraints(); //  Disable Foreign key checks
+
+    DB::table('addresses')->truncate();
+    DB::table('adverts')->truncate();
+    DB::table('carts')->truncate();
+    DB::table('coupon_allocations')->truncate();
+    DB::table('coupon_lines')->truncate();
+    DB::table('coupons')->truncate();
+    DB::table('customers')->truncate();
+    DB::table('delivery_lines')->truncate();
+    DB::table('favourites')->truncate();
+    DB::table('instant_carts')->truncate();
+    DB::table('item_lines')->truncate();
+    DB::table('location_order')->truncate();
+    DB::table('location_payment_methods')->truncate();
+    DB::table('location_ratings')->truncate();
+    DB::table('location_user')->truncate();
+    DB::table('locations')->truncate();
+    DB::table('mobile_verifications')->truncate();
+    DB::table('model_has_permissions')->truncate();
+    DB::table('model_has_roles')->truncate();
+    DB::table('orders')->truncate();
+    DB::table('permissions')->truncate();
+    DB::table('popular_stores')->truncate();
+    DB::table('product_allocations')->truncate();
+    DB::table('products')->truncate();
+    DB::table('reports')->truncate();
+    DB::table('role_has_permissions')->truncate();
+    DB::table('roles')->truncate();
+    DB::table('short_codes')->truncate();
+    DB::table('sms')->truncate();
+    DB::table('stores')->truncate();
+    DB::table('subscriptions')->truncate();
+    DB::table('transactions')->truncate();
+    DB::table('users')->truncate();
+    DB::table('variables')->truncate();
+
+    Schema::enableForeignKeyConstraints(); //  Enable on Foreign key checks
+
+    //  Create a user account
+    $merchant_user = \App\User::create([
+        'first_name' => 'Julian',
+        'last_name' => 'Tabona',
+        'account_type' => 'basic',
+        'mobile_number' => '26772882239',
+        'accepted_terms_and_conditions' => true,
+        'mobile_number_verified_at' => \Carbon\Carbon::now(),
+        'password' => \Illuminate\Support\Facades\Hash::make('QWEasd'),
+    ]);
+
+    //  Create a user account
+    $customer_user = \App\User::create([
+        'first_name' => 'Bonolo',
+        'last_name' => 'Sesiane',
+        'account_type' => 'basic',
+        'mobile_number' => '26777479083',
+        'accepted_terms_and_conditions' => true,
+        'mobile_number_verified_at' => \Carbon\Carbon::now(),
+        'password' => \Illuminate\Support\Facades\Hash::make('QWEasd'),
+    ]);
+
+    //  Login using the given user account
+    $merchant_user = auth()->loginUsingId($merchant_user->id);
+
+    //  Set the user auth instance
+    auth('api')->setUser($merchant_user);
+
+    /******************************
+     *  CREATE A NEW STORE        *
+     *****************************/
+    $store = (new \App\Store())->createResource([
+        'name' => 'Veggie Store',
+        'online' => true,
+        'hex_color' => '2D8CF0',
+        'location' => [
+            'online' => true,
+            'call_to_action' => 'Buy veggies',
+        ],
+        'allow_sending_merchant_sms' => true,
+        'offline_message' => 'Sorry, we are currently offline',
+    ], $merchant_user);
+
+    /******************************
+     *  SUBSCRIBE TO NEW STORE    *
+     *****************************/
+    $store_subscription = $store->generateResourceSubscription([
+        'subscription_plan_id' => 3,
+        'payment_method_id' => 1
+    ], $merchant_user);
+
+    /******************************
+     *  CREATE A NEW PRODUCT      *
+     *****************************/
+    $product = (new \App\Product())->createResource([
+        'active' => true,
+        'name' => 'Product 1',
+        'product_type_id' => 1,
+        'description' => 'This is Product 1',
+        'unit_regular_price' => '100',
+        'location_id' => 1
+    ], $merchant_user);
+
+    $product = (new \App\Product())->createResource([
+        'active' => true,
+        'name' => 'Product 2',
+        'product_type_id' => 1,
+        'description' => 'This is Product 2',
+        'unit_regular_price' => '200',
+        'unit_sale_price' => '150',     //  Add sale
+        'location_id' => 1
+    ], $merchant_user);
+
+    /******************************
+     *  CREATE A NEW COUPON       *
+     *****************************/
+    $product = (new \App\Coupon())->createResource([
+        'active' => true,
+        'name' => '10% Off',
+        'description' => 'Discount by 10%',
+        'discount_rate_type' => 'percentage',
+        'percentage_rate' => '10',
+        'apply_discount' => true,
+        'location_id' => 1
+    ], $merchant_user);
+
+    /******************************
+     *  CREATE A NEW CART         *
+     *****************************/
+
+    $cart = (new \App\Cart())->createResource([
+        'items' => [
+            [
+                'id' => 1,
+                'quantity' => 2
+            ],
+            [
+                'id' => 2,
+                'quantity' => 4
+            ]
+        ],
+        'coupons' => [
+            [
+                'id' => 1
+            ]
+        ],
+        'location_id' => 1
+    ], null, $merchant_user);
+
+    $cart_2 = (new \App\Cart())->createResource([
+        'items' => [
+            [
+                'id' => 1,
+                'quantity' => 1
+            ],
+            [
+                'id' => 2,
+                'quantity' => 3
+            ]
+        ],
+        'coupons' => [
+            [
+                'id' => 1
+            ]
+        ],
+        'location_id' => 1
+    ], null, $customer_user);
+
+    /**********************************
+     *  CREATE A NEW ORDER FROM CART  *
+     *********************************/
+
+    $order = (new \App\Order())->createResource([
+        'cart_id' => $cart->id
+    ], $merchant_user);
+
+    $order_2 = (new \App\Order())->createResource([
+        'cart_id' => $cart_2->id
+    ], $customer_user);
+
+    /**********************************
+     *  CREATE A NEW INSTANT CART     *
+     *********************************/
+
+    $instant_cart = (new \App\InstantCart())->createResource([
+        'active' => true,
+        'name' => 'Summer Combo Deal',
+        'description' => 'Get your fruit combo deal',
+        'items' => [
+            [
+                'id' => 1,
+                'quantity' => 2
+            ],
+            [
+                'id' => 2,
+                'quantity' => 4
+            ]
+        ],
+        'coupons' => [
+            [
+                'id' => 1
+            ]
+        ],
+        'allow_free_delivery' => true,
+        'allow_stock_management' => true,
+        'stock_quantity' => 10,
+        'location_id' => 1,
+    ], $merchant_user);
+
+    /*************************************
+     *  SUBSCRIBE TO NEW INSTANT CART    *
+     ************************************/
+    $instant_cart_subscription = $instant_cart->generateResourceSubscription([
+        'subscription_plan_id' => 3,
+        'payment_method_id' => 1
+    ], $merchant_user);
+
+    return $instant_cart_subscription;
 
 });
 

@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Http\Resources\DeliveryLines as DeliveryLinesResource;
 use App\Http\Resources\DeliveryLine as DeliveryLineResource;
 
 trait DeliveryLineTraits
@@ -10,14 +11,30 @@ trait DeliveryLineTraits
     public $delivery_line = null;
 
     /**
-     *  This method transforms a single model instance
+     *  This method transforms a collection or single model instance
      */
     public function convertToApiFormat($collection = null)
     {
         try {
 
-            //  Transform the single instance
-            return new DeliveryLineResource($this);
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
+
+                //  Transform the multiple instances
+                return new DeliveryLinesResource($collection);
+
+            // If this instance is not a collection
+            }elseif($this instanceof \App\DeliveryLine){
+
+                //  Transform the single instance
+                return new DeliveryLineResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
 
         } catch (\Exception $e) {
 

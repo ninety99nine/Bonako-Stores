@@ -301,6 +301,30 @@ class CouponLine extends Model
         ];
     }
 
+    public function getDiscountOnTimesAttribute($value)
+    {
+        //  Convert to array
+        return is_null($value) ? [] : json_decode($value, true);
+    }
+
+    public function getDiscountOnDaysOfTheWeekAttribute($value)
+    {
+        //  Convert to array
+        return is_null($value) ? [] : json_decode($value, true);
+    }
+
+    public function getDiscountOnDaysOfTheMonthAttribute($value)
+    {
+        //  Convert to array
+        return is_null($value) ? [] : json_decode($value, true);
+    }
+
+    public function getDiscountOnMonthsOfTheYearAttribute($value)
+    {
+        //  Convert to array
+        return is_null($value) ? [] : json_decode($value, true);
+    }
+
     /**
      *  Returns the coupon usage_limit as integer
      */

@@ -218,6 +218,18 @@ class Cart extends Model
         ];
     }
 
+    public function getProductsArrangementAttribute($value)
+    {
+        //  Convert to array
+        return is_null($value) ? [] : json_decode($value, true);
+    }
+
+    public function getDetectedChangesAttribute($value)
+    {
+        //  Convert to array
+        return is_null($value) ? [] : json_decode($value, true);
+    }
+
     public function setActiveAttribute($value)
     {
         if( is_array($value) ){

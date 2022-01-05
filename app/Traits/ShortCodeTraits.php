@@ -69,8 +69,6 @@ trait ShortCodeTraits
             //  Search for a current active short code
             $current_short_code = $this->getCurrentResource($action, $model, $user);
 
-            return $current_short_code ;
-
             //  If this is a payment short code
             if( $action == 'payment' ){
 

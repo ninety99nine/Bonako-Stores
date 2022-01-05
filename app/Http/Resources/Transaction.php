@@ -51,8 +51,6 @@ class Transaction extends JsonResource
                 'payment_method' => new PaymentMethodResource( $this->paymentMethod )
             ]
 
-
-
         ];
     }
 

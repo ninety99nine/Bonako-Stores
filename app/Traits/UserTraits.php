@@ -103,7 +103,7 @@ trait UserTraits
             ];
 
             //  Set the status filters to calculate the totals
-            $filters = ['admin'];
+            $filters = ['owner', 'member'];
 
             collect($filters)->map(function($filter) use (&$totals, $builder){
 
@@ -120,7 +120,7 @@ trait UserTraits
                  *  applied the previous filter of "admin", which means that the final users returned
                  *  will need to have an "admin" and "staff" role.
                  */
-                $totals['roles'][$filter] = $this->filterResourcesByLocationRole($filter, clone $builder)->count();
+                $totals['roles'][$filter] = $this->filterResourcesByLocationRole(['role' => $filter], clone $builder)->count();
 
             })->toArray();
 

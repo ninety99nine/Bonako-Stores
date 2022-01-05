@@ -6,14 +6,14 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
-class ItemLines extends ResourceCollection
+class DeliveryLines extends ResourceCollection
 {
     /**
      * The resource that this resource collects.
      *
      * @var string
      */
-    public $collects = 'App\Http\Resources\ItemLine';
+    public $collects = 'App\Http\Resources\DeliveryLine';
 
     /**
      * Transform the resource collection into an array.
@@ -34,7 +34,7 @@ class ItemLines extends ResourceCollection
                 //  Link to current resource
                 'self' => [
                     'href' => url()->full(),
-                    'title' => 'These item lines',
+                    'title' => 'These delivery lines',
                 ],
 
                 'first' => [
@@ -75,7 +75,7 @@ class ItemLines extends ResourceCollection
 
         //  Provide the embedded content
         $data['_embedded'] = [
-            'item_lines' => $this->collection,
+            'delivery_lines' => $this->collection,
         ];
 
         return $data;

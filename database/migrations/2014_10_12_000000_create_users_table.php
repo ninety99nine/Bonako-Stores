@@ -23,6 +23,7 @@ class CreateUsersTable extends Migration
             $table->string('password')->nullable();
             $table->string('account_type')->default('basic');
             $table->boolean('accepted_terms_and_conditions')->default(false);
+            $table->json('firebase_device_tokens')->nullable();
             $table->rememberToken();
             $table->timestamps();
 

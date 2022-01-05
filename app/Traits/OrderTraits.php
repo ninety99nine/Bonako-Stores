@@ -110,7 +110,9 @@ trait OrderTraits
                     $this->order->setDeliveryStatusToUndelivered();
 
                     //  Assign order to location
-                    $this->order->assignResourceToLocation($data);
+                    $this->order->assignResourceToLocation([
+                        'location_id' => $cart->location_id
+                    ]);
 
                     //  Refresh the instance to load the delivery line and active cart
                     $this->order = $this->order->fresh();

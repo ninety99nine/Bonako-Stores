@@ -23,6 +23,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'accepted_terms_and_conditions' => 'boolean',   //  Return the following 1/0 as true/false
+        'firebase_device_tokens' => 'array',
     ];
     /**
      * The attributes that are mass assignable.
@@ -31,7 +32,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'first_name', 'last_name', 'email', 'mobile_number', 'mobile_number_verified_at',
-        'account_type', 'password', 'accepted_terms_and_conditions'
+        'account_type', 'password', 'accepted_terms_and_conditions', 'firebase_device_tokens'
     ];
 
     /**
@@ -268,6 +269,12 @@ class User extends Authenticatable
             'number_with_code' => $value,
             'calling_number' => '+'.$value
         ];
+    }
+
+    public function getFirebaseDeviceTokensAttribute($value)
+    {
+        //  Convert to array
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function setDeliveryTypeAttribute($value)

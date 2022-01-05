@@ -43,9 +43,11 @@ class Status extends JsonResource
 
             ],
 
+            /*
             '_embedded' => [
 
             ]
+            */
 
         ];
     }

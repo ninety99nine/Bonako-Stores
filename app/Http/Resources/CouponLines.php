@@ -34,7 +34,7 @@ class CouponLines extends ResourceCollection
                 //  Link to current resource
                 'self' => [
                     'href' => url()->full(),
-                    'title' => 'These coupons',
+                    'title' => 'These coupon lines',
                 ],
 
                 'first' => [
