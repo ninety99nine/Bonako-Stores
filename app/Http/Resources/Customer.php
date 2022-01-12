@@ -20,20 +20,37 @@ class Customer extends JsonResource
 
             'id' => $this->id,
             'user_id' => $this->user_id,
+
             'total_coupons_used_on_checkout' => $this->total_coupons_used_on_checkout,
             'total_instant_carts_used_on_checkout' => $this->total_instant_carts_used_on_checkout,
             'total_adverts_used_on_checkout' => $this->total_adverts_used_on_checkout,
-            'total_orders_placed_by_customer' => $this->total_orders_placed_by_customer,
-            'total_orders_placed_by_store' => $this->total_orders_placed_by_store,
-            'checkout_grand_total' => $this->checkout_grand_total,
-            'checkout_sub_total' => $this->checkout_sub_total,
-            'checkout_coupons_total' => $this->checkout_coupons_total,
-            'checkout_sale_discount_total' => $this->checkout_sale_discount_total,
-            'checkout_coupons_and_sale_discount_total' => $this->checkout_coupons_and_sale_discount_total,
-            'checkout_delivery_fee' => $this->checkout_delivery_fee,
+            'total_orders_placed_by_customer_on_checkout' => $this->total_orders_placed_by_customer_on_checkout,
+            'total_orders_placed_by_store_on_checkout' => $this->total_orders_placed_by_store_on_checkout,
             'total_free_delivery_on_checkout' => $this->total_free_delivery_on_checkout,
-            'checkout_total_items' => $this->checkout_total_items,
-            'checkout_total_unique_items' => $this->checkout_total_unique_items,
+            'grand_total_on_checkout' => $this->grand_total_on_checkout,
+            'sub_total_on_checkout' => $this->sub_total_on_checkout,
+            'sale_discount_total_on_checkout' => $this->sale_discount_total_on_checkout,
+            'coupon_total_on_checkout' => $this->coupon_total_on_checkout,
+            'coupon_and_sale_discount_total_on_checkout' => $this->coupon_and_sale_discount_total_on_checkout,
+            'delivery_fee_on_checkout' => $this->delivery_fee_on_checkout,
+            'total_items_on_checkout' => $this->total_items_on_checkout,
+            'total_unique_items_on_checkout' => $this->total_unique_items_on_checkout,
+
+            'total_coupons_used_on_conversion' => $this->total_coupons_used_on_conversion,
+            'total_instant_carts_used_on_conversion' => $this->total_instant_carts_used_on_conversion,
+            'total_adverts_used_on_conversion' => $this->total_adverts_used_on_conversion,
+            'total_orders_placed_by_customer_on_conversion' => $this->total_orders_placed_by_customer_on_conversion,
+            'total_orders_placed_by_store_on_conversion' => $this->total_orders_placed_by_store_on_conversion,
+            'total_free_delivery_on_conversion' => $this->total_free_delivery_on_conversion,
+            'grand_total_on_conversion' => $this->grand_total_on_conversion,
+            'sub_total_on_conversion' => $this->sub_total_on_conversion,
+            'sale_discount_total_on_conversion' => $this->sale_discount_total_on_conversion,
+            'coupon_total_on_conversion' => $this->coupon_total_on_conversion,
+            'coupon_and_sale_discount_total_on_conversion' => $this->coupon_and_sale_discount_total_on_conversion,
+            'delivery_fee_on_conversion' => $this->delivery_fee_on_conversion,
+            'total_items_on_conversion' => $this->total_items_on_conversion,
+            'total_unique_items_on_conversion' => $this->total_unique_items_on_conversion,
+
             'location_id' => $this->location_id,
 
             /*  Timestamp Info  */
@@ -42,7 +59,9 @@ class Customer extends JsonResource
 
             /*  Attributes  */
             '_attributes' => [
-                'resource_type' => $this->resource_type
+                'resource_type' => $this->resource_type,
+                'total_orders_placed_on_checkout' => $this->total_orders_placed_on_checkout,
+                'total_orders_placed_on_conversion' => $this->total_orders_placed_on_conversion,
             ],
 
             /*  Resource Links */

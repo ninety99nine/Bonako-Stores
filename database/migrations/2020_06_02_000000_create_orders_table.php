@@ -25,6 +25,10 @@ class CreateOrdersTable extends Migration
             /*  Cancellation Reason  */
             $table->string('cancellation_reason')->nullable();
 
+            /*  Store Submittion Info  */
+            $table->boolean('submitted_by_store_user')->default(false);
+            $table->unsignedInteger('store_user_id')->nullable();
+
             /*  Customer Info  */
             $table->unsignedInteger('customer_id')->nullable();
 

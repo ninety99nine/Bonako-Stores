@@ -23,7 +23,8 @@ class Order extends Model
      * @var string
      */
     protected $casts = [
-        'delivery_verified' => 'boolean',  //  Return the following 1/0 as true/false
+        'submitted_by_store_user' => 'boolean',  //  Return the following 1/0 as true/false
+        'delivery_verified' => 'boolean',        //  Return the following 1/0 as true/false
     ];
 
     /**
@@ -53,6 +54,9 @@ class Order extends Model
 
         /*  Cancellation Info  */
         'cancellation_reason',
+
+        /*  Store Submittion Info  */
+        'submitted_by_store_user', 'store_user_id',
 
         /*  Customer Info  */
         'customer_id',
@@ -412,9 +416,27 @@ class Order extends Model
         }
     }
 
+    /**
+     *  Returns the coupon allow_usage_limit status and description
+     */
+    public function getSubmittedByStoreUserAttribute($value)
+    {
+        return [
+            'status' => $value ? true : false,
+            'name' => $value ? 'Yes' : 'No',
+            'description' => $value ? 'This order was submitted by the store'
+                                    : 'This order was submitted by the customer'
+        ];
+    }
+
     public function setDeliveryVerifiedAttribute($value)
     {
         $this->attributes['delivery_verified'] = (($value == 'true' || $value === '1') ? 1 : 0);
+    }
+
+    public function setSubmittedByStoreUserAttribute($value)
+    {
+        $this->attributes['submitted_by_store_user'] = (($value == 'true' || $value === '1') ? 1 : 0);
     }
 
 }

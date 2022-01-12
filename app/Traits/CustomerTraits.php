@@ -157,12 +157,37 @@ trait CustomerTraits
 
             foreach($exceptable_fields as $field ){
 
-                /**
-                 *  Same as:
-                 *
-                 *  $template['total_coupons_used_on_checkout'] = isset($data['total_coupons_used_on_checkout']) ? ($this->total_coupons_used_on_checkout + $data['total_coupons_used_on_checkout']) : $this->total_coupons_used_on_checkout;
-                 */
-                $template[$field] = isset($data[$field]) ? ((int) $this->$field + (int) $data[$field]) : $this->$field;
+                //  If we have the data field within the payload
+                if(isset($data[$field])){
+
+                    //  Get the new field value
+                    $new_field_value = (int) $data[$field];
+
+                    /**
+                     *  Since the field can be a type of Money field e.g The "checkout_grand_total"
+                     *
+                     *  [
+                     *       "currency_money" => "P800.00"
+                     *       "money" => "800.00"
+                     *       "amount" => 800
+                     *   ]
+                     *
+                     *  We need to extract the amount otherwise we can use the value as is
+                     */
+                    if( is_array($this->$field) && isset($this->$field['amount']) ){
+
+                        $original_field_value = (int) $this->$field['amount'];
+
+                    }else{
+                        $original_field_value = (int) $this->$field;
+                    }
+
+                    /**
+                     *  Calculate the original field value summed up with the new field value
+                     */
+                    $template[$field] = $original_field_value + $new_field_value;
+
+                }
 
             }
 

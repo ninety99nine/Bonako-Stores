@@ -183,31 +183,92 @@ trait OrderTraits
     /**
      *  This method creates or updates the location customer
      */
-    public function createOrUpdateResourceCustomer($cart, $user = null)
+    public function createOrUpdateResourceCustomer($cart = null, $user = null, $hasVerifiedDelivery = false)
     {
         try{
+
+            //  If the cart was not provided
+            if( $cart == null ){
+
+                //  Get the order active cart
+                $cart = $this->activeCart;
+
+            }
 
             $received_location = $this->receivedLocations()->first();
 
             $data = [
                 'user_id' => $user->id,
                 'location_id' => $received_location->id,
-                'total_coupons_used_on_checkout' => count($cart->couponLines),
-                'total_instant_carts_used_on_checkout' => isset($cart->instant_cart_id) ? 1 : 0,
-                //  'total_adverts_used_on_checkout' => isset($cart->advert_id) ? 1 : 0,
-                //  'total_orders_placed_by_customer' => $this->origin == 'customer' ? 1 : 0,
-                //  'total_orders_placed_by_store' => $this->origin == 'store' ? 1 : 0,
-                'checkout_grand_total' => $cart->grand_total['amount'],
-                'checkout_sub_total' => $cart->sub_total['amount'],
-                'checkout_coupons_total' => $cart->coupon_total['amount'],
-                'checkout_sale_discount_total' => $cart->sale_discount_total['amount'],
-                'checkout_coupons_and_sale_discount_total' => $cart->coupon_and_sale_discount_total['amount'],
-                'checkout_delivery_fee' => $cart->delivery_fee['amount'],
-                'total_free_delivery_on_checkout' => $cart->allow_free_delivery['status'] ? 1 : 0,
-                'checkout_total_items' => $cart->total_items,
-                'checkout_total_coupons' => $cart->total_coupons,
-                'checkout_total_unique_items' => $cart->total_unique_items
             ];
+
+            /*********************
+             *  CALCULATIONS     *
+             ********************/
+
+            $total_coupons_used = $cart->total_coupons;
+            $total_instant_carts_used = isset($cart->instant_cart_id) ? 1 : 0;
+            //  $total_adverts_used = isset($cart->advert_id) ? 1 : 0;
+            $total_orders_placed_by_customer = $this->submitted_by_store_user['status'] ? 0 : 1;
+            $total_orders_placed_by_store = $this->submitted_by_store_user['status'] ? 1 : 0;
+            $total_free_delivery_on_conversion = $cart->allow_free_delivery['status'] ? 1 : 0;
+
+            $grand_total = $cart->grand_total['amount'];
+            $sub_total = $cart->sub_total['amount'];
+            $sale_discount_total = $cart->sale_discount_total['amount'];
+            $coupon_total = $cart->coupon_total['amount'];
+            $coupon_and_sale_discount_total = $cart->coupon_and_sale_discount_total['amount'];
+            $delivery_fee = $cart->delivery_fee['amount'];
+            $total_items = $cart->total_items;
+            $total_unique_items = $cart->total_unique_items;
+
+            if( $hasVerifiedDelivery ){
+
+                //  Add the conversion totals
+                $data = array_merge(
+                    $data, [
+                        'total_coupons_used_on_conversion' => $total_coupons_used,
+                        'total_instant_carts_used_on_conversion' => $total_instant_carts_used,
+                        //  'total_adverts_used_on_conversion' => $total_adverts_used
+                        'total_orders_placed_by_customer_on_conversion' => $total_orders_placed_by_customer,
+                        'total_orders_placed_by_store_on_conversion' => $total_orders_placed_by_store,
+                        'total_free_delivery_on_conversion' => $total_free_delivery_on_conversion,
+
+                        'grand_total_on_conversion' => $grand_total,
+                        'sub_total_on_conversion' => $sub_total,
+                        'sale_discount_total_on_conversion' => $sale_discount_total,
+                        'coupon_total_on_conversion' => $coupon_total,
+                        'coupon_and_sale_discount_total_on_conversion' => $coupon_and_sale_discount_total,
+                        'delivery_fee_on_conversion' => $delivery_fee,
+                        'total_items_on_conversion' => $total_items,
+                        'total_unique_items_on_conversion' => $total_unique_items
+                    ]
+                );
+
+            }else{
+
+                //  Add the conversion totals
+                $data = array_merge(
+                    $data, [
+                        'total_coupons_used_on_checkout' => $total_coupons_used,
+                        'total_instant_carts_used_on_checkout' => $total_instant_carts_used,
+                        //  'total_adverts_used_on_checkout' => $total_adverts_used
+                        'total_orders_placed_by_customer_on_checkout' => $total_orders_placed_by_customer,
+                        'total_orders_placed_by_store_on_checkout' => $total_orders_placed_by_store,
+                        'total_free_delivery_on_checkout' => $total_free_delivery_on_conversion,
+
+                        'grand_total_on_checkout' => $grand_total,
+                        'sub_total_on_checkout' => $sub_total,
+                        'sale_discount_total_on_checkout' => $sale_discount_total,
+                        'coupon_total_on_checkout' => $coupon_total,
+                        'coupon_and_sale_discount_total_on_checkout' => $coupon_and_sale_discount_total,
+                        'delivery_fee_on_checkout' => $delivery_fee,
+                        'total_items_on_checkout' => $total_items,
+                        'total_unique_items_on_checkout' => $total_unique_items
+                    ]
+                );
+
+            }
 
             //  Create / Update the location customer
             $customer = ( new \App\Customer() )->createResource($data, $user);
@@ -1441,6 +1502,9 @@ trait OrderTraits
                         $this->setPaymentStatusToPaid();
 
                     }
+
+                    //  Update the customer conversion totals
+                    $this->createOrUpdateResourceCustomer(null, $this->customer->user, true);
 
                     //  Return a fresh instance
                     return $this->fresh();

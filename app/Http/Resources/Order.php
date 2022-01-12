@@ -28,6 +28,8 @@ class Order extends JsonResource
             'delivery_verified_at' => $this->delivery_verified_at,
             'delivery_verified_by' => $this->delivery_verified_by,
             'delivery_verified_by_user_id' => $this->delivery_verified_by_user_id,
+            'submitted_by_store_user' => $this->submitted_by_store_user,
+            'store_user_id' => $this->store_user_id,
             'customer_id' => $this->customer_id,
             'location_id' => $this->location_id,
             'cancellation_reason' => $this->cancellation_reason,

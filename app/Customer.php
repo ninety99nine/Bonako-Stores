@@ -26,12 +26,29 @@ class Customer extends Model
     protected $fillable = [
         'user_id',
 
-        'total_coupons_used_on_checkout', 'total_instant_carts_used_on_checkout',
-        'total_adverts_used_on_checkout', 'total_orders_placed_by_customer', 'total_orders_placed_by_store',
+        /**********************************
+         *  CUSTOMER DATA ON CHECKOUT     *
+         *********************************/
+        'total_coupons_used_on_checkout', 'total_instant_carts_used_on_checkout', 'total_adverts_used_on_checkout',
+        'total_orders_placed_by_customer_on_checkout', 'total_orders_placed_by_store_on_checkout',
+        'total_free_delivery_on_checkout',
 
-        'checkout_grand_total', 'checkout_sub_total', 'checkout_coupons_total', 'checkout_sale_discount_total',
-        'checkout_coupons_and_sale_discount_total', 'checkout_delivery_fee', 'total_free_delivery_on_checkout',
-        'checkout_total_items', 'checkout_total_unique_items',
+        'grand_total_on_checkout', 'sub_total_on_checkout', 'sale_discount_total_on_checkout',
+        'coupon_total_on_checkout', 'coupon_and_sale_discount_total_on_checkout',
+        'delivery_fee_on_checkout', 'total_items_on_checkout',
+        'total_unique_items_on_checkout',
+
+        /**********************************
+         *  CUSTOMER DATA ON CONVERSION   *
+         *********************************/
+        'total_coupons_used_on_conversion', 'total_instant_carts_used_on_conversion', 'total_adverts_used_on_conversion',
+        'total_orders_placed_by_customer_on_conversion', 'total_orders_placed_by_store_on_conversion',
+        'total_free_delivery_on_conversion',
+
+        'grand_total_on_conversion', 'sub_total_on_conversion', 'sale_discount_total_on_conversion',
+        'coupon_total_on_conversion', 'coupon_and_sale_discount_total_on_conversion',
+        'delivery_fee_on_conversion', 'total_items_on_conversion',
+        'total_unique_items_on_conversion',
 
         'location_id'
     ];
@@ -53,7 +70,8 @@ class Customer extends Model
      */
     public function scopeHasOrdersPlacedByCustomer($query)
     {
-        return $query->where('total_orders_placed_by_customer', '>', '0');
+        return $query->where('total_orders_placed_by_customer_on_checkout', '>', '0')
+                     ->orWhere('total_orders_placed_by_customer_on_conversion', '>', '0');
     }
 
     /**
@@ -62,7 +80,8 @@ class Customer extends Model
      */
     public function scopeHasOrdersPlacedByStore($query)
     {
-        return $query->where('total_orders_placed_by_store', '>', '0');
+        return $query->where('total_orders_placed_by_store_on_checkout', '>', '0')
+                     ->orWhere('total_orders_placed_by_store_on_conversion', '>', '0');
     }
 
     /**
@@ -71,7 +90,8 @@ class Customer extends Model
      */
     public function scopeHasUsedCoupons($query)
     {
-        return $query->where('total_coupons_used', '>', '0');
+        return $query->where('total_coupons_used_on_checkout', '>', '0')
+                     ->orWhere('total_coupons_used_on_conversion', '>', '0');
     }
 
     /**
@@ -80,7 +100,8 @@ class Customer extends Model
      */
     public function scopeHasUsedInstantCarts($query)
     {
-        return $query->where('total_instant_carts_used', '>', '0');
+        return $query->where('total_instant_carts_used_on_checkout', '>', '0')
+                     ->orWhere('total_instant_carts_used_on_conversion', '>', '0');
     }
 
     /**
@@ -89,7 +110,8 @@ class Customer extends Model
      */
     public function scopeHasUsedAdverts($query)
     {
-        return $query->where('total_adverts_used_on_checkout', '>', '0');
+        return $query->where('total_adverts_used_on_checkout', '>', '0')
+                     ->orWhere('total_adverts_used_on_conversion', '>', '0');
     }
 
     /**
@@ -98,7 +120,8 @@ class Customer extends Model
      */
     public function scopeHasOrdersWithFreeDelivery($query)
     {
-        return $query->where('total_free_delivery_on_checkout', '>', '0');
+        return $query->where('total_free_delivery_on_checkout', '>', '0')
+                     ->orWhere('total_free_delivery_on_conversion', '>', '0');
     }
 
     /*
@@ -131,37 +154,58 @@ class Customer extends Model
      *
      */
     protected $appends = [
-        'resource_type'
+        'resource_type', 'total_orders_placed_on_checkout', 'total_orders_placed_on_conversion'
     ];
 
+
+    /**********************************
+     *  CUSTOMER DATA ON CHECKOUT     *
+    *********************************/
+
     /**
-     *  Returns the checkout_grand_total
+     *  Returns the total_orders_placed_on_checkout
      */
-    public function getcheckoutGrandTotalAttribute($amount)
+    public function getTotalOrdersPlacedOnCheckoutAttribute($amount)
+    {
+        return $this->total_orders_placed_by_customer_on_checkout + $this->total_orders_placed_by_store_on_checkout;
+    }
+
+    /**
+     *  Returns the grand_total_on_checkout
+     */
+    public function getGrandTotalOnCheckoutAttribute($amount)
     {
         return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
     }
 
     /**
-     *  Returns the checkout_sub_total
+     *  Returns the sub_total_on_checkout
      */
-    public function getCheckoutSubTotalAttribute($amount)
+    public function getSubTotalOnCheckoutAttribute($amount)
     {
         return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
     }
 
     /**
-     *  Returns the checkout_coupons_total
+     *  Returns the sale_discount_total_on_checkout
      */
-    public function getCheckoutCouponsTotalAttribute($amount)
+    public function getSaleDiscountTotalOnCheckoutAttribute($amount)
     {
         return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
     }
 
     /**
-     *  Returns the checkout_sale_discount_total
+     *  Returns the coupon_total_on_checkout
      */
-    public function getCheckoutSaleDiscountTotalAttribute($amount)
+    public function getCouponTotalOnCheckoutAttribute($amount)
+    {
+        return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
+    }
+
+    /**
+     *  Returns the coupon_and_sale_discount_total_on_checkout
+     */
+    public function getCouponAndSaleDiscountTotalOnCheckoutAttribute($amount)
     {
         return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
     }
@@ -169,7 +213,59 @@ class Customer extends Model
     /**
      *  Returns the checkout_coupons_and_sale_discount_total
      */
-    public function getCheckoutCouponsAndSaleDiscountTotalAttribute($amount)
+    public function getDeliveryFeeOnCheckoutAttribute($amount)
+    {
+        return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
+    }
+
+    /**********************************
+     *  CUSTOMER DATA ON CONVERSION   *
+     *********************************/
+
+    /**
+     *  Returns the total_orders_placed_conversion
+     */
+    public function getTotalOrdersPlacedOnConversionAttribute($amount)
+    {
+        return $this->total_orders_placed_by_customer_on_conversion + $this->total_orders_placed_by_store_on_conversion;
+    }
+
+    /**
+     *  Returns the grand_total_on_conversion
+     */
+    public function getGrandTotalOnConversionAttribute($amount)
+    {
+        return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
+    }
+
+    /**
+     *  Returns the sub_total_on_conversion
+     */
+    public function getSubTotalOnConversionAttribute($amount)
+    {
+        return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
+    }
+
+    /**
+     *  Returns the sale_discount_total_on_conversion
+     */
+    public function getSaleDiscountTotalOnConversionAttribute($amount)
+    {
+        return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
+    }
+
+    /**
+     *  Returns the coupon_total_on_conversion
+     */
+    public function getCouponTotalOnConversionAttribute($amount)
+    {
+        return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
+    }
+
+    /**
+     *  Returns the coupon_and_sale_discount_total_on_conversion
+     */
+    public function getCouponAndSaleDiscountTotalOnConversionAttribute($amount)
     {
         return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
     }
@@ -177,7 +273,7 @@ class Customer extends Model
     /**
      *  Returns the checkout_coupons_and_sale_discount_total
      */
-    public function getCheckoutDeliveryFeeAttribute($amount)
+    public function getDeliveryFeeOnConversionAttribute($amount)
     {
         return $this->convertToMoney($this->unpackCurrency('BWP'), $amount);
     }
