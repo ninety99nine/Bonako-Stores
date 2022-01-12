@@ -46,7 +46,7 @@ trait SubscriptionTraits
     /**
      *  This method creates a new subscription
      */
-    public function createResource($data = [], $model = null)
+    public function createResource($data = [], $model = null, $user = null)
     {
         try {
 
@@ -106,8 +106,8 @@ trait SubscriptionTraits
 
             }else{
 
-                //  Set the current authenticated user as the user responsible for owning this resource
-                $template['user_id'] = auth('api')->user()->id;
+                //  Set the user as the user responsible for owning this resource
+                $template['user_id'] = $user->id;
 
             }
 

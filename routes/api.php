@@ -8,6 +8,30 @@ use App\Subscription;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/notify', function(Request $request){
+
+
+    return \App\Order::find(1)->transaction->convertToApiFormat();
+
+    //  Login using the given user account
+    $user = auth()->loginUsingId(\App\User::find(1)->id);
+
+    //  Set the user auth instance
+    auth('api')->setUser($user);
+
+    /******************************
+     *  FAKE LOGOUT               *
+     *****************************/
+    $request->request->add([
+        'delivery_confirmation_code' => '5437728822399100',
+        'location_id' => 1
+    ]);
+
+
+    return \App\Order::find(1)->deliverResource($request, $user);
+
+});
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -19,35 +43,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 Route::get('/subscription', function(Request $request){
-
-    //  Login using the given user account
-    $user = auth()->loginUsingId(\App\User::first()->id);
-
-    //  Set the user auth instance
-    auth('api')->setUser($user);
-
-    /******************************
-     *  FAKE LOGOUT               *
-     *****************************/
-    $request->request->add([
-        'firebase_device_token' => '456'
-    ]);
-
-    return (new App\Http\Controllers\Api\AuthController)->logout($request);
-
-    /******************************
-     *  FAKE LOGIN               *
-     *****************************/
-    $request->request->add([
-        'password' => 'QWEasd',
-        'mobile_number' => '26772882239',
-        'firebase_device_token' => '456'
-    ]);
-
-    return (new App\Http\Controllers\Api\AuthController)->login($request);
-
-
-
 
     /******************************
      *  CLEAR CACHE               *
@@ -107,6 +102,10 @@ Route::get('/subscription', function(Request $request){
         'accepted_terms_and_conditions' => true,
         'mobile_number_verified_at' => \Carbon\Carbon::now(),
         'password' => \Illuminate\Support\Facades\Hash::make('QWEasd'),
+        'firebase_device_tokens' => [
+            'fxOBPbwQTG2-nuiBopeNZP:APA91bE84NSXOslH_jSa45bAPrvYYPUA4t2Qm8PGpeXj1rqt00NEkZ6n7kDz5dO-I93-oMK-qyEhw5i8rRT9OJXDfyRKNWB0lJ9tt12yswNd7ZuNr9qLtd4WPI1j--8buoRGiSpdbYaX',
+            'djaCaRGp3kf6mtdTA627Rb:APA91bEjvEV-zBn7ykgS5hDZSoRTHCiKe_Bn_nta4J4vAegRQ_Q0NtQE93_Pe2GDDkSNv0y-DHGzxfjMSBtTSB0gEsPKDBrcndaTDnRltD_-40hmPvRFL9ey7zG8nE6quTAKN39l_rvz'
+        ]
     ]);
 
     //  Create a user account
@@ -149,6 +148,23 @@ Route::get('/subscription', function(Request $request){
         'payment_method_id' => 1
     ], $merchant_user);
 
+    /***********************************************
+     *  INVITE USER TO THE STORE (AS TEAM MEMBER)  *
+     ***********************************************/
+    $merchant_store_subscription = $store->locations()->first()->assignUserAsTeamMember([
+        'mobile_numbers' => ['26777479083'],
+        //  Grant a few permissions
+        'permissions' => ['manage-coupons', 'manage-products', 'manage-customers']
+    ]);
+
+    /*********************************************
+     *  SUBSCRIBE TO NEW STORE (INVITED USER)    *
+     *********************************************/
+    $customer_store_subscription = $store->generateResourceSubscription([
+        'subscription_plan_id' => 3,
+        'payment_method_id' => 1
+    ], $customer_user);
+
     /******************************
      *  CREATE A NEW PRODUCT      *
      *****************************/
@@ -181,6 +197,13 @@ Route::get('/subscription', function(Request $request){
         'discount_rate_type' => 'percentage',
         'percentage_rate' => '10',
         'apply_discount' => true,
+
+        //  Activation type
+        'activation_type' => 0, //  Use code
+
+        //  Activation rules
+        'allow_discount_on_new_customer' => true,
+
         'location_id' => 1
     ], $merchant_user);
 
@@ -199,6 +222,20 @@ Route::get('/subscription', function(Request $request){
                 'quantity' => 4
             ]
         ],
+        'location_id' => 1
+    ], null, $merchant_user);
+
+    $cart_2 = (new \App\Cart())->createResource([
+        'items' => [
+            [
+                'id' => 1,
+                'quantity' => 3
+            ],
+            [
+                'id' => 2,
+                'quantity' => 5
+            ]
+        ],
         'coupons' => [
             [
                 'id' => 1
@@ -207,7 +244,7 @@ Route::get('/subscription', function(Request $request){
         'location_id' => 1
     ], null, $merchant_user);
 
-    $cart_2 = (new \App\Cart())->createResource([
+    $cart_3 = (new \App\Cart())->createResource([
         'items' => [
             [
                 'id' => 1,
@@ -236,6 +273,10 @@ Route::get('/subscription', function(Request $request){
 
     $order_2 = (new \App\Order())->createResource([
         'cart_id' => $cart_2->id
+    ], $merchant_user);
+
+    $order_3 = (new \App\Order())->createResource([
+        'cart_id' => $cart_3->id
     ], $customer_user);
 
     /**********************************

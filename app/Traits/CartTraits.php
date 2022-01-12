@@ -525,7 +525,15 @@ trait CartTraits
 
                 $item_line = collect($item_line)->only( (new \App\ItemLine)->getFillable() )->toArray();
 
-                //  Restructure item line
+                /**
+                 *  Restructure item line
+                 *
+                 *  Some fields ont the item line such as "name", "description", "sku", "barcode", e.t.c
+                 *  do not require any modifications since the data structure must be cloned as is, but
+                 *  as for other fields such as "is_free", "currency", "unit_regular_price", e.t.c we
+                 *  need to extract only specific parts of the data since they may be in the form of
+                 *  Arrays with more information than we need.
+                 */
                 $item_line['is_free'] = $item_line['is_free']['status'];
                 $item_line['currency'] = $item_line['currency']['code'];
                 $item_line['unit_regular_price'] = $item_line['unit_regular_price']['amount'];
@@ -1176,7 +1184,7 @@ trait CartTraits
                     $cart_item = collect($related_product)->only([
 
                         /*  Product Details  */
-                        'id', 'name', 'description',
+                        'id', 'name', 'description', 'sku', 'barcode',
                         'is_free', 'unit_regular_price', 'unit_sale_price',
                         'sku', 'barcode',
 
@@ -1474,16 +1482,9 @@ trait CartTraits
                         //  If the location coupon is applied using a specific code
                         if( $location_coupon['activation_type']['type'] == 'use code' ){
 
-                            //	Check if we have a matching code
-                            $is_valid = isset($coupon['code']) && ($coupon['code'] == $location_coupon['code']);
-
-                            //  If not valid return false
-                            if( !$is_valid ) return false;
-
-                        }else{
-
-                            //	Check if we have a matching id
-                            $is_valid = ($coupon['id'] == $location_coupon['id']);
+                            //	Check if we have a matching coupon codes or coupon ids
+                            $is_valid = isset($coupon['code']) && !empty($coupon['code']) && ($coupon['code'] == $location_coupon['code']) ||
+                                        isset($coupon['id']) && !empty($coupon['id']) && ($coupon['id'] == $location_coupon['id']);
 
                             //  If not valid return false
                             if( !$is_valid ) return false;

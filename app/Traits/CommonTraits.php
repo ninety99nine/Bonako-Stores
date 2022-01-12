@@ -20,6 +20,72 @@ trait CommonTraits
             'owner_type' => $model->resource_type,
         ]);
     }
+    /**
+     *  This method updates the existing cart using already
+     *  existing item lines and coupon lines
+     */
+    public function sendFirebaseCloudMessagingNotification($firebase_device_tokens = [], $remote_message = [])
+    {
+        try {
+
+            /**
+             *  $remote_message structure:
+             *  -------
+             *
+             *  [
+             *      'notification' => [
+             *          'title': "Weather Warning!",
+             *          'body': "A new weather warning has been issued for your location.",
+             *          'imageUrl': "https://my-cdn.com/extreme-weather.png",
+             *      ],
+             *      [
+             *          'data' => [
+             *              'order': [ ... ],
+             *              ...
+             *          ],
+             *      ]
+             *  ]
+             */
+            if( is_array($firebase_device_tokens) && !empty($firebase_device_tokens) ){
+
+                $method = 'POST';
+                $url = config('app.FIREBASE_CLOUD_MESSAGING_URL');
+                $serverKey = config('app.FIREBASE_SERVICE_ACCOUNT_SERVER_KEY');
+                //  $tokens = ['fxOBPbwQTG2-nuiBopeNZP:APA91bE84NSXOslH_jSa45bAPrvYYPUA4t2Qm8PGpeXj1rqt00NEkZ6n7kDz5dO-I93-oMK-qyEhw5i8rRT9OJXDfyRKNWB0lJ9tt12yswNd7ZuNr9qLtd4WPI1j--8buoRGiSpdbYaX'];
+
+                //  Declare the Request Options Array
+                $request_options = [];
+
+                //  Set the Request Headers
+                $request_options['headers'] = [
+                    'Authorization' => 'key='.$serverKey,
+                    'Content-Type' => 'application/json',
+                ];
+
+                //  Set the Request Post Data
+                $request_options['json'] = [
+                    "registration_ids" => $firebase_device_tokens,
+                    "notification" => $remote_message['notification'] ?? null,
+                    "data" => $remote_message['data'] ?? null,
+                ];
+
+                //  Disable Request SSL certificate validation
+                $request_options['verify'] = false;
+
+                //  Create a new Http Guzzle Client
+                $httpClient = new \GuzzleHttp\Client();
+
+                //  Perform the Http request to send the Cloud Messaging Notifications
+                $httpClient->request($method, $url, $request_options);
+
+            }
+
+        } catch (\Throwable $th) {
+
+            //  Handle the throwable error
+
+        }
+    }
 
     /**
      *  This method generates a resource payment short code

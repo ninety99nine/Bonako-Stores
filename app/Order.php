@@ -3,14 +3,17 @@
 namespace App;
 
 use Carbon\Carbon;
+use Carbon\CarbonInterval;
+use Carbon\CarbonInterface;
 use App\Traits\OrderTraits;
 use App\Traits\CommonTraits;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use \Staudenmeir\EloquentHasManyDeep\HasRelationships;
 
 class Order extends Model
 {
-    use CommonTraits, OrderTraits;
+    use HasRelationships, CommonTraits, OrderTraits;
 
     protected $with = ['status', 'paymentStatus', 'deliveryStatus', 'activeCart', 'deliveryLine', 'paymentShortCode', 'transaction'];
 
@@ -56,6 +59,7 @@ class Order extends Model
 
         /*  Delivery Info  */
         'delivery_confirmation_code', 'delivery_verified', 'delivery_verified_at',
+        'delivery_verified_by', 'delivery_verified_by_user_id'
     ];
 
     /**
@@ -178,6 +182,14 @@ class Order extends Model
     }
 
     /**
+     *  Returns the associated location users
+     */
+    public function users()
+    {
+        return $this->hasManyDeep(User::class, ['location_order', Location::class, 'location_user']);
+    }
+
+    /**
      *  Returns the carts owned by this order
      */
     public function carts()
@@ -282,7 +294,8 @@ class Order extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'is_paid', 'is_delivered', 'delivery_verified_description', 'requires_delivery_confirmation_code'
+        'resource_type', 'is_paid', 'is_delivered', 'delivery_verified_description',
+        'time_elapsed_to_delivery_verified', 'requires_delivery_confirmation_code'
     ];
 
     /**
@@ -337,9 +350,44 @@ class Order extends Model
 
             }
 
+            $delivery_verified_by = !empty($this->delivery_verified_by) ? ' by ' . $this->delivery_verified_by : '';
+
             return $this->delivery_verified
-                    ? 'The order delivery was successfully verified at ' . $delivery_verified_at
+                    ? 'The order delivery was successfully verified at ' . $delivery_verified_at . $delivery_verified_by
                     : 'The order delivery has not been verified';
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns the delivery verified description
+     */
+    public function getTimeElapsedToDeliveryVerifiedAttribute()
+    {
+        try {
+
+            if( $this->delivery_verified ){
+
+                //  Set verified datetime
+                $delivery_verified_at = Carbon::parse($this->delivery_verified_at);
+
+                //  Set created datetime
+                $order_created_at = Carbon::parse($this->created_at);
+
+                $totalDuration = $delivery_verified_at->DiffInSeconds($order_created_at);
+
+                return [
+                    'one_entry' => CarbonInterval::seconds($totalDuration)->cascade()->forHumans(['parts' => 1]),
+                    'two_entries' => CarbonInterval::seconds($totalDuration)->cascade()->forHumans(['join' => true, 'parts' => 2]),
+                ];
+
+            }
+
+            return null;
 
         } catch (\Exception $e) {
 

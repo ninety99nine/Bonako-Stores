@@ -26,6 +26,8 @@ class Order extends JsonResource
             'number' => $this->number,
             'delivery_verified' => $this->delivery_verified,
             'delivery_verified_at' => $this->delivery_verified_at,
+            'delivery_verified_by' => $this->delivery_verified_by,
+            'delivery_verified_by_user_id' => $this->delivery_verified_by_user_id,
             'customer_id' => $this->customer_id,
             'location_id' => $this->location_id,
             'cancellation_reason' => $this->cancellation_reason,
@@ -39,6 +41,7 @@ class Order extends JsonResource
             '_attributes' => [
                 'is_paid' => $this->is_paid,
                 'is_delivered' => $this->is_delivered,
+                'time_elapsed_to_delivery_verified' => $this->time_elapsed_to_delivery_verified,
                 'requires_delivery_confirmation_code' => $this->requires_delivery_confirmation_code,
 
                 'resource_type' => $this->resource_type,

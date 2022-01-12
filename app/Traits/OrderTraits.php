@@ -4,6 +4,8 @@ namespace App\Traits;
 
 use DB;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Builder;
 use App\Http\Resources\Order as OrderResource;
@@ -13,6 +15,10 @@ use App\Http\Resources\Orders as OrdersResource;
 trait OrderTraits
 {
     public $order = null;
+    public $_store = null;
+    public $_location = null;
+    public $new_order_merchant_sms = null;
+    public $new_order_merchant_notification = null;
 
     /**
      *  This method transforms a collection or single model instance
@@ -139,6 +145,16 @@ trait OrderTraits
                         $this->order->setPaymentStatusToUnpaid();
 
                     }
+
+                    //  Craft the merchant sms and notification
+                    $this->order->craftNewOrderMerchantMessages($user);
+
+                    /*************************************************
+                     *  SEND FIREBASE CLOUD MESSAGING NOTIFICATIONS  *
+                     * ***********************************************/
+
+                    //  Send the new order merchant sms
+                    $this->order->sendNewOrderMerchantMobileAppNotification($user);
 
                     /*************************************
                      *  SEND DELIVERY CONFIRMATION CODE  *
@@ -840,6 +856,85 @@ trait OrderTraits
         }
     }
 
+    public function sendNewOrderMerchantMobileAppNotification() {
+
+        //  Get the order locations
+        $locations = $this->locations;
+
+        //  Get the order location users
+        $users = $this->users()->with('permissions')->get();
+
+        //  If we have atleast one location and one user
+        if( count($locations) && count($users) ){
+
+            /**
+             *  Extract the firebase device tokens of users that have the permissions to manage this order
+             *
+             *  RESULT:
+             *
+             *  [
+             *      'fxOBPbwQTG2...',
+             *      'nuiBopeNZP5...',
+             *      'rvYYPUA4t2Q...'
+             *  ]
+             */
+            $firebase_device_tokens = collect($users)->filter(function($user) use ($locations){
+
+                /**
+                 * $user->permissions = [
+                 *      [
+                 *          "id" => 1,
+                 *          "name" => "locations.1.manage-orders,manage-coupons,manage-products,manage-customers,manage-instant-carts,manage-users,manage-reports,manage-settings",
+                 *          "guard_name" => "web",
+                 *          "created_at" => "2022-01-06T05:23:48.000000Z",
+                 *          "updated_at" => "2022-01-06T05:23:48.000000Z",
+                 *          "pivot" => [
+                 *              "model_id" => 1,
+                 *              "permission_id" => 1,
+                 *              "model_type" => "user"
+                 *          ]
+                 *      ]
+                 *  ]
+                 *
+                 *  Return users that have the permission to manage this order
+                 */
+                return collect($user->permissions)->contains(function($permission) use($locations) {
+
+                    //  By default the user does not have the permissions to manage this order
+                    $hasPermissions = false;
+
+                    //  Check if this user has the permission to manage this order in any of the assigned locations
+                    foreach ($locations as $location) {
+
+                        $hasPermissions = Str::containsAll($permission->name, ['locations.'.$location->id]);
+
+                    }
+
+                    return $hasPermissions;
+                });
+
+            //  Extract the firebase device tokens from every user and flatten the results
+            })->pluck('firebase_device_tokens')->flatten()->values()->toArray();
+
+            //  If we have atleast 1 token
+            if( count($firebase_device_tokens) ){
+
+                //  Send the new order notification to the merchant
+                $this->sendFirebaseCloudMessagingNotification($firebase_device_tokens, [
+                    'notification' => [
+                        'title' => 'New Order',
+                        'body' => $this->new_order_merchant_notification,
+                        'android_channel_id' => 'high_importance_channel',
+                        'icon' => 'https://img.icons8.com/external-tal-revivo-color-tal-revivo/50/000000/external-web-hyperlink-with-url-for-navigating-to-new-page-text-color-tal-revivo.png'
+                    ],
+                ]);
+
+            }
+
+        }
+
+    }
+
     /**
      *  This method sends the delivery confirmation code message to the customer
      */
@@ -851,22 +946,62 @@ trait OrderTraits
              * GENERATE THE DELIVERY CONFIRMATION CODE *
              *******************************************/
 
+            $customer = $this->customer;
+
             //  Set the delivery reference name
-            $customer_name = $this->customer->user->first_name;
+            $customer_name = $customer->user->first_name;
 
             //  Set the delivery reference mobile number
-            $customer_mobile_number = $this->customer->user->mobile_number;
+            $customer_mobile_number = $customer->user->mobile_number;
 
-            //  Generate 6 digit mobile delivery confirmation code
-            $six_digit_random_number = mt_rand(100000, 999999);
+            //  Get the existing delivery confirmation codes for orders placed by this customer
+            $existing_confirmation_codes = $customer->orders()->whereNotNull('delivery_confirmation_code')->pluck('delivery_confirmation_code');
 
-            $first_3_characters = substr($six_digit_random_number, 0, 3);
+            //  Extract the first 4 digits and last 4 digits of the delivery confirmation codes
+            $existing_confirmation_codes = collect($existing_confirmation_codes)->map(function($existing_confirmation_code){
 
-            $last_3_characters = substr($six_digit_random_number, -3);
+                $first_4_characters = substr($existing_confirmation_code, 0, 4);
+
+                $last_4_characters = substr($existing_confirmation_code, -4);
+
+                return $first_4_characters . $last_4_characters;
+
+            })->toArray();
+
+            //  By default we assume that the delivery confirmation code exists
+            $code_exists = true;
+
+            while($code_exists == true) {
+
+                //  Generate a random number
+                $random_number = mt_rand(1, 99999999);
+
+                /**
+                 *  Get the random number, and Pad the left side with leading "0" so that we have a
+                 *  total of eight digits e.g
+                 *
+                 *  123 = 00000123, 1234 = 00001234, 12345 = 00012345, 123456 = 00123456,
+                 *  1234567 = 01234567, 12345678 = 12345678
+                 */
+                $random_eight_digit_number = str_pad($random_number, 8, 0, STR_PAD_LEFT);
+
+                $code_exists = collect($existing_confirmation_codes)->contains($random_eight_digit_number);
+
+            }
+
+            //  Get the first 4 digits e.g 2447
+            $first_4_characters = substr($random_eight_digit_number, 0, 4);
+
+            //  Get the last 4 digits e.g 3795
+            $last_4_characters = substr($random_eight_digit_number, -4);
+
+            //  Merge the random digits with the customer mobile number e.g 2447728822393795
+            $delivery_confirmation_code = $first_4_characters . $customer_mobile_number['number'] . $last_4_characters;
+
+            //  Split the delivery code with dashes after every 4 characters
+            $dashed_delivery_confirmation_code = join('-', str_split($delivery_confirmation_code, 4));
 
             //  Encrypt the delivery confirmation code
-            $delivery_confirmation_code = $first_3_characters . $customer_mobile_number['number'] . $last_3_characters;
-
             //  $hashed_delivery_confirmation_code = bcrypt($delivery_confirmation_code);
 
             //  Set the delivery confirmation code
@@ -874,7 +1009,7 @@ trait OrderTraits
 
             //  Craft the sms message
             $message =  trim('Hi '.$customer_name).', your delivery confirmation code '.
-                       'for order #'.$this->number.' is ' .$delivery_confirmation_code.'. '.
+                       'for order #'.$this->number.' is ' .$dashed_delivery_confirmation_code.'. '.
                        'Share this code with your merchant only after you receive your order.';
 
             $type = 'Order delivery confirmation code';
@@ -888,7 +1023,7 @@ trait OrderTraits
                 'message' => $message,
 
                 //  Set the mobile_number on the data
-                'mobile_number' => $user->mobile_number['number_with_code']
+                'mobile_number' => $customer_mobile_number['number_with_code']
 
             ];
 
@@ -908,44 +1043,68 @@ trait OrderTraits
     /**
      *  This method sends the new order message to the merchant
      */
-    public function sendNewOrderMerchantSms($user = null)
+    public function craftNewOrderMerchantMessages($user = null)
     {
         try {
 
             //  Set the location that received this order
-            $location = $this->receivedLocations()->first();
+            $this->_location = $this->receivedLocations()->first();
 
-            //  Set the store that the location belongs to
-            $store = $location->store;
+            if( $this->_location ){
+
+                //  Set the store that the location belongs to
+                $this->_store = $this->_location->store;
+
+                //  If this store supports sending merchant sms
+                if( $this->_store->allow_sending_merchant_sms ){
+
+                    //  Set the customer name otherwise to the billing name
+                    $customer_name = $this->customer->user->first_name;
+
+                    //  Set the customer mobile number otherwise to the billing mobile number
+                    $customer_mobile_number = $this->customer->user->mobile_number['number'];
+
+                    //  Set the main short code
+                    $main_short_code = '*'.config('app.MAIN_SHORT_CODE').'#';
+
+                    //  Set the main short code
+                    $website_domain = env('MAIN_WEBSITE_DOMAIN');
+
+                    //  Set the grand total
+                    $grand_total = $this->activeCart->grand_total['currency_money'];
+
+                    //  Craft the notification message
+                    $this->new_order_merchant_notification = '0rder #'.$this->number.' received for '.$this->_store->name.' '.
+                        'amount '.$grand_total.' from '. $customer_name. ' ('.$customer_mobile_number.')';
+
+                    //  Craft the sms message
+                    $this->new_order_merchant_sms = 'Order #'.$this->number.' received for '.$this->_store->name.' '.
+                               'amount '.$grand_total.' from '. $customer_name. ' ('.$customer_mobile_number.'). '.
+                               'Dial '.$main_short_code.' or download Bonako Dial2buy App.';
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sends the new order message to the merchant
+     */
+    public function sendNewOrderMerchantSms($user = null)
+    {
+        try {
 
             //  If this store supports sending merchant sms
-            if( $store->allow_sending_merchant_sms ){
-
-                //  Set the store owner name as the merchant name
-                $merchant_name = $store->owner->first_name;
+            if( $this->_store->allow_sending_merchant_sms ){
 
                 //  Set the store owner mobile number as the merchant mobile number
-                $merchant_mobile_number = $store->owner->mobile_number['number_with_code'];
-
-                //  Set the customer name otherwise to the billing name
-                $customer_name = $this->customer->user->first_name;
-
-                //  Set the customer mobile number otherwise to the billing mobile number
-                $customer_mobile_number = $this->customer->user->mobile_number['number'];
-
-                //  Set the main short code
-                $main_short_code = '*'.config('app.MAIN_SHORT_CODE').'#';
-
-                //  Set the main short code
-                $website_domain = env('MAIN_WEBSITE_DOMAIN');
-
-                //  Set the grand total
-                $grand_total = $this->activeCart->grand_total['currency_money'];
-
-                //  Craft the sms message
-                $message = 'Hi '.$merchant_name.', order #'.$this->number.' received for '.$store->name.' '.
-                           'amount '.$grand_total.' from '. $customer_name. ' ('.$customer_mobile_number.'). '.
-                           'Dial '.$main_short_code.' or download Bonako Dial2buy App.';
+                $merchant_mobile_number = $this->_store->owner->mobile_number['number_with_code'];
 
                 $type = 'New order alert';
 
@@ -955,7 +1114,7 @@ trait OrderTraits
                     'type' => $type,
 
                     //  Set the message on the data
-                    'message' => $message,
+                    'message' => $this->new_order_merchant_sms,
 
                     //  Set the mobile_number on the data
                     'mobile_number' => $merchant_mobile_number
@@ -1104,8 +1263,43 @@ trait OrderTraits
             //  Get the delivery confirmation code
             $delivery_confirmation_code = $data['delivery_confirmation_code'];
 
+            //  Set the location id
+            $location_id = isset($data['location_id']) ? $data['location_id'] : null;
+
+            if( empty($location_id) ){
+
+                throw ValidationException::withMessages([
+                    'location_id' => 'The location id is required',
+                ]);
+
+            }else{
+
+                $location = \App\Location::find($location_id);
+
+                if( $location ){
+
+                    $hasPermissions = Gate::allows('manage-orders', $location);
+
+                    if( $hasPermissions == false ){
+
+                        throw ValidationException::withMessages([
+                            'message' => 'Not authourized. You do not have permissions to confirm the delivery code validity',
+                        ]);
+
+                    }
+
+                }else{
+
+                    throw ValidationException::withMessages([
+                        'message' => 'The location does not exist',
+                    ]);
+
+                }
+
+            }
+
             //  Find matching order
-            $order = $this->searchDeliveryConfirmationCode($delivery_confirmation_code)->first();
+            $order = $location->orders()->searchDeliveryConfirmationCode($delivery_confirmation_code)->first();
 
             return response([
                 'is_valid' => !empty($order),
@@ -1144,6 +1338,41 @@ trait OrderTraits
             //  Set the mobile number
             $mobile_number = isset($data['mobile_number']) ? $data['mobile_number'] : null;
 
+            //  Set the location id
+            $location_id = isset($data['location_id']) ? $data['location_id'] : null;
+
+            if( empty($location_id) ){
+
+                throw ValidationException::withMessages([
+                    'location_id' => 'The location id is required',
+                ]);
+
+            }else{
+
+                $location = \App\Location::find($location_id);
+
+                if( $location ){
+
+                    $hasPermissions = Gate::allows('manage-orders', $location);
+
+                    if( $hasPermissions == false ){
+
+                        throw ValidationException::withMessages([
+                            'message' => 'Not authourized. You do not have permissions required to mark the order as delivered',
+                        ]);
+
+                    }
+
+                }else{
+
+                    throw ValidationException::withMessages([
+                        'message' => 'The location does not exist',
+                    ]);
+
+                }
+
+            }
+
             if( empty($delivery_confirmation_code) && empty($verification_code) ){
 
                 throw ValidationException::withMessages([
@@ -1169,7 +1398,7 @@ trait OrderTraits
                 if( !empty($delivery_confirmation_code) ){
 
                     //  Find matching order
-                    $order = $this->searchDeliveryConfirmationCode($delivery_confirmation_code)->first();
+                    $order = $location->orders()->searchDeliveryConfirmationCode($delivery_confirmation_code)->first();
 
                 }elseif( !empty($verification_code) ){
 
@@ -1189,11 +1418,14 @@ trait OrderTraits
 
                 }
 
+
                 //  Check if we have a matching delivery confirmation code
                 if( $order ){
 
                     //  Update the order
                     $this->update([
+                        'delivery_verified_by_user_id' => $user->id,
+                        'delivery_verified_by' => $user->name,
                         'delivery_verified_at' => Carbon::now(),
                         'delivery_confirmation_code' => null,
                         'delivery_verified' => true

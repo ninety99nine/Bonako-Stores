@@ -40,7 +40,7 @@ class CouponLine extends JsonResource
             'allow_discount_on_end_datetime' => $this->allow_discount_on_end_datetime,
             'discount_on_end_datetime' => $this->discount_on_end_datetime,
             'allow_usage_limit' => $this->allow_usage_limit,
-            'usage_limit' => $this->usage_limit,
+            'quantity_remaining' => $this->quantity_remaining,
 
             'allow_discount_on_times' => $this->allow_discount_on_times,
             'discount_on_times' => $this->discount_on_times,
@@ -52,6 +52,10 @@ class CouponLine extends JsonResource
             'discount_on_months_of_the_year' => $this->discount_on_months_of_the_year,
             'allow_discount_on_new_customer' => $this->allow_discount_on_new_customer,
             'allow_discount_on_existing_customer' => $this->allow_discount_on_existing_customer,
+
+            'is_cancelled' => $this->is_cancelled,
+            'cancellation_reason' => $this->cancellation_reason,
+            'detected_changes' => $this->detected_changes,
 
             /*  Timestamp Info  */
             'created_at' => $this->created_at,

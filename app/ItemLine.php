@@ -31,6 +31,9 @@ class ItemLine extends Model
         /*  Basic Info  */
         'name', 'description',
 
+        /*  Tracking Info  */
+        'sku', 'barcode',
+
         'is_free', 'is_cancelled', 'cancellation_reason', 'detected_changes',
 
         /*  Unit Pricing Info  */
@@ -180,6 +183,12 @@ class ItemLine extends Model
     public function getGrandTotalAttribute($amount)
     {
         return $this->convertToMoney($this->currency, $amount);
+    }
+
+    public function getDetectedChangesAttribute($value)
+    {
+        //  Convert to array
+        return is_null($value) ? [] : json_decode($value, true);
     }
 
     public function setIsFreeAttribute($value)

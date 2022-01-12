@@ -61,12 +61,13 @@ class Product extends JsonResource
             '_attributes' => [
                 'on_sale' => $this->on_sale,
                 'has_price' => $this->has_price,
-                'unit_price' => $this->unit_price,
                 'unit_loss' => $this->unit_loss,
+                'has_stock' => $this->has_stock,
+                'unit_price' => $this->unit_price,
                 'unit_profit' => $this->unit_profit,
+                'resource_type' => $this->resource_type,
                 'unit_sale_discount' => $this->unit_sale_discount,
                 'unit_sale_percentage' => $this->unit_sale_percentage,
-                'has_stock' => $this->has_stock,
             ],
 
             /*  Resource Links */

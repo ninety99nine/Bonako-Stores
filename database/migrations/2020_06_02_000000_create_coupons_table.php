@@ -44,8 +44,8 @@ class CreateCouponsTable extends Migration
             $table->timestamp('discount_on_end_datetime')->nullable();
 
             $table->tinyInteger('allow_usage_limit')->default(false);
-            $table->string('usage_limit')->nullable();
-            $table->string('usage_quantity')->nullable();
+            $table->unsignedInteger('usage_limit')->default(0);
+            $table->unsignedInteger('usage_quantity')->default(0);
 
             $table->boolean('allow_discount_on_times')->default(false);
             $table->json('discount_on_times')->nullable();

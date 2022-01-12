@@ -18,6 +18,8 @@ class CreateItemLinesTable extends Migration
             /*  Basic Info  */
             $table->string('name')->nullable();
             $table->string('description', 500)->nullable();
+            $table->string('sku')->nullable();
+            $table->string('barcode')->nullable();
             $table->boolean('is_free')->default(false);
             $table->boolean('is_cancelled')->default(false);
             $table->string('cancellation_reason')->nullable();

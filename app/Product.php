@@ -31,7 +31,10 @@ class Product extends Model
     protected $fillable = [
 
         /*  Product Management  */
-        'name', 'description', 'show_description', 'sku', 'barcode', 'visible', 'product_type_id',
+        'name', 'description', 'show_description', 'visible', 'product_type_id',
+
+        /*  Tracking Info  */
+        'sku', 'barcode',
 
         /*  Variation Management  */
         'allow_variants', 'variant_attributes',

@@ -21,6 +21,8 @@ class ItemLine extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'sku' => $this->sku,
+            'barcode' => $this->barcode,
             'is_free' => $this->is_free,
             'is_cancelled' => $this->is_cancelled,
             'cancellation_reason' => $this->cancellation_reason,
@@ -43,7 +45,8 @@ class ItemLine extends JsonResource
 
             /*  Attributes  */
             '_attributes' => [
-                'resource_type' => $this->resource_type
+                'resource_type' => $this->resource_type,
+                'on_sale' => $this->on_sale,
             ],
 
             /*  Resource Links */

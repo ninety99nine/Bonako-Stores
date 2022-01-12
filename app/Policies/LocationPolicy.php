@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\User;
 use App\Location;
+use Illuminate\Support\Str;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class LocationPolicy
@@ -31,6 +32,49 @@ class LocationPolicy
 
         }
     }
+
+    /**
+    * Determine whether the user can manage the location orders.
+    *
+    * @param  \App\User $user
+    * @param  \App\Location $location
+    * @return mixed
+    */
+   public function manageOrders(User $user, Location $location)
+   {
+       try {
+
+            /**
+             * $user->permissions = [
+             *      [
+             *          "id" => 1,
+             *          "name" => "locations.1.manage-orders,manage-coupons,manage-products,manage-customers,manage-instant-carts,manage-users,manage-reports,manage-settings",
+             *          "guard_name" => "web",
+             *          "created_at" => "2022-01-06T05:23:48.000000Z",
+             *          "updated_at" => "2022-01-06T05:23:48.000000Z",
+             *          "pivot" => [
+             *              "model_id" => 1,
+             *              "permission_id" => 1,
+             *              "model_type" => "user"
+             *          ]
+             *      ]
+             *  ]
+             *
+             *  Return users that have the permission to manage this order
+             */
+            return collect($user->permissions)->contains(function($permission) use($location) {
+
+                //  Check if this user has the permission to manage this order in any of the assigned locations
+                return Str::containsAll($permission->name, ['locations.'.$location->id, 'manage-orders']);
+
+            });
+
+       } catch (\Exception $e) {
+
+           throw($e);
+
+       }
+   }
 
     /**
      * Determine whether the user can update the location.

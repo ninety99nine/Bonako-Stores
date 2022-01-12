@@ -18,9 +18,9 @@ class CreateOrdersTable extends Migration
             $table->string('number')->nullable();
 
             /*  Status Info  */
-            $table->string('status_id')->nullable();
-            $table->string('payment_status_id')->nullable();
-            $table->string('delivery_status_id')->nullable();
+            $table->unsignedInteger('status_id')->nullable();
+            $table->unsignedInteger('payment_status_id')->nullable();
+            $table->unsignedInteger('delivery_status_id')->nullable();
 
             /*  Cancellation Reason  */
             $table->string('cancellation_reason')->nullable();
@@ -32,6 +32,8 @@ class CreateOrdersTable extends Migration
             $table->string('delivery_confirmation_code')->nullable();
             $table->boolean('delivery_verified')->default(false);
             $table->timestamp('delivery_verified_at')->nullable();
+            $table->string('delivery_verified_by')->nullable();
+            $table->unsignedInteger('delivery_verified_by_user_id')->nullable();
 
             /*  Rating Info  */
             $table->timestamp('request_customer_rating_at')->nullable();

@@ -43,7 +43,7 @@ class CreateCouponLinesTable extends Migration
             $table->timestamp('discount_on_end_datetime')->nullable();
 
             $table->tinyInteger('allow_usage_limit')->default(false);
-            $table->string('usage_limit')->nullable();
+            $table->unsignedInteger('quantity_remaining')->default(0);
 
             $table->boolean('allow_discount_on_times')->default(false);
             $table->json('discount_on_times')->nullable();
@@ -55,6 +55,10 @@ class CreateCouponLinesTable extends Migration
             $table->json('discount_on_months_of_the_year')->nullable();
             $table->boolean('allow_discount_on_new_customer')->default(false);
             $table->boolean('allow_discount_on_existing_customer')->default(false);
+
+            $table->boolean('is_cancelled')->default(false);
+            $table->string('cancellation_reason')->nullable();
+            $table->json('detected_changes')->nullable();
 
             /*  Coupon Info  */
             $table->unsignedInteger('coupon_id');
