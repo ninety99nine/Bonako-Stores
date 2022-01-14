@@ -48,7 +48,9 @@ class Order extends JsonResource
 
                 'resource_type' => $this->resource_type,
                 'delivery_verified_description' => $this->delivery_verified_description,
-                'payment_short_code' => !empty($this->paymentShortCode) ? collect($this->paymentShortCode)->only(['dialing_code', 'expires_at']) : null,
+
+                'payment_short_code' => !empty($this->paymentShortCode) ? collect($this->paymentShortCode)->only(['dialing_code', 'updated_at', 'expires_at']) : null,
+                'has_payment_short_code' => !empty($this->paymentShortCode) ? true : false,
             ],
 
             /*  Resource Links */

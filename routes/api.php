@@ -10,14 +10,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/notify', function(Request $request){
 
-
-    return \App\Order::find(1)->transaction->convertToApiFormat();
-
     //  Login using the given user account
     $user = auth()->loginUsingId(\App\User::find(1)->id);
 
     //  Set the user auth instance
     auth('api')->setUser($user);
+
+
+    return \App\Order::find(3)->convertToApiFormat();
 
     /******************************
      *  FAKE LOGOUT               *
