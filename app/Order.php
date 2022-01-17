@@ -270,7 +270,8 @@ class Order extends Model
      */
     protected $appends = [
         'resource_type', 'is_paid', 'is_delivered', 'delivery_verified_description',
-        'time_elapsed_to_delivery_verified', 'requires_delivery_confirmation_code'
+        'time_elapsed_to_delivery_verified', 'requires_delivery_confirmation_code',
+        'payment_progress'
     ];
 
     /**
@@ -363,6 +364,96 @@ class Order extends Model
             }
 
             return null;
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns the payment progress
+     */
+    public function getPaymentProgressAttribute()
+    {
+        try {
+
+            $balance_paid = 0;
+            $percentage_balance_paid = 0;
+
+            $balance_pending = 0;
+            $percentage_balance_pending = 0;
+
+            $balance_outstanding = 0;
+            $percentage_balance_outstanding = 0;
+
+            $currency = null;
+
+            //  Check if the relation was loaded
+            if( $this->relationLoaded('activeCart') == true && $this->relationLoaded('transactions') == true ){
+
+                //  Get the loaded active cart
+                $active_cart = $this->getRelation('activeCart');
+
+                //  Get the loaded transactions
+                $transactions = $this->getRelation('transactions');
+
+                //  Set the currency
+                $currency = $active_cart->currency;
+
+                //  Get the active cart grand total
+                $grand_total = ((float) $active_cart->grand_total['amount']);
+
+                //  Calculate balance paid (Convert to 2 decimal)
+                $balance_paid = (float) number_format(collect($transactions)
+                    //  filter transactions with a status of Paid
+                    ->filter(function ($transaction) {
+                        return $transaction->status->name == 'Paid';
+                    })->sum(function ($transaction) {
+                        return (float) $transaction->amount['amount'];
+                    }), 2);
+
+                //  Calculate percentage balance paid
+                $percentage_balance_paid = (int) ($balance_paid / $grand_total * 100);
+
+                //  Calculate balance pending (Convert to 2 decimal)
+                $balance_pending = (float) number_format(collect($transactions)
+                    //  filter transactions with a status of Paid
+                    ->filter(function ($transaction) {
+                        return $transaction->status->name == 'Pending';
+                    })->sum(function ($transaction) {
+                        return (float) $transaction->amount['amount'];
+                    }), 2);
+
+                //  Calculate percentage balance pending
+                $percentage_balance_pending = (int) ($balance_pending / $grand_total * 100);
+
+                //  Calculate balance outstanding
+                $balance_outstanding = ($grand_total - $balance_paid);
+
+                //  Calculate percentage balance outstanding
+                $percentage_balance_outstanding = (int) ($balance_outstanding / $grand_total * 100);
+
+            }
+
+            return [
+                'balance_paid' => $this->convertToMoney($currency, $balance_paid),
+                'balance_pending' => $this->convertToMoney($currency, $balance_pending),
+                'balance_outstanding' => $this->convertToMoney($currency, $balance_outstanding),
+                'percentage_balance_paid' => [
+                    'without_sign' => $percentage_balance_paid,
+                    'with_sign' => (string) $percentage_balance_paid . '%',
+                ],
+                'percentage_balance_pending' => [
+                    'without_sign' => $percentage_balance_pending,
+                    'with_sign' => (string) $percentage_balance_pending . '%',
+                ],
+                'percentage_balance_outstanding' => [
+                    'without_sign' => $percentage_balance_outstanding,
+                    'with_sign' => (string) $percentage_balance_outstanding . '%',
+                ],
+            ];
 
         } catch (\Exception $e) {
 

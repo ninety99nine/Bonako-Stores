@@ -52,6 +52,9 @@ class Order extends JsonResource
 
                 'resource_type' => $this->resource_type,
                 'delivery_verified_description' => $this->delivery_verified_description,
+
+                'payment_progress' => $this->payment_progress,
+
             ],
 
             /*  Resource Links */

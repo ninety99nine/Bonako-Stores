@@ -39,6 +39,18 @@ Route::get('/pay', function(Request $request){
 
 });
 
+Route::get('/order', function(Request $request){
+
+    //  Login using the given user account
+    $user = auth()->loginUsingId(\App\User::find(1)->id);
+
+    //  Set the user auth instance
+    auth('api')->setUser($user);
+
+    return \App\Order::find(3)->convertToApiFormat();
+
+});
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
