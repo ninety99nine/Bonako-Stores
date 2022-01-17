@@ -20,7 +20,7 @@ class CreateSmsTable extends Migration
             $table->string('type')->nullable();
             $table->string('status')->nullable();
             $table->string('error_message')->nullable();
-            $table->bigInteger('origin_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('origin_id')->nullable();
             $table->string('origin_type')->nullable();
             $table->timestamps();
 

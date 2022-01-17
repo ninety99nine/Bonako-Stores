@@ -127,9 +127,6 @@ trait TransactionTraits
             //  Extract the current transaction data
             $template = collect($this)->only($this->getFillable())->toArray();
 
-            //  Set the status id otherwise default to original value
-            $template['status_id'] = $data['status_id'] ?? $template['status_id'];
-
             /**
              *  Update the resource details
              */
@@ -137,9 +134,6 @@ trait TransactionTraits
 
             //  If updated successfully
             if ($updated) {
-
-                //  Re-arrange location transactions
-                $this->assignResourceToLocations($data);
 
                 //  Return a fresh instance
                 return $this->fresh();
@@ -307,20 +301,16 @@ trait TransactionTraits
                 /**
                  *  Note that the amount can be a Float or Array value that has the money format,
                  *  therefore we must make sure our validation can cater for both scenerios. For
-                 *  now the validation only support a Float value so we are disabling it until
-                 *  we can offer support for both data types.
+                 *  now the validation only support a Float value.
                  */
-                //  'amount' => 'required|regex:/^\d+(\.\d{1,2})?$/',
-                'payment_method_id' => 'required|regex:/^[0-9]+$/i'
+                'amount' => 'required|regex:/^\d+(\.\d{1,2})?$/',
+                'payment_method_id' => 'sometimes|required|regex:/^[0-9]+$/i'
             ];
 
             //  Set validation messages
             $messages = [
                 'amount.required' => 'The amount is required to create a transaction',
                 'amount.regex' => 'The amount must be a valid number e.g 100.00',
-
-                'payment_method_id.required' => 'The payment method id is required to create a transaction',
-                'payment_method_id.regex' => 'The payment method id must be a valid number e.g 1'
             ];
 
             //  Method executed within CommonTraits
@@ -340,8 +330,25 @@ trait TransactionTraits
     {
         try {
 
-            //  Run the resource creation validation
-            $this->createResourceValidation($data);
+            //  Set validation rules
+            $rules = [
+                /**
+                 *  Note that the amount can be a Float or Array value that has the money format,
+                 *  therefore we must make sure our validation can cater for both scenerios. For
+                 *  now the validation only support a Float value.
+                 */
+                'amount' => 'required|regex:/^\d+(\.\d{1,2})?$/',
+                'payment_method_id' => 'sometimes|required|regex:/^[0-9]+$/i'
+            ];
+
+            //  Set validation messages
+            $messages = [
+                'amount.required' => 'The amount is required to create a transaction',
+                'amount.regex' => 'The amount must be a valid number e.g 100.00',
+            ];
+
+            //  Method executed within CommonTraits
+            $this->resourceValidation($data, $rules, $messages);
 
         } catch (\Exception $e) {
 

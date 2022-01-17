@@ -19,10 +19,10 @@ class CreateAddressesTable extends Migration
             $table->string('name')->nullable();
             $table->string('mobile_number')->nullable();
             $table->string('physical_address')->nullable();
-            $table->bigInteger('address_type_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('address_type_id')->nullable();
 
             /*  Ownership Information  */
-            $table->bigInteger('owner_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('owner_id')->nullable();
             $table->string('owner_type')->nullable();
 
             /*  Timestamps  */

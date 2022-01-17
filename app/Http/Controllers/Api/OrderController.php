@@ -162,7 +162,7 @@ class OrderController extends Controller
         try {
 
             //  Send the order payment request
-            return (new Order())->getResource($order_id)->sendResourcePaymentRequest($this->user)->convertToApiFormat();
+            return (new Order())->getResource($order_id)->sendResourcePaymentRequest($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 

@@ -96,7 +96,7 @@ trait StoreTraits
                 $this->store->generateResourceCreationReport();
 
                 //  Generate a payment shortcode (So that we can subscribe to the store via USSD) (CommonTraits)
-                $this->store->generateResourcePaymentShortCode($user);
+                $this->store->generateResourcePaymentShortCode([], $user);
 
                 //  If we have the store id representing the store with resources to clone
                 if ( isset($data['clone_store_id']) ) {
@@ -340,7 +340,7 @@ trait StoreTraits
             $subscription = ( new \App\Subscription() )->createResource($data, $model, $user);
 
             //  Generate visit short code (CommonTraits)
-            $this->generateResourceVisitShortCode($user);
+            $this->generateResourceVisitShortCode([], $user);
 
             //  Expire payment short codes (CommonTraits)
             $this->expirePaymentShortCode();

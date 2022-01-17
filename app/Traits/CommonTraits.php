@@ -90,24 +90,25 @@ trait CommonTraits
     /**
      *  This method generates a resource payment short code
      */
-    public function generateResourcePaymentShortCode($user)
+    public function generateResourcePaymentShortCode($data = [], $user)
     {
         //  Set the model
         $model = $this;
 
         //  Generate and return payment short code
-        return ( new \App\ShortCode() )->generatePaymentShortCode($model, $user)->convertToApiFormat();
+        return ( new \App\ShortCode() )->generatePaymentShortCode($data, $model, $user)->convertToApiFormat();
     }
+
     /**
      *  This method generates a resource payment short code
      */
-    public function generateResourceVisitShortCode($user)
+    public function generateResourceVisitShortCode($data = [], $user)
     {
         //  Set the model
         $model = $this;
 
         //  Generate and return visit short code
-        return ( new \App\ShortCode() )->generateVisitShortCode($model, $user)->convertToApiFormat();
+        return ( new \App\ShortCode() )->generateVisitShortCode($data, $model, $user)->convertToApiFormat();
     }
 
     /**

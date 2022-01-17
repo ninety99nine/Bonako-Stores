@@ -14,13 +14,13 @@ class CreateCouponAllocationsTable extends Migration
         Schema::create('coupon_allocations', function (Blueprint $table) {
 
             $table->increments('id');
-            $table->bigInteger('coupon_id')->unsigned()->nullable();
-            $table->bigInteger('owner_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('coupon_id')->nullable();
+            $table->unsignedBigInteger('owner_id')->nullable();
             $table->string('owner_type');
 
             /*  Timestamps  */
             $table->timestamps();
-            
+
         });
     }
 

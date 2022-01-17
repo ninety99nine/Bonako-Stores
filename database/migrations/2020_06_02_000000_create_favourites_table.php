@@ -15,8 +15,8 @@ class CreateFavouritesTable extends Migration
             $table->increments('id');
 
             /*  Favourite Details  */
-            $table->bigInteger('location_id')->unsigned()->nullable();
-            $table->bigInteger('user_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('location_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
 
             /*  Timestamps  */
             $table->timestamps();

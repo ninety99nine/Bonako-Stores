@@ -80,7 +80,7 @@ trait InstantCartTraits
                 $this->instant_cart->createResourceCart($data, $user);
 
                 //  Generate a payment shortcode (So that we can pay for the istant cart via USSD)
-                $this->instant_cart->generateResourcePaymentShortCode($user);
+                $this->instant_cart->generateResourcePaymentShortCode([], $user);
 
             }
 
@@ -505,7 +505,7 @@ trait InstantCartTraits
             $subscription = ( new \App\Subscription() )->createResource($data, $model, $user);
 
             //  Generate visit short code (CommonTraits)
-            $this->generateResourceVisitShortCode($user);
+            $this->generateResourceVisitShortCode([], $user);
 
             //  Expire payment short codes (CommonTraits)
             $this->expirePaymentShortCode();

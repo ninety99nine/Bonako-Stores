@@ -6,8 +6,8 @@ use App\Http\Resources\Cart as CartResource;
 use App\Http\Resources\Status as StatusResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\Customer as CustomerResource;
-use App\Http\Resources\Transaction as TransactionResource;
 use App\Http\Resources\DeliveryLine as DeliveryLineResource;
+use App\Http\Resources\Transactions as TransactionsResource;
 
 class Order extends JsonResource
 {
@@ -20,6 +20,10 @@ class Order extends JsonResource
      */
     public function toArray($request)
     {
+
+        //  Set the transactions (Extract the nested transactions)
+        $transactions = (new TransactionsResource($this->transactions ?? []))->collection;
+
         return [
 
             'id' => $this->id,
@@ -48,9 +52,6 @@ class Order extends JsonResource
 
                 'resource_type' => $this->resource_type,
                 'delivery_verified_description' => $this->delivery_verified_description,
-
-                'payment_short_code' => !empty($this->paymentShortCode) ? collect($this->paymentShortCode)->only(['dialing_code', 'updated_at', 'expires_at']) : null,
-                'has_payment_short_code' => !empty($this->paymentShortCode) ? true : false,
             ],
 
             /*  Resource Links */
@@ -124,8 +125,8 @@ class Order extends JsonResource
                 'delivery_status' => new StatusResource( $this->deliveryStatus ),
                 'active_cart' => new CartResource( $this->activeCart ),
                 'delivery_line' => new DeliveryLineResource( $this->deliveryLine ),
-                'transaction' => new TransactionResource( $this->transaction ),
                 'customer' => new CustomerResource( $this->customer ),
+                'transactions' => $transactions,
 
             ]
 

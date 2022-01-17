@@ -16,19 +16,26 @@ Route::get('/notify', function(Request $request){
     //  Set the user auth instance
     auth('api')->setUser($user);
 
+    return \App\Order::find(3)->sendResourcePaymentRequest([
+        'percentage_rate' => 50,
+        'send_customer_sms' => false,
+        'payer_mobile_number' => 72882239,
+    ], $user)->convertToApiFormat();
 
-    return \App\Order::find(3)->convertToApiFormat();
+});
 
-    /******************************
-     *  FAKE LOGOUT               *
-     *****************************/
-    $request->request->add([
-        'delivery_confirmation_code' => '5437728822399100',
-        'location_id' => 1
-    ]);
+Route::get('/pay', function(Request $request){
 
+    //  Login using the given user account
+    $user = auth()->loginUsingId(\App\User::find(1)->id);
 
-    return \App\Order::find(1)->deliverResource($request, $user);
+    //  Set the user auth instance
+    auth('api')->setUser($user);
+
+    return \App\Order::find(3)->payResource([
+        'transaction_id' => 4,
+        'payment_method_id' => 1,
+    ], $user);
 
 });
 
@@ -392,6 +399,13 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
         Route::post('/addresses', 'UserController@createUserAddress')->name('addresses-create');
 
         Route::get('/subscriptions', 'UserController@getUserSubscriptions')->name('subscriptions');
+
+    });
+
+    //  Users Resource Routes
+    Route::prefix('users')->group(function () {
+
+        Route::post('search_by_mobile_number', 'UserController@searchUsersByMobileNumber')->name('search-user-by-mobile-number');
 
     });
 

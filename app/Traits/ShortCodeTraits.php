@@ -63,6 +63,9 @@ trait ShortCodeTraits
             //  Set the action
             $action = $data['action'];
 
+            //  Set the reserved_for_user_id
+            $reserved_for_user_id = $data['reserved_for_user_id'] ?? $user->id;
+
             //  Set the location id (if available)
             $location_id = $data['location_id'] ?? null;
 
@@ -119,6 +122,7 @@ trait ShortCodeTraits
                         'owner_id' => $model->id,
                         'owner_type' => $model->resource_type,
                         'expires_at' => $expires_at,
+                        'reserved_for_user_id' => $reserved_for_user_id,
                         'user_id' => $user->id
                     ]);
 
@@ -140,6 +144,7 @@ trait ShortCodeTraits
                         'owner_id' => $model->id,
                         'owner_type' => $model->resource_type,
                         'expires_at' => $expires_at,
+                        'reserved_for_user_id' => $reserved_for_user_id,
                         'user_id' => $user->id
                     ];
 
@@ -345,11 +350,11 @@ trait ShortCodeTraits
     /**
      *  This method generates a resource payment short code
      */
-    public function generatePaymentShortCode($model, $user)
+    public function generatePaymentShortCode($data = [], $model, $user)
     {
         try {
 
-            return $this->generateResourceShortCode('payment', $model, $user);
+            return $this->generateResourceShortCode('payment', $data, $model, $user);
 
         } catch (\Exception $e) {
 
@@ -361,11 +366,11 @@ trait ShortCodeTraits
     /**
      *  This method generates a resource visit short code
      */
-    public function generateVisitShortCode($model, $user)
+    public function generateVisitShortCode($data = [], $model, $user)
     {
         try {
 
-            return $this->generateResourceShortCode('visit', $model, $user);
+            return $this->generateResourceShortCode('visit', $data, $model, $user);
 
         } catch (\Exception $e) {
 
@@ -377,16 +382,22 @@ trait ShortCodeTraits
     /**
      *  This method generates a resource short code
      */
-    public function generateResourceShortCode($action, $model, $user)
+    public function generateResourceShortCode($action, $data, $model, $user)
     {
         try {
 
-            $data = [
+            /**
+             *  Note that the $data param may contain additional information
+             *  such as the "reserved_for_user_id" attribute which indicates
+             *  who is permitted to use this shortcode. We merge this
+             *  optional information with our required data params.
+             */
+            $data = array_merge([
 
                 //  Set the action on the data
                 'action' => $action
 
-            ];
+            ], $data);
 
             /**
              *  Create new a short code resource

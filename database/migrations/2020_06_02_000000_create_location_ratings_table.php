@@ -15,7 +15,7 @@ class CreateLocationRatingsTable extends Migration
             $table->increments('id');
 
             /*  Store Rating Details  */
-            $table->tinyInteger('value')->nullable();
+            $table->unsignedTinyInteger('value')->nullable();
             $table->string('comment', 500)->nullable();
             $table->unsignedInteger('user_id');
 

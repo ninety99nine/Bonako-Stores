@@ -1200,44 +1200,63 @@ trait OrderTraits
     /**
      *  This method sends the new order message to the merchant
      */
-    public function sendPaymentRequestSms($user = null)
+    public function sendPaymentRequestSms($transaction = null, $user = null)
     {
         try {
 
-            //  Get the order store
-            $store = $this->getResourceStore();
+            if( $transaction ){
 
-            //  Set the order payment short code
-            $payment_short_code = $this->paymentShortCode;
+                //  Get the order store
+                $store = $this->getResourceStore();
 
-            //  If we have the store and payment short code
-            if( $store && $payment_short_code ){
+                //  Set the order payment short code
+                $payment_short_code = $transaction->paymentShortCode;
 
-                //  Craft the sms message
-                $message = $store->name.': Hi '.$this->customer->user->first_name.', dial '.
-                           $payment_short_code->dialing_code.' to pay for order #'.$this->number.
-                           '. Expires after 24hrs.';
+                //  Set the transaction payer name
+                $payer = $transaction->payer;
 
-                $type = 'Order payment request';
+                //  Set the order customer name
+                $customer = $this->customer;
 
-                $data = [
+                //  If we have the store, payment short code, payer and customer information
+                if( $store && $payment_short_code && $payer && $customer){
 
-                    //  Set the type on the data
-                    'type' => $type,
+                    //  Set the transaction payer information
+                    $payerId = $payer->id;
+                    $payerName = $payer->first_name;
+                    $payerMobileNumber = $payer->mobile_number['number_with_code'];
 
-                    //  Set the message on the data
-                    'message' => $message,
+                    //  Set the order customer information
+                    $customerId = $customer->id;
+                    $customerName = $customer->first_name;
 
-                    //  Set the mobile_number on the data
-                    'mobile_number' => $this->customer->user->mobile_number['number_with_code']
+                    //  Craft the sms message
+                    $message = $store->name.': Hi '.$payerName.', dial '. $payment_short_code->dialing_code.
+                               ' to pay for order #'.$this->number . ($payerId == $customerId ? '' : ' placed by '+$customerName).
+                               '. Expires after 24hrs.';
 
-                ];
+                    $type = 'Order payment request';
 
-                //  Set the sms owning model
-                $model = $this;
+                    $data = [
 
-                //  Create a new sms and send
-                return ( new \App\Sms() )->createResource($data, $model, $user)->sendSms();
+                        //  Set the type on the data
+                        'type' => $type,
+
+                        //  Set the message on the data
+                        'message' => $message,
+
+                        //  Set the mobile_number on the data
+                        'mobile_number' => $payerMobileNumber
+
+                    ];
+
+                    //  Set the sms owning model
+                    $model = $this;
+
+                    //  Create a new sms and send
+                    return ( new \App\Sms() )->createResource($data, $model, $user)->sendSms();
+
+                }
 
             }
 
@@ -1542,29 +1561,66 @@ trait OrderTraits
     }
 
     /**
-     *  This method generates a store payment short code
+     *  This method generates a transaction and payment short code
      */
-    public function sendResourcePaymentRequest($user = null)
+    public function sendResourcePaymentRequest($data = [], $user = null)
     {
         try {
 
-            //  Generate the payment short code (CommonTraints)
-            $this->generateResourcePaymentShortCode($user);
+            //  Generate a new transaction
+            $transaction = $this->createResourceTransaction($data, $user);
 
-            //  Set the order status to pending
-            $this->setPaymentStatusToPending();
+            //  If we have a transaction
+            if( $transaction ){
 
-            //  Reload the payment short code
-            $this->load('paymentShortCode');
+                //  Set the user that this payment shortcode will be reserved for
+                $data = [
 
-            //  Send the payment request sms
-            $this->sendPaymentRequestSms($user);
+                    //  This is reserved for the user responsible to pay for this transaction
+                    'reserved_for_user_id' => $transaction->payer_id
 
-            //  Send the order delivery confirmation code sms
-            $this->sendDeliveryConfirmationCodeSms($user);
+                ];
 
-            //  Return the current order instance
-            return $this;
+                //  Generate the transaction payment short code (CommonTraints)
+                $transaction->generateResourcePaymentShortCode($data, $user);
+
+                //  Load the generated shortcode on this transaction
+                $transaction->load(['paymentShortCode']);
+
+                //  Set the order status to pending
+                $this->setPaymentStatusToPending();
+
+                //  Reload the order transactions
+                $this->load('transactions');
+
+                //  If the merchant wants to send the customer the payment shortcode sms
+                if( isset($data['send_customer_sms']) && !empty($data['send_customer_sms']) ){
+
+                    /**************************************
+                     * CHARGE THE MERCHANT FOR THE SMS    *
+                     * BEFORE WE CAN SEND THE SMS. IF     *
+                     * THE MERCHANT DOES NOT HAVE THE     *
+                     * FUNDS, THEN DO NOT SEND SMS        *
+                     *************************************/
+
+                    //  Logic to charge the merchant before sending SMS
+                    //  Create a transaction for the charged SMS
+                    $canSendSms = false;
+
+                    //  If the merchant was charged successfully
+                    if( $canSendSms ){
+
+                        //  Send the payment request sms
+                        $this->sendPaymentRequestSms($transaction, $user);
+
+                    }
+
+                }
+
+                //  Return the current transaction
+                return $transaction;
+
+            }
 
         } catch (\Exception $e) {
 
@@ -1584,17 +1640,51 @@ trait OrderTraits
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
-            //  Generate a new transaction
-            $this->createResourceTransaction($data);
+            //  Set the transaction id
+            $transaction_id = $data['transaction_id'] ?? null;
 
-            //  Set the order status to paid
-            $this->setPaymentStatusToPaid();
+            //  Get the matching transaction
+            $transaction = $this->transactions()->where('id', $transaction_id)->first();
 
-            //  Send the payment confirmation sms
-            $this->sendPaymentConfirmationSms($user);
+            //  If we have a matching transaction
+            if( $transaction ){
 
-            //  Return the current order instance
-            return $this->fresh();
+                $paid_status_id = \App\Status::where(['name' => 'Paid', 'type' => 'transaction status'])->first()->id;
+
+                //  Update the transaction status
+                $transaction->update([
+
+                    //  Set the "Paid" transaction status
+                    'status_id' => $paid_status_id
+
+                ]);
+
+                //  Get the total amount to be paid
+                $total_amount_to_be_paid = (float) $this->activeCart->grand_total['amount'];
+
+                //  Calculate the total amount paid
+                $total_transaction_amount_paid = $this->transactions()->where('status_id', $paid_status_id)->sum('amount');
+
+                //  If the active cart grand total is equal to the sum of the transactions
+                if( $total_amount_to_be_paid == $total_transaction_amount_paid ){
+
+                    //  Set the order status to paid
+                    $this->setPaymentStatusToPaid();
+
+                }else{
+
+                    //  Set the order status to partially paid
+                    $this->setPaymentStatusToPartiallyPaid();
+
+                }
+
+                //  Send the payment confirmation sms
+                $this->sendPaymentConfirmationSms($user);
+
+                //  Return the current order instance
+                return $this->fresh();
+
+            }
 
         } catch (\Exception $e) {
 
@@ -1627,24 +1717,98 @@ trait OrderTraits
     /**
      *  This method creates a new order transaction
      */
-    public function createResourceTransaction($data = [])
+    public function createResourceTransaction($data = [], $user = null)
     {
         try {
 
             //  Extract the Request Object data (CommanTraits)
             $data = $this->extractRequestData($data);
 
+            /**
+             *  If we have the percentage rate (A percentage of this order amount to be paid, where the
+             *  maximum percentage rate is 100), then we can calculate the amount to be paid using the
+             *  percentage rate
+             */
+
+            //  Set the initial payment type
+            $type = 'full order payment';
+
+            //  Set the initial payment description
+            $description = 'Full payment for order #'.$this->number;
+
+            //  Set the Full amount
+            $amount = $this->activeCart->grand_total['amount'];
+
+            //  Set the percentage rate (where 100 represents a full order payment)
+            $percentage_rate = 100;
+
+            //  If we have the payer mobile number
+            if( isset($data['payer_mobile_number']) && !empty($data['payer_mobile_number']) ){
+
+                //  Extract the mobile number
+                $mobileNumber = $data['payer_mobile_number'];
+
+                //  Search the user matching the given mobile number
+                $currUser = \App\User::searchMobile($mobileNumber, true)->first();
+
+                //  If we have a user
+                if( $currUser ){
+
+                    //  Set the payer id to the given user
+                    $payerId = $currUser->id;
+
+                }
+
+            }
+
+            //  If we do not have the payer id set
+            if( !isset($payerId) || empty($payerId) ){
+
+                //  Set the payer id to the order customer user
+                $payerId = $this->customer->user->id;
+
+            }
+
+            //  If we have a percentage rate provided
+            if( isset($data['percentage_rate']) && !empty($data['percentage_rate']) ){
+
+                //  Set the new percentage rate (where less than 100 represents a partial order payment)
+                //  Convert the percentage rate to a floating number with 2 decimal places
+                $percentage_rate = (int) $data['percentage_rate'];
+
+                //  If the percentage rate is greater than 0 and less than 100, then this is a partial payment
+                if($percentage_rate > 0 && $percentage_rate < 100){
+
+                    //  Reset payment type
+                    $type = 'partial order payment';
+
+                    //  Reset description
+                    $description = 'Partial payment for order #'.$this->number;
+
+                    //  Calculate the new amount
+                    $amount = ((float) $amount) * ($percentage_rate / 100);
+
+                }
+
+            }
+
             //  Merge the data with additional fields
             $data = array_merge($data, [
 
                 //  Set the transaction type on the data
-                'type' => 'order payment',
+                'type' => $type,
 
                 //  Set the transaction amount on the data
-                'amount' => $this->activeCart->grand_total,
+                'amount' => $amount,
+
+                //  Set the transaction percentage rate on the data
+                'percentage_rate' => $percentage_rate,
+
+                //  Set the transaction payer id (user responsible to pay)
+                'payer_id' => $payerId,
 
                 //  Set the transaction description on the data
-                'description' => 'Payment for order #'.$this->number,
+                'description' => $description,
 
                 //  Set the default transaction status
                 'status_id' => \App\Status::where(['name' => 'Pending', 'type' => 'transaction status'])->first()->id
@@ -1654,8 +1818,26 @@ trait OrderTraits
             //  Set the transaction owning model
             $model = $this;
 
-            //  Create a new transaction
-            return ( new \App\Transaction() )->createResource($data, $model);
+            //  If we have the transaction_id
+            if( isset($data['transaction_id']) && !empty($data['transaction_id']) ){
+
+                //  Find transaction
+                $transaction = \App\Transaction::find($data['transaction_id']);
+
+                //  If transaction exists
+                if( $transaction ){
+
+                    //  Update an existing transaction
+                    return $transaction->updateResource($data, $user);
+
+                };
+
+            }else{
+
+                //  Create a new transaction
+                return ( new \App\Transaction() )->createResource($data, $model);
+
+            }
 
         } catch (\Exception $e) {
 
@@ -1741,6 +1923,23 @@ trait OrderTraits
 
             //  Set order status to "Paid"
             $this->updateStatus('Paid', 'order payment status');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method sets the order payment status to partially paid
+     */
+    public function setPaymentStatusToPartiallyPaid()
+    {
+        try {
+
+            //  Set order status to "Partially Paid"
+            $this->updateStatus('Partially Paid', 'order payment status');
 
         } catch (\Exception $e) {
 

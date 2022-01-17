@@ -91,7 +91,7 @@ class InstantCartController extends Controller
         try {
 
             //  Return the generated payment short code
-            return (new InstantCart())->getResource($instant_cart_id)->generateResourcePaymentShortCode($this->user)->convertToApiFormat();
+            return (new InstantCart())->getResource($instant_cart_id)->generateResourcePaymentShortCode([], $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {
 

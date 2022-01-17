@@ -231,4 +231,28 @@ class UserController extends Controller
         //  Return false that the account does not exist
         return response()->json(['account_exists' => false], 200);
     }
+
+    public function searchUsersByMobileNumber(Request $request)
+    {
+        $mobile_number = $request->input('mobile_number') ?? null;
+
+        if ($mobile_number) {
+
+            $user = \App\User::searchMobile($mobile_number, true)->first();
+
+            if ($user) {
+
+                //  Return true that the account exists
+                return $user->convertToApiFormat();
+
+            }else{
+
+                return response()->json([
+                    'message' => 'User not found'
+                ], 400);
+
+            }
+
+        }
+    }
 }

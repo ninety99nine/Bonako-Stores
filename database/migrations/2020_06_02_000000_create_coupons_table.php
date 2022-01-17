@@ -26,24 +26,24 @@ class CreateCouponsTable extends Migration
 
             $table->char('discount_rate_type', 1)->default('p');
             $table->float('fixed_rate')->default(0);
-            $table->tinyInteger('percentage_rate')->default(0);
+            $table->unsignedTinyInteger('percentage_rate')->default(0);
 
-            $table->tinyInteger('allow_discount_on_minimum_total')->default(false);
-            $table->tinyInteger('discount_on_minimum_total')->default(0);
+            $table->unsignedTinyInteger('allow_discount_on_minimum_total')->default(false);
+            $table->unsignedTinyInteger('discount_on_minimum_total')->default(0);
 
-            $table->tinyInteger('allow_discount_on_total_items')->default(false);
-            $table->tinyInteger('discount_on_total_items')->default(2);
+            $table->unsignedTinyInteger('allow_discount_on_total_items')->default(false);
+            $table->unsignedTinyInteger('discount_on_total_items')->default(2);
 
-            $table->tinyInteger('allow_discount_on_total_unique_items')->default(false);
-            $table->tinyInteger('discount_on_total_unique_items')->default(2);
+            $table->unsignedTinyInteger('allow_discount_on_total_unique_items')->default(false);
+            $table->unsignedTinyInteger('discount_on_total_unique_items')->default(2);
 
-            $table->tinyInteger('allow_discount_on_start_datetime')->default(false);
+            $table->unsignedTinyInteger('allow_discount_on_start_datetime')->default(false);
             $table->timestamp('discount_on_start_datetime')->nullable();
 
-            $table->tinyInteger('allow_discount_on_end_datetime')->default(false);
+            $table->unsignedTinyInteger('allow_discount_on_end_datetime')->default(false);
             $table->timestamp('discount_on_end_datetime')->nullable();
 
-            $table->tinyInteger('allow_usage_limit')->default(false);
+            $table->unsignedTinyInteger('allow_usage_limit')->default(false);
             $table->unsignedInteger('usage_limit')->default(0);
             $table->unsignedInteger('usage_quantity')->default(0);
 

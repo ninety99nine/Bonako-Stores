@@ -191,6 +191,12 @@ class Home extends JsonResource
                     'title' => 'Calculate cart',
                 ],
 
+                //  Link to search user using mobile number
+                'bos:search_user_by_mobile_number' => [
+                    'href' => route('search-user-by-mobile-number'),
+                    'title' => 'POST to search user using their mobile number',
+                ],
+
             ],
 
             /*  Embedded Resources */

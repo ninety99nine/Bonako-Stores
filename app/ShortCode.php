@@ -26,7 +26,7 @@ class ShortCode extends Model
      * @var array
      */
     protected $fillable = [
-        'code', 'action', 'expires_at', 'user_id', 'owner_id', 'owner_type'
+        'code', 'action', 'expires_at', 'reserved_for_user_id', 'user_id', 'owner_id', 'owner_type'
     ];
 
     /**
@@ -35,6 +35,22 @@ class ShortCode extends Model
     public function owner()
     {
         return $this->morphTo();
+    }
+
+    /*
+     *  Returns the authenticated user that created or last updated this shortcode
+     */
+    public function user()
+    {
+        return $this->belongsTo('App\User');
+    }
+
+    /*
+     *  Returns the user allowed to use this shortcode
+     */
+    public function reservedUser()
+    {
+        return $this->belongsTo('App\User', 'reserved_for_user_id');
     }
 
     /** ATTRIBUTES
@@ -50,11 +66,11 @@ class ShortCode extends Model
      */
     public function getIsCreatorAttribute()
     {
-        $status = ($this->user_id == auth()->user()->id);
+        $status = ($this->reserved_for_user_id == auth()->user()->id);
 
         return [
             'status' => $status,
-            'description' => $status ? 'This shortcode belongs to you' : 'This shortcode does not belong to you'
+            'description' => $status ? 'This shortcode is reserved for you' : 'This shortcode is not reserved for you'
         ];
     }
 

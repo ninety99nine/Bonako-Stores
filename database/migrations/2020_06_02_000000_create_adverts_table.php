@@ -22,7 +22,7 @@ class CreateAdvertsTable extends Migration
             $table->string('call_to_action')->nullable();
             $table->unsignedTinyInteger('arrangement')->nullable();
 
-            $table->tinyInteger('allow_limited_views')->default(false);
+            $table->unsignedTinyInteger('allow_limited_views')->default(false);
             $table->unsignedInteger('limited_views')->nullable();
 
             $table->timestamp('start_at')->nullable();

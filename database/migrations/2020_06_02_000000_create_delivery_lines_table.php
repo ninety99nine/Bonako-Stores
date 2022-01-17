@@ -19,7 +19,7 @@ class CreateDeliveryLinesTable extends Migration
             $table->string('name')->nullable();
             $table->string('mobile_number')->nullable();
             $table->string('physical_address')->nullable();
-            $table->bigInteger('address_type_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('address_type_id')->nullable();
             $table->char('delivery_type', 1)->default('d');
             $table->string('day')->nullable();
             $table->string('time')->nullable();

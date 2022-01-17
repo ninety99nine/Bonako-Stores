@@ -15,7 +15,7 @@ class Order extends Model
 {
     use HasRelationships, CommonTraits, OrderTraits;
 
-    protected $with = ['status', 'paymentStatus', 'deliveryStatus', 'activeCart', 'deliveryLine', 'paymentShortCode', 'transaction'];
+    protected $with = ['status', 'paymentStatus', 'deliveryStatus', 'deliveryLine', 'activeCart'];
 
     /**
      * The table associated with the model.
@@ -248,35 +248,6 @@ class Order extends Model
     {
         return $this->hasOne('App\DeliveryLine');
     }
-
-    /**
-     *  Returns the short codes owned by this order
-     *  Only short codes that are not expired are
-     *  valid.
-     */
-    public function shortCodes()
-    {
-        return $this->morphMany(ShortCode::class, 'owner')->where('expires_at', '>', Carbon::now())->latest();
-    }
-
-    /**
-     *  Returns the short code owned by this order
-     *  Only short codes that are not expired are
-     *  valid.
-     */
-    public function shortCode()
-    {
-        return $this->morphOne(ShortCode::class, 'owner')->where('expires_at', '>', Carbon::now())->latest();
-    }
-
-    /**
-     *  Returns the payment short codes owned by this order
-     */
-    public function paymentShortCode()
-    {
-        return $this->shortCode()->where('action', 'payment');
-    }
-
     /**
      * Get the latest transaction
      */
@@ -290,7 +261,7 @@ class Order extends Model
      */
     public function transactions()
     {
-        return $this->morphMay(Transaction::class, 'owner');
+        return $this->morphMany(Transaction::class, 'owner');
     }
 
     /** ATTRIBUTES

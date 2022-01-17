@@ -22,6 +22,9 @@ class CreateShortCodesTable extends Migration
 
             $table->unsignedBigInteger('user_id');
 
+            /*  Reservation Information  */
+            $table->unsignedInteger('reserved_for_user_id');
+
             /*  Ownership Information  */
             $table->unsignedInteger('owner_id');
             $table->string('owner_type');

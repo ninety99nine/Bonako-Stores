@@ -20,7 +20,7 @@ class CreateStoresTable extends Migration
             $table->string('offline_message')->nullable();
             $table->boolean('allow_sending_merchant_sms')->default(true);
             $table->char('hex_color', 6)->default('2D8CF0');
-            $table->bigInteger('user_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
 
             /*  Timestamps  */
             $table->timestamps();

@@ -19,13 +19,17 @@ class CreateTransactionsTable extends Migration
             $table->string('status_id')->nullable();
             $table->string('type')->nullable();
             $table->char('currency', 3)->default('BWP');
+            $table->unsignedTinyInteger('percentage_rate')->nullable();
             $table->float('amount')->default(0);
-            $table->string('payment_method_id');
+            $table->string('payment_method_id')->nullable();
             $table->string('description')->nullable();
 
+            /*  Payer Information  */
+            $table->unsignedBigInteger('payer_id')->nullable();
+
             /*  Ownership Information  */
-            $table->bigInteger('user_id')->unsigned()->nullable();
-            $table->bigInteger('owner_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('owner_id')->nullable();
             $table->string('owner_type')->nullable();
 
             /*  Timestamps  */
