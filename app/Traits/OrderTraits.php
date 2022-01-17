@@ -19,6 +19,8 @@ trait OrderTraits
     public $_location = null;
     public $new_order_merchant_sms = null;
     public $new_order_merchant_notification = null;
+    public $new_order_payment_merchant_sms = null;
+    public $new_order_payment_merchant_notification = null;
 
     /**
      *  This method transforms a collection or single model instance
@@ -917,13 +919,15 @@ trait OrderTraits
         }
     }
 
-    public function sendNewOrderMerchantMobileAppNotification() {
+    public function getFirebaseTokensOfPermittedUsers($specific_permissions = []) {
 
         //  Get the order locations
         $locations = $this->locations;
 
         //  Get the order location users
         $users = $this->users()->with('permissions')->get();
+
+        $firebase_device_tokens = [];
 
         //  If we have atleast one location and one user
         if( count($locations) && count($users) ){
@@ -939,7 +943,7 @@ trait OrderTraits
              *      'rvYYPUA4t2Q...'
              *  ]
              */
-            $firebase_device_tokens = collect($users)->filter(function($user) use ($locations){
+            $firebase_device_tokens = collect($users)->filter(function($user) use ($locations, $specific_permissions){
 
                 /**
                  * $user->permissions = [
@@ -959,7 +963,7 @@ trait OrderTraits
                  *
                  *  Return users that have the permission to manage this order
                  */
-                return collect($user->permissions)->contains(function($permission) use($locations) {
+                return collect($user->permissions)->contains(function($permission) use($locations, $specific_permissions) {
 
                     //  By default the user does not have the permissions to manage this order
                     $hasPermissions = false;
@@ -967,7 +971,7 @@ trait OrderTraits
                     //  Check if this user has the permission to manage this order in any of the assigned locations
                     foreach ($locations as $location) {
 
-                        $hasPermissions = Str::containsAll($permission->name, ['locations.'.$location->id]);
+                        $hasPermissions = Str::containsAll($permission->name, array_merge(['locations.'.$location->id], $specific_permissions));
 
                     }
 
@@ -977,20 +981,49 @@ trait OrderTraits
             //  Extract the firebase device tokens from every user and flatten the results
             })->pluck('firebase_device_tokens')->flatten()->values()->toArray();
 
-            //  If we have atleast 1 token
-            if( count($firebase_device_tokens) ){
+        }
 
-                //  Send the new order notification to the merchant
-                $this->sendFirebaseCloudMessagingNotification($firebase_device_tokens, [
-                    'notification' => [
-                        'title' => 'New Order',
-                        'body' => $this->new_order_merchant_notification,
-                        'android_channel_id' => 'high_importance_channel',
-                        'icon' => 'https://img.icons8.com/external-tal-revivo-color-tal-revivo/50/000000/external-web-hyperlink-with-url-for-navigating-to-new-page-text-color-tal-revivo.png'
-                    ],
-                ]);
+        return $firebase_device_tokens;
 
-            }
+    }
+
+    public function sendNewOrderMerchantMobileAppNotification() {
+
+        $firebase_device_tokens = $this->getFirebaseTokensOfPermittedUsers(['manage-orders']);
+
+        //  If we have atleast 1 token
+        if( count($firebase_device_tokens) ){
+
+            //  Send the new order notification to the merchant
+            $this->sendFirebaseCloudMessagingNotification($firebase_device_tokens, [
+                'notification' => [
+                    'title' => 'New Order',
+                    'body' => $this->new_order_merchant_notification,
+                    'android_channel_id' => 'high_importance_channel',
+                    'icon' => 'https://img.icons8.com/external-tal-revivo-color-tal-revivo/50/000000/external-web-hyperlink-with-url-for-navigating-to-new-page-text-color-tal-revivo.png'
+                ],
+            ]);
+
+        }
+
+    }
+
+    public function sendNewOrderPaymentMerchantMobileAppNotification() {
+
+        $firebase_device_tokens = $this->getFirebaseTokensOfPermittedUsers(['manage-orders']);
+
+        //  If we have atleast 1 token
+        if( count($firebase_device_tokens) ){
+
+            //  Send the new order notification to the merchant
+            $this->sendFirebaseCloudMessagingNotification($firebase_device_tokens, [
+                'notification' => [
+                    'title' => 'Order Payment',
+                    'body' => $this->new_order_payment_merchant_notification,
+                    'android_channel_id' => 'high_importance_channel',
+                    'icon' => 'https://img.icons8.com/external-tal-revivo-color-tal-revivo/50/000000/external-web-hyperlink-with-url-for-navigating-to-new-page-text-color-tal-revivo.png'
+                ],
+            ]);
 
         }
 
@@ -1117,7 +1150,7 @@ trait OrderTraits
                 $this->_store = $this->_location->store;
 
                 //  If this store supports sending merchant sms
-                if( $this->_store->allow_sending_merchant_sms ){
+                if( $this->_store ){
 
                     //  Set the customer name otherwise to the billing name
                     $customer_name = $this->customer->user->first_name;
@@ -1142,6 +1175,56 @@ trait OrderTraits
                     $this->new_order_merchant_sms = 'Order #'.$this->number.' received for '.$this->_store->name.' '.
                                'amount '.$grand_total.' from '. $customer_name. ' ('.$customer_mobile_number.'). '.
                                'Dial '.$main_short_code.' or download Bonako Dial2buy App.';
+
+                }
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method craft a new order payment message
+     */
+    public function craftNewOrderPaymentMerchantMessages($transaction = null)
+    {
+        try {
+
+            //  Set the location that received this order
+            $this->_location = $this->receivedLocations()->first();
+
+            if( $this->_location ){
+
+                //  Set the store that the location belongs to
+                $this->_store = $this->_location->store;
+
+                //  If this store supports sending merchant sms
+                if( $this->_store ){
+
+                    //  Payer name
+                    $payer_name = $transaction->payer->first_name;
+
+                    //  Payer mobile number
+                    $payer_mobile_number = $transaction->payer->mobile_number['number'];
+
+                    //  Set the main short code
+                    $main_short_code = '*'.config('app.MAIN_SHORT_CODE').'#';
+
+                    //  Set the amount
+                    $amount = $transaction->amount['currency_money'];
+
+                    //  Craft the notification message
+                    $this->new_order_payment_merchant_notification = 'Amount '.$amount .' paid to '.$this->_store->name.' for Order #'.$this->number.
+                                                             ' by '.$payer_name.' ('.$payer_mobile_number.')';
+
+                    //  Craft the sms message
+                    $this->new_order_payment_merchant_sms = 'Amount '.$amount .' paid to '.$this->_store->name.' for Order #'.$this->number.
+                                                    ' by '.$payer_name.' ('.$payer_mobile_number.'). '.
+                                                    'Dial '.$main_short_code.' or download Bonako Dial2buy App.';
 
                 }
 
@@ -1678,11 +1761,17 @@ trait OrderTraits
 
                 }
 
+                //  Craft the payment notification messages
+                $this->craftNewOrderPaymentMerchantMessages($transaction);
+
+                //  Send the location users a payment notification
+                $this->sendNewOrderPaymentMerchantMobileAppNotification();
+
                 //  Send the payment confirmation sms
                 $this->sendPaymentConfirmationSms($user);
 
                 //  Return the current order instance
-                return $this->fresh();
+                return $this->fresh()->load('transactions');
 
             }
 

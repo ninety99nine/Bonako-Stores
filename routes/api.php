@@ -33,7 +33,7 @@ Route::get('/pay', function(Request $request){
     auth('api')->setUser($user);
 
     return \App\Order::find(3)->payResource([
-        'transaction_id' => 4,
+        'transaction_id' => 5,
         'payment_method_id' => 1,
     ], $user);
 
