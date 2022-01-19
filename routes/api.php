@@ -1,14 +1,38 @@
 <?php
 
+use App\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Schema;
-
-use App\Subscription;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
+
+
+/**
+ *  When accessing the API routes from POSTMAN we are able to receive a response, however when we
+ *  try to run the same requests from our Flutter Progressive Web App we get a CORS error:
+ *
+ *  "No 'Access-Control-Allow-Origin' header is present on the requested resource"
+ *
+ *  I tried using "fruitcake/laravel-cors" from "https://github.com/fruitcake/laravel-cors",
+ *  since i usually get CORS related issues fixed with this package, but for some reason it
+ *  did not work even after trying many solutions/approaches.
+ *
+ *  I resorted setting the headers manually below, whic fixed the issue. I got this solution
+ *  from a stackoverflow discussion.
+ *
+ *  Refer to: https://stackoverflow.com/questions/67251985/laravel-production-cors-no-access-control-allow-origin-header
+ */
+header('Access-Control-Allow-Origin:  *');
+header('Access-Control-Allow-Methods:  POST, GET, OPTIONS, PUT, PATCH, DELETE');
+header('Access-Control-Allow-Headers: Accept, Content-Type, X-Auth-Token, Origin, Authorization');
+
+
+
 
 Route::get('/notify', function(Request $request){
+
+    return config('cors');
 
     //  Login using the given user account
     $user = auth()->loginUsingId(\App\User::find(1)->id);
