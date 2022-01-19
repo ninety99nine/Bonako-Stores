@@ -1597,14 +1597,6 @@ trait OrderTraits
                     //  Update the order status as "Delivered"
                     $this->setDeliveryStatusToDelivered();
 
-                    //  If the order is not paid
-                    if( !$this->is_paid ){
-
-                        //  Update the order status as "Paid"
-                        $this->setPaymentStatusToPaid();
-
-                    }
-
                     //  Update the customer conversion totals
                     $this->createOrUpdateResourceCustomer(null, $this->customer->user, true);
 

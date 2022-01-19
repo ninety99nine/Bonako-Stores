@@ -61,7 +61,7 @@ Route::get('/order', function(Request $request){
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::get('/subscription', function(Request $request){
+Route::get('/reset', function(Request $request){
 
     /******************************
      *  CLEAR CACHE               *
@@ -112,230 +112,236 @@ Route::get('/subscription', function(Request $request){
 
     Schema::enableForeignKeyConstraints(); //  Enable on Foreign key checks
 
-    //  Create a user account
-    $merchant_user = \App\User::create([
-        'first_name' => 'Julian',
-        'last_name' => 'Tabona',
-        'account_type' => 'basic',
-        'mobile_number' => '26772882239',
-        'accepted_terms_and_conditions' => true,
-        'mobile_number_verified_at' => \Carbon\Carbon::now(),
-        'password' => \Illuminate\Support\Facades\Hash::make('QWEasd'),
-        'firebase_device_tokens' => [
-            'fxOBPbwQTG2-nuiBopeNZP:APA91bE84NSXOslH_jSa45bAPrvYYPUA4t2Qm8PGpeXj1rqt00NEkZ6n7kDz5dO-I93-oMK-qyEhw5i8rRT9OJXDfyRKNWB0lJ9tt12yswNd7ZuNr9qLtd4WPI1j--8buoRGiSpdbYaX',
-            'djaCaRGp3kf6mtdTA627Rb:APA91bEjvEV-zBn7ykgS5hDZSoRTHCiKe_Bn_nta4J4vAegRQ_Q0NtQE93_Pe2GDDkSNv0y-DHGzxfjMSBtTSB0gEsPKDBrcndaTDnRltD_-40hmPvRFL9ey7zG8nE6quTAKN39l_rvz'
-        ]
-    ]);
+    if($request->input('create-resources') == 'true'){
 
-    //  Create a user account
-    $customer_user = \App\User::create([
-        'first_name' => 'Bonolo',
-        'last_name' => 'Sesiane',
-        'account_type' => 'basic',
-        'mobile_number' => '26777479083',
-        'accepted_terms_and_conditions' => true,
-        'mobile_number_verified_at' => \Carbon\Carbon::now(),
-        'password' => \Illuminate\Support\Facades\Hash::make('QWEasd'),
-    ]);
+        //  Create a user account
+        $merchant_user = \App\User::create([
+            'first_name' => 'Julian',
+            'last_name' => 'Tabona',
+            'account_type' => 'basic',
+            'mobile_number' => '26772882239',
+            'accepted_terms_and_conditions' => true,
+            'mobile_number_verified_at' => \Carbon\Carbon::now(),
+            'password' => \Illuminate\Support\Facades\Hash::make('QWEasd'),
+            'firebase_device_tokens' => [
+                'fxOBPbwQTG2-nuiBopeNZP:APA91bE84NSXOslH_jSa45bAPrvYYPUA4t2Qm8PGpeXj1rqt00NEkZ6n7kDz5dO-I93-oMK-qyEhw5i8rRT9OJXDfyRKNWB0lJ9tt12yswNd7ZuNr9qLtd4WPI1j--8buoRGiSpdbYaX',
+                'djaCaRGp3kf6mtdTA627Rb:APA91bEjvEV-zBn7ykgS5hDZSoRTHCiKe_Bn_nta4J4vAegRQ_Q0NtQE93_Pe2GDDkSNv0y-DHGzxfjMSBtTSB0gEsPKDBrcndaTDnRltD_-40hmPvRFL9ey7zG8nE6quTAKN39l_rvz'
+            ]
+        ]);
 
-    //  Login using the given user account
-    $merchant_user = auth()->loginUsingId($merchant_user->id);
+        //  Create a user account
+        $customer_user = \App\User::create([
+            'first_name' => 'Bonolo',
+            'last_name' => 'Sesiane',
+            'account_type' => 'basic',
+            'mobile_number' => '26777479083',
+            'accepted_terms_and_conditions' => true,
+            'mobile_number_verified_at' => \Carbon\Carbon::now(),
+            'password' => \Illuminate\Support\Facades\Hash::make('QWEasd'),
+        ]);
 
-    //  Set the user auth instance
-    auth('api')->setUser($merchant_user);
+        //  Login using the given user account
+        $merchant_user = auth()->loginUsingId($merchant_user->id);
 
-    /******************************
-     *  CREATE A NEW STORE        *
-     *****************************/
-    $store = (new \App\Store())->createResource([
-        'name' => 'Veggie Store',
-        'online' => true,
-        'hex_color' => '2D8CF0',
-        'location' => [
+        //  Set the user auth instance
+        auth('api')->setUser($merchant_user);
+
+        /******************************
+         *  CREATE A NEW STORE        *
+         *****************************/
+        $store = (new \App\Store())->createResource([
+            'name' => 'Veggie Store',
             'online' => true,
-            'call_to_action' => 'Buy veggies',
-        ],
-        'allow_sending_merchant_sms' => true,
-        'offline_message' => 'Sorry, we are currently offline',
-    ], $merchant_user);
-
-    /******************************
-     *  SUBSCRIBE TO NEW STORE    *
-     *****************************/
-    $store_subscription = $store->generateResourceSubscription([
-        'subscription_plan_id' => 3,
-        'payment_method_id' => 1
-    ], $merchant_user);
-
-    /***********************************************
-     *  INVITE USER TO THE STORE (AS TEAM MEMBER)  *
-     ***********************************************/
-    $merchant_store_subscription = $store->locations()->first()->assignUserAsTeamMember([
-        'mobile_numbers' => ['26777479083'],
-        //  Grant a few permissions
-        'permissions' => ['manage-coupons', 'manage-products', 'manage-customers']
-    ]);
-
-    /*********************************************
-     *  SUBSCRIBE TO NEW STORE (INVITED USER)    *
-     *********************************************/
-    $customer_store_subscription = $store->generateResourceSubscription([
-        'subscription_plan_id' => 3,
-        'payment_method_id' => 1
-    ], $customer_user);
-
-    /******************************
-     *  CREATE A NEW PRODUCT      *
-     *****************************/
-    $product = (new \App\Product())->createResource([
-        'active' => true,
-        'name' => 'Product 1',
-        'product_type_id' => 1,
-        'description' => 'This is Product 1',
-        'unit_regular_price' => '100',
-        'location_id' => 1
-    ], $merchant_user);
-
-    $product = (new \App\Product())->createResource([
-        'active' => true,
-        'name' => 'Product 2',
-        'product_type_id' => 1,
-        'description' => 'This is Product 2',
-        'unit_regular_price' => '200',
-        'unit_sale_price' => '150',     //  Add sale
-        'location_id' => 1
-    ], $merchant_user);
-
-    /******************************
-     *  CREATE A NEW COUPON       *
-     *****************************/
-    $product = (new \App\Coupon())->createResource([
-        'active' => true,
-        'name' => '10% Off',
-        'description' => 'Discount by 10%',
-        'discount_rate_type' => 'percentage',
-        'percentage_rate' => '10',
-        'apply_discount' => true,
-
-        //  Activation type
-        'activation_type' => 0, //  Use code
-
-        //  Activation rules
-        'allow_discount_on_new_customer' => true,
-
-        'location_id' => 1
-    ], $merchant_user);
-
-    /******************************
-     *  CREATE A NEW CART         *
-     *****************************/
-
-    $cart = (new \App\Cart())->createResource([
-        'items' => [
-            [
-                'id' => 1,
-                'quantity' => 2
+            'hex_color' => '2D8CF0',
+            'location' => [
+                'online' => true,
+                'call_to_action' => 'Buy veggies',
             ],
-            [
-                'id' => 2,
-                'quantity' => 4
-            ]
-        ],
-        'location_id' => 1
-    ], null, $merchant_user);
+            'allow_sending_merchant_sms' => true,
+            'offline_message' => 'Sorry, we are currently offline',
+        ], $merchant_user);
 
-    $cart_2 = (new \App\Cart())->createResource([
-        'items' => [
-            [
-                'id' => 1,
-                'quantity' => 3
+        /******************************
+         *  SUBSCRIBE TO NEW STORE    *
+         *****************************/
+        $store_subscription = $store->generateResourceSubscription([
+            'subscription_plan_id' => 3,
+            'payment_method_id' => 1
+        ], $merchant_user);
+
+        /***********************************************
+         *  INVITE USER TO THE STORE (AS TEAM MEMBER)  *
+         ***********************************************/
+        $merchant_store_subscription = $store->locations()->first()->assignUserAsTeamMember([
+            'mobile_numbers' => ['26777479083'],
+            //  Grant a few permissions
+            'permissions' => ['manage-coupons', 'manage-products', 'manage-customers']
+        ]);
+
+        /*********************************************
+         *  SUBSCRIBE TO NEW STORE (INVITED USER)    *
+         *********************************************/
+        $customer_store_subscription = $store->generateResourceSubscription([
+            'subscription_plan_id' => 3,
+            'payment_method_id' => 1
+        ], $customer_user);
+
+        /******************************
+         *  CREATE A NEW PRODUCT      *
+         *****************************/
+        $product = (new \App\Product())->createResource([
+            'active' => true,
+            'name' => 'Product 1',
+            'product_type_id' => 1,
+            'description' => 'This is Product 1',
+            'unit_regular_price' => '100',
+            'location_id' => 1
+        ], $merchant_user);
+
+        $product = (new \App\Product())->createResource([
+            'active' => true,
+            'name' => 'Product 2',
+            'product_type_id' => 1,
+            'description' => 'This is Product 2',
+            'unit_regular_price' => '200',
+            'unit_sale_price' => '150',     //  Add sale
+            'location_id' => 1
+        ], $merchant_user);
+
+        /******************************
+         *  CREATE A NEW COUPON       *
+         *****************************/
+        $product = (new \App\Coupon())->createResource([
+            'active' => true,
+            'name' => '10% Off',
+            'description' => 'Discount by 10%',
+            'discount_rate_type' => 'percentage',
+            'percentage_rate' => '10',
+            'apply_discount' => true,
+
+            //  Activation type
+            'activation_type' => 0, //  Use code
+
+            //  Activation rules
+            'allow_discount_on_new_customer' => true,
+
+            'location_id' => 1
+        ], $merchant_user);
+
+        /******************************
+         *  CREATE A NEW CART         *
+         *****************************/
+
+        $cart = (new \App\Cart())->createResource([
+            'items' => [
+                [
+                    'id' => 1,
+                    'quantity' => 2
+                ],
+                [
+                    'id' => 2,
+                    'quantity' => 4
+                ]
             ],
-            [
-                'id' => 2,
-                'quantity' => 5
-            ]
-        ],
-        'coupons' => [
-            [
-                'id' => 1
-            ]
-        ],
-        'location_id' => 1
-    ], null, $merchant_user);
+            'location_id' => 1
+        ], null, $merchant_user);
 
-    $cart_3 = (new \App\Cart())->createResource([
-        'items' => [
-            [
-                'id' => 1,
-                'quantity' => 1
+        $cart_2 = (new \App\Cart())->createResource([
+            'items' => [
+                [
+                    'id' => 1,
+                    'quantity' => 3
+                ],
+                [
+                    'id' => 2,
+                    'quantity' => 5
+                ]
             ],
-            [
-                'id' => 2,
-                'quantity' => 3
-            ]
-        ],
-        'coupons' => [
-            [
-                'id' => 1
-            ]
-        ],
-        'location_id' => 1
-    ], null, $customer_user);
-
-    /**********************************
-     *  CREATE A NEW ORDER FROM CART  *
-     *********************************/
-
-    $order = (new \App\Order())->createResource([
-        'cart_id' => $cart->id
-    ], $merchant_user);
-
-    $order_2 = (new \App\Order())->createResource([
-        'cart_id' => $cart_2->id
-    ], $merchant_user);
-
-    $order_3 = (new \App\Order())->createResource([
-        'cart_id' => $cart_3->id
-    ], $customer_user);
-
-    /**********************************
-     *  CREATE A NEW INSTANT CART     *
-     *********************************/
-
-    $instant_cart = (new \App\InstantCart())->createResource([
-        'active' => true,
-        'name' => 'Summer Combo Deal',
-        'description' => 'Get your fruit combo deal',
-        'items' => [
-            [
-                'id' => 1,
-                'quantity' => 2
+            'coupons' => [
+                [
+                    'id' => 1
+                ]
             ],
-            [
-                'id' => 2,
-                'quantity' => 4
-            ]
-        ],
-        'coupons' => [
-            [
-                'id' => 1
-            ]
-        ],
-        'allow_free_delivery' => true,
-        'allow_stock_management' => true,
-        'stock_quantity' => 10,
-        'location_id' => 1,
-    ], $merchant_user);
+            'location_id' => 1
+        ], null, $merchant_user);
 
-    /*************************************
-     *  SUBSCRIBE TO NEW INSTANT CART    *
-     ************************************/
-    $instant_cart_subscription = $instant_cart->generateResourceSubscription([
-        'subscription_plan_id' => 3,
-        'payment_method_id' => 1
-    ], $merchant_user);
+        $cart_3 = (new \App\Cart())->createResource([
+            'items' => [
+                [
+                    'id' => 1,
+                    'quantity' => 1
+                ],
+                [
+                    'id' => 2,
+                    'quantity' => 3
+                ]
+            ],
+            'coupons' => [
+                [
+                    'id' => 1
+                ]
+            ],
+            'location_id' => 1
+        ], null, $customer_user);
 
-    return $instant_cart_subscription;
+        /**********************************
+         *  CREATE A NEW ORDER FROM CART  *
+         *********************************/
+
+        $order = (new \App\Order())->createResource([
+            'cart_id' => $cart->id
+        ], $merchant_user);
+
+        $order_2 = (new \App\Order())->createResource([
+            'cart_id' => $cart_2->id
+        ], $merchant_user);
+
+        $order_3 = (new \App\Order())->createResource([
+            'cart_id' => $cart_3->id
+        ], $customer_user);
+
+        /**********************************
+         *  CREATE A NEW INSTANT CART     *
+         *********************************/
+
+        $instant_cart = (new \App\InstantCart())->createResource([
+            'active' => true,
+            'name' => 'Summer Combo Deal',
+            'description' => 'Get your fruit combo deal',
+            'items' => [
+                [
+                    'id' => 1,
+                    'quantity' => 2
+                ],
+                [
+                    'id' => 2,
+                    'quantity' => 4
+                ]
+            ],
+            'coupons' => [
+                [
+                    'id' => 1
+                ]
+            ],
+            'allow_free_delivery' => true,
+            'allow_stock_management' => true,
+            'stock_quantity' => 10,
+            'location_id' => 1,
+        ], $merchant_user);
+
+        /*************************************
+         *  SUBSCRIBE TO NEW INSTANT CART    *
+         ************************************/
+        $instant_cart_subscription = $instant_cart->generateResourceSubscription([
+            'subscription_plan_id' => 3,
+            'payment_method_id' => 1
+        ], $merchant_user);
+
+        return $instant_cart_subscription;
+
+    }
+
+    return 'DATABASE RESET';
 
 });
 
