@@ -1708,7 +1708,34 @@ trait OrderTraits
     /**
      *  This method pays for an order
      */
-    public function payResource($data = [], $user = null)
+    public function markAsPaidResource($data = [], $user = null)
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            $data = array_merge($data, [
+
+                //  Set the current user as the user marking this order as paid
+                'marked_as_paid_user_id' => $user->id
+
+            ]);
+
+            return $this->payResource($data, $user, 'transaction');
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+
+    }
+
+    /**
+     *  This method pays for an order
+     */
+    public function payResource($data = [], $user = null, $return = 'order')
     {
         try {
 
@@ -1718,8 +1745,19 @@ trait OrderTraits
             //  Set the transaction id
             $transaction_id = $data['transaction_id'] ?? null;
 
-            //  Get the matching transaction
-            $transaction = $this->transactions()->where('id', $transaction_id)->first();
+            //  If we have the transaction id
+            if( $transaction_id ){
+
+                //  Get the matching transaction
+                $transaction = $this->transactions()->where('id', $transaction_id)->first();
+
+            //  If we do not have the transaction id
+            }else{
+
+                //  Generate a new transaction
+                $transaction = $this->createResourceTransaction($data, $user);
+
+            }
 
             //  If we have a matching transaction
             if( $transaction ){
@@ -1762,8 +1800,19 @@ trait OrderTraits
                 //  Send the payment confirmation sms
                 $this->sendPaymentConfirmationSms($user);
 
-                //  Return the current order instance
-                return $this->fresh()->load('transactions');
+                //  If we must return the transaction
+                if( $return == 'transaction' ){
+
+                    //  Return the current order instance
+                    return $transaction;
+
+                //  If we must return the order
+                }else{
+
+                    //  Return the current order instance
+                    return $this->fresh()->load('transactions');
+
+                }
 
             }
 
@@ -1827,10 +1876,10 @@ trait OrderTraits
             if( isset($data['payer_mobile_number']) && !empty($data['payer_mobile_number']) ){
 
                 //  Extract the mobile number
-                $mobileNumber = $data['payer_mobile_number'];
+                $payerMobileNumber = $data['payer_mobile_number'];
 
                 //  Search the user matching the given mobile number
-                $currUser = \App\User::searchMobile($mobileNumber, true)->first();
+                $currUser = \App\User::searchMobile($payerMobileNumber, true)->first();
 
                 //  If we have a user
                 if( $currUser ){
@@ -1839,6 +1888,10 @@ trait OrderTraits
                     $payerId = $currUser->id;
 
                 }
+
+            }else{
+
+                $payerMobileNumber = null;
 
             }
 
@@ -1887,6 +1940,10 @@ trait OrderTraits
 
                 //  Set the transaction payer id (user responsible to pay)
                 'payer_id' => $payerId,
+
+                //  Set the transaction payer mobile number (mobile number of user responsible to pay)
+                //  Only if the payer id does not exist. Maybe the payer does not have an account yet
+                'payer_mobile_number' => empty($payerId) ? $payerMobileNumber : null,
 
                 //  Set the transaction description on the data
                 'description' => $description,

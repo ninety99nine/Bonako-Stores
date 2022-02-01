@@ -26,6 +26,8 @@ class CreateTransactionsTable extends Migration
 
             /*  Payer Information  */
             $table->unsignedBigInteger('payer_id')->nullable();
+            $table->string('payer_mobile_number')->nullable();
+            $table->unsignedBigInteger('marked_as_paid_user_id')->nullable();
 
             /*  Ownership Information  */
             $table->unsignedBigInteger('user_id')->nullable();

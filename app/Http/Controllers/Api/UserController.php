@@ -240,18 +240,10 @@ class UserController extends Controller
 
             $user = \App\User::searchMobile($mobile_number, true)->first();
 
-            if ($user) {
-
-                //  Return true that the account exists
-                return $user->convertToApiFormat();
-
-            }else{
-
-                return response()->json([
-                    'message' => 'User not found'
-                ], 400);
-
-            }
+            return [
+                'exists' => $user ? true : false,
+                'user' => $user ? $user->convertToApiFormat() : null
+            ];
 
         }
     }

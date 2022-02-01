@@ -27,9 +27,6 @@ header('Access-Control-Allow-Origin:  *');
 header('Access-Control-Allow-Methods:  POST, GET, OPTIONS, PUT, PATCH, DELETE');
 header('Access-Control-Allow-Headers: Accept, Content-Type, X-Auth-Token, Origin, Authorization');
 
-
-
-
 Route::get('/notify', function(Request $request){
 
     return config('cors');
@@ -575,6 +572,7 @@ Route::middleware('auth:api')->namespace('Api')->group(function () {
             Route::put('/uncancel', 'OrderController@uncancelOrder')->name('uncancel');
 
             Route::post('/payment-request', 'OrderController@sendOrderPaymentRequest')->name('payment-request');
+            Route::post('/mark-as-paid', 'OrderController@markOrderAsPaid')->name('mark-as-paid');
             Route::post('/pay', 'OrderController@payOrder')->name('pay');
 
             Route::get('/transactions', 'OrderController@getOrderTransactions')->name('transactions');

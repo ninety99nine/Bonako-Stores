@@ -88,6 +88,12 @@ class Order extends JsonResource
                     'title' => 'The POST route to send payment request to customer'
                 ],
 
+                //  Link to mark as paid
+                'bos:mark_as_paid' => [
+                    'href' => route('order-mark-as-paid', ['order_id' => $this->id]),
+                    'title' => 'The POST route to mark order as paid'
+                ],
+
                 //  Link to pay
                 'bos:pay' => [
                     'href' => route('order-pay', ['order_id' => $this->id]),

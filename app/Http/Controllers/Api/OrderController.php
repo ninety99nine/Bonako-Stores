@@ -171,11 +171,25 @@ class OrderController extends Controller
         }
     }
 
+    public function markOrderAsPaid(Request $request, $order_id)
+    {
+        try {
+
+            //  Mark order as paid
+            return (new Order())->getResource($order_id)->markAsPaidResource($request, $this->user)->convertToApiFormat();
+
+        } catch (\Exception $e) {
+
+            return help_handle_exception($e);
+
+        }
+    }
+
     public function payOrder(Request $request, $order_id)
     {
         try {
 
-            //  Send the order payment request
+            //  Pay order
             return (new Order())->getResource($order_id)->payResource($request, $this->user)->convertToApiFormat();
 
         } catch (\Exception $e) {

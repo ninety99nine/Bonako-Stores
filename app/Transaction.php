@@ -30,7 +30,8 @@ class Transaction extends Model
         'payment_method_id', 'description',
 
         /*  Payer Information  */
-        'payer_id',
+        'payer_id', 'payer_mobile_number',
+        'marked_as_paid_user_id',
 
         /*  Auth User Information  */
         'user_id',
@@ -158,4 +159,8 @@ class Transaction extends Model
         $this->attributes['amount'] = is_array($value) ? $value['amount'] : $value;
     }
 
+    public function setPayerMobileNumberAttribute($value)
+    {
+        $this->attributes['payer_mobile_number'] = empty($value) ? null : (new MobileVerification)->convertMobileToMsisdn($value);
+    }
 }
